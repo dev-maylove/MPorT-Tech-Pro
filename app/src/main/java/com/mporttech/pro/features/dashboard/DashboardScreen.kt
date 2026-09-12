@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
