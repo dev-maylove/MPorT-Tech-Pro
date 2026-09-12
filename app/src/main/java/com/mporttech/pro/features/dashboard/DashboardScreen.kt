@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.mporttech.pro.features.tools.LiveNetworkInfo
+import com.mporttech.pro.ui.i18n.t
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -105,7 +106,7 @@ fun DashboardScreen(nav: NavController) {
                         letterSpacing = 1.sp
                     )
                     Text(
-                        "Network Intelligence & Technician Tools",
+                        t("dash.subtitle"),
                         fontSize = 9.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -130,7 +131,7 @@ fun DashboardScreen(nav: NavController) {
         item { DashboardOverview(nav) }
         item {
             Text(
-                "BANDWIDTH USAGE",
+                t("dash.bandwidth"),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
@@ -139,7 +140,7 @@ fun DashboardScreen(nav: NavController) {
         item { BandwidthCard() }
         item {
             Text(
-                "QUICK ACCESS",
+                t("dash.quick_access"),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
@@ -238,7 +239,7 @@ private fun NetworkHealthCard() {
     ) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Network Health", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text(t("dash.network_health"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Spacer(Modifier.weight(1f))
                 Text(
                     if (link.online) link.transport else "Offline",
@@ -330,11 +331,11 @@ private fun BandwidthCard() {
             Row {
                 Column(Modifier.weight(1f)) {
                     Text(String.format("%.1f Mbps", rx), fontWeight = FontWeight.Bold)
-                    Text("Download (RX)", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t("dash.download"), fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Column(Modifier.weight(1f)) {
                     Text(String.format("%.1f Mbps", tx), fontWeight = FontWeight.Bold, color = Color(0xFFB680FF))
-                    Text("Upload (TX)", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t("dash.upload"), fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -348,7 +349,7 @@ private fun BandwidthCard() {
             )
             Spacer(Modifier.height(7.dp))
             Text(
-                "Live TrafficStats sample (~1s)",
+                t("dash.live_traffic"),
                 fontSize = 9.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

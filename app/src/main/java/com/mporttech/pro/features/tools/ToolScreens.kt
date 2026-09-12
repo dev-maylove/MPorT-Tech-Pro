@@ -47,6 +47,10 @@ import com.mporttech.pro.features.wifi.WifiScanSnapshot
 import com.mporttech.pro.features.wifi.WifiNetworkInfo
 import com.mporttech.pro.ui.theme.LocalThemeMode
 import com.mporttech.pro.ui.theme.ThemeMode
+import com.mporttech.pro.ui.i18n.AppLanguage
+import com.mporttech.pro.ui.i18n.LocalAppLanguage
+import com.mporttech.pro.ui.i18n.saveLanguage
+import com.mporttech.pro.ui.i18n.t
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -96,7 +100,7 @@ fun NetworkMonitorScreen(nav: NavController) {
         }
     }
 
-    Page("Network Monitor", Icons.Default.NetworkCheck, nav) {
+    Page(t("screen.network_monitor"), Icons.Default.NetworkCheck, nav) {
         InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
         when (selectedTab) {
             0 -> {
@@ -183,7 +187,7 @@ fun NetworkMonitorScreen(nav: NavController) {
                                 }
                             }
                         }
-                    ) { Text(if (scanning) "…" else "SCAN") }
+                    ) { Text(if (scanning) "…" else t("common.scan")) }
                 }
                 if (devices.isEmpty() && !scanning) {
                     CardBlock("Belum ada data") {
@@ -959,11 +963,11 @@ fun DeviceManagerScreen(nav: NavController) {
         else -> devices
     }
 
-    Page("Device Manager", Icons.Default.Storage, nav) {
+    Page(t("screen.device_manager"), Icons.Default.Storage, nav) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = authorized, onCheckedChange = { authorized = it })
             Text(
-                "Saya berwenang scan LAN privat (RFC1918)",
+                t("net.authorize_scan"),
                 fontSize = 12.sp,
                 modifier = Modifier.clickable { authorized = !authorized }
             )
@@ -973,7 +977,7 @@ fun DeviceManagerScreen(nav: NavController) {
                 enabled = !scanning,
                 onClick = {
                     if (!authorized) {
-                        Toast.makeText(context, "Centang otorisasi dulu", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, t("net.authorize_first"), Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     scanning = true
@@ -991,7 +995,7 @@ fun DeviceManagerScreen(nav: NavController) {
                     }
                 },
                 modifier = Modifier.weight(1f)
-            ) { Text(if (scanning) "SCANNING…" else "SCAN LAN") }
+            ) { Text(if (scanning) t("common.loading") else t("net.scan_lan")) }
             OutlinedButton(
                 onClick = {
                     val snap = LiveNetworkInfo.snapshot(context)
@@ -1080,7 +1084,7 @@ fun DeviceDetailScreen(nav: NavController? = null) {
         busy = false
     }
 
-    Page("Detail Perangkat", Icons.Default.Router, nav) {
+    Page(t("screen.device_detail"), Icons.Default.Router, nav) {
         CardBlock("$name     ${if (online) "Online" else "Offline"}") {
             Text(ip, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
             Text(
@@ -1197,9 +1201,9 @@ fun AlertsScreen(nav: NavController) {
         }
     }
 
-    Page("Alerts", Icons.Default.Notifications, nav) {
+    Page(t("screen.alerts"), Icons.Default.Notifications, nav) {
         Text(
-            "Live dari status perangkat (bukan server cloud)",
+            t("alert.live_source"),
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1215,7 +1219,7 @@ fun AlertsScreen(nav: NavController) {
                 link = LiveNetworkInfo.snapshot(context)
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("REFRESH STATUS") }
+        ) { Text(t("alert.refresh")) }
     }
 }
 
@@ -1225,7 +1229,7 @@ private data class AlertItem(val title: String, val detail: String, val time: St
 fun AlertDetailScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val link = remember { LiveNetworkInfo.snapshot(context) }
-    Page("Detail Alert", Icons.Default.Notifications, nav) {
+    Page(t("screen.alert_detail"), Icons.Default.Notifications, nav) {
         CardBlock(SelectedDeviceStore.name) {
             Text(
                 "Sumber  status lokal perangkat\n" +
@@ -1256,9 +1260,9 @@ fun AlertDetailScreen(nav: NavController? = null) {
 
 @Composable
 fun JobsScreen(nav: NavController) {
-    Page("Jobs / Work Orders", Icons.Default.Build, nav) {
+    Page(t("screen.jobs"), Icons.Default.Build, nav) {
         Text(
-            "Work order lapangan terintegrasi dengan modul Tickets lokal (Room).",
+            t("jobs.intro"),
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1280,7 +1284,7 @@ fun JobsScreen(nav: NavController) {
                 }
             }
         }
-        CardBlock("Alur teknisi") {
+        CardBlock(t("jobs.flow")) {
             Text(
                 "1. Ambil tiket di Tickets\n" +
                     "2. Verifikasi link di Network Monitor\n" +
@@ -1565,7 +1569,7 @@ fun ProfileScreen(nav: NavController) {
     var serverPort by remember { mutableStateOf("443") }
     var pinEnabled by remember { mutableStateOf(true) }
 
-    Page("Profile & Settings", Icons.Default.Person, nav) {
+    Page(t("screen.profile"), Icons.Default.Person, nav) {
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -1598,32 +1602,51 @@ fun ProfileScreen(nav: NavController) {
             }
         }
 
-        SettingsRow("Edit Profile", Icons.Default.Person) { showEditProfile = true }
-        SwitchRow("Dark Mode", Icons.Default.DarkMode, darkMode) {
+        SettingsRow(t("profile.edit"), Icons.Default.Person) { showEditProfile = true }
+        SwitchRow(t("common.dark_mode"), Icons.Default.DarkMode, darkMode) {
             darkMode = it
             themeModeState.value = if (it) ThemeMode.DARK else ThemeMode.LIGHT
-            Toast.makeText(context, if (it) "Dark mode aktif" else "Light mode aktif", Toast.LENGTH_SHORT).show()
         }
-        SwitchRow("Notifications", Icons.Default.Notifications, notifications) {
+        val langState = LocalAppLanguage.current
+        CardBlock(t("profile.language")) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                FilterChip(
+                    selected = langState.value == AppLanguage.INDONESIAN,
+                    onClick = {
+                        langState.value = AppLanguage.INDONESIAN
+                        saveLanguage(context, AppLanguage.INDONESIAN)
+                    },
+                    label = { Text(t("profile.language_id")) }
+                )
+                FilterChip(
+                    selected = langState.value == AppLanguage.ENGLISH,
+                    onClick = {
+                        langState.value = AppLanguage.ENGLISH
+                        saveLanguage(context, AppLanguage.ENGLISH)
+                    },
+                    label = { Text(t("profile.language_en")) }
+                )
+            }
+        }
+        SwitchRow(t("common.notifications"), Icons.Default.Notifications, notifications) {
             notifications = it
-            Toast.makeText(context, if (it) "Notifikasi aktif" else "Notifikasi dimatikan", Toast.LENGTH_SHORT).show()
         }
-        SettingsRow("Security", Icons.Default.Security) { showSecurity = true }
+        SettingsRow(t("profile.security"), Icons.Default.Security) { showSecurity = true }
         SettingsRow("MikroTik Connection", Icons.Default.Router) { nav.navigate("mikrotik") }
         SettingsRow("Server Settings", Icons.Default.Cloud) { showServer = true }
-        SettingsRow("Customers", Icons.Default.People) { nav.navigate("customers") }
+        SettingsRow(t("screen.customers"), Icons.Default.People) { nav.navigate("customers") }
         SettingsRow("Work Orders", Icons.Default.ConfirmationNumber) { nav.navigate("tickets") }
-        SettingsRow("Reports", Icons.Default.BarChart) { nav.navigate("reports") }
+        SettingsRow(t("screen.reports"), Icons.Default.BarChart) { nav.navigate("reports") }
         SettingsRow("Backup & Restore", Icons.Default.Backup) {
             Toast.makeText(context, "Backup lokal: mport_backup_${System.currentTimeMillis()}.db (simulasi)", Toast.LENGTH_LONG).show()
         }
-        SettingsRow("About MPorT Tech", Icons.Default.Info) { nav.navigate("about") }
+        SettingsRow(t("screen.about"), Icons.Default.Info) { nav.navigate("about") }
     }
 
     if (showEditProfile) {
         AlertDialog(
             onDismissRequest = { showEditProfile = false },
-            title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
+            title = { Text(t("profile.edit"), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(displayName, { displayName = it }, label = { Text("Nama") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -1639,7 +1662,7 @@ fun ProfileScreen(nav: NavController) {
                 }) { Text("Simpan") }
             },
             dismissButton = {
-                TextButton(onClick = { showEditProfile = false }) { Text("Batal") }
+                TextButton(onClick = { showEditProfile = false }) { Text(t("common.cancel")) }
             }
         )
     }
@@ -1721,10 +1744,10 @@ fun MikroTikScreen(nav: NavController? = null) {
     var openWinbox by remember { mutableStateOf(false) }
     var openWww by remember { mutableStateOf(false) }
 
-    Page("MikroTik / RouterOS", Icons.Default.Router, nav) {
-        CardBlock("Probe RouterOS (tanpa menyimpan password)") {
+    Page(t("screen.mikrotik"), Icons.Default.Router, nav) {
+        CardBlock(t("mt.probe_title")) {
             Text(
-                "Aplikasi tidak menyematkan kredensial. Uji port API/Winbox/WebFig ke host yang Anda kelola.",
+                t("mt.probe_hint"),
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1732,7 +1755,7 @@ fun MikroTikScreen(nav: NavController? = null) {
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it },
-                label = { Text("Host / IP router") },
+                label = { Text(t("mt.host")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1769,7 +1792,7 @@ fun MikroTikScreen(nav: NavController? = null) {
                 }
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if (checking) "CHECKING…" else "PROBE PORT ROUTEROS") }
+        ) { Text(if (checking) t("common.loading") else t("mt.check")) }
 
         result?.let {
             CardBlock("Hasil probe $host") {
@@ -1777,7 +1800,7 @@ fun MikroTikScreen(nav: NavController? = null) {
             }
         }
 
-        CardBlock("Checklist lapangan") {
+        CardBlock(t("mt.checklist")) {
             Text(
                 "1. Pastikan management IP reachable\n" +
                     "2. API (8728) hanya di jaringan trusted\n" +
@@ -1798,7 +1821,7 @@ fun MikroTikScreen(nav: NavController? = null) {
 fun ActivityScreen(nav: NavController? = null) {
     val context = LocalContext.current
     var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
-    Page("Activity", Icons.Default.History, nav) {
+    Page(t("screen.activity"), Icons.Default.History, nav) {
         CardBlock("Sesi perangkat saat ini") {
             Text(
                 "Transport  ${link.transport}\n" +
@@ -1825,7 +1848,7 @@ fun ActivityScreen(nav: NavController? = null) {
         OutlinedButton(
             onClick = { link = LiveNetworkInfo.snapshot(context) },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("REFRESH") }
+        ) { Text(t("common.refresh")) }
     }
 }
 
@@ -1833,8 +1856,8 @@ fun ActivityScreen(nav: NavController? = null) {
 fun SettingsScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val link = remember { LiveNetworkInfo.snapshot(context) }
-    Page("Settings", Icons.Default.Settings, nav) {
-        CardBlock("Aplikasi") {
+    Page(t("screen.settings"), Icons.Default.Settings, nav) {
+        CardBlock(t("settings.app")) {
             Text("MPorT Tech Pro", fontWeight = FontWeight.Bold)
             Text("Toolkit teknisi jaringan · data lokal on-device", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -1844,17 +1867,15 @@ fun SettingsScreen(nav: NavController? = null) {
                 fontSize = 12.sp
             )
         }
-        SettingsRow("Profile & tema", Icons.Default.Person) { nav?.navigate("profile") }
+        SettingsRow(t("screen.profile"), Icons.Default.Person) { nav?.navigate("profile") }
         SettingsRow("Pelanggan (Room)", Icons.Default.People) { nav?.navigate("customers") }
         SettingsRow("Tiket lapangan", Icons.Default.ConfirmationNumber) { nav?.navigate("tickets") }
         SettingsRow("Diagnostic", Icons.Default.NetworkCheck) { nav?.navigate("diagnostic") }
         SettingsRow("WiFi Analyzer", Icons.Default.Wifi) { nav?.navigate("wifi") }
         SettingsRow("About", Icons.Default.Info) { nav?.navigate("about") }
-        CardBlock("Privasi & keamanan") {
+        CardBlock(t("settings.privacy")) {
             Text(
-                "• Tidak ada kredensial MikroTik di APK\n" +
-                    "• Scan LAN membutuhkan konfirmasi otorisasi\n" +
-                    "• Data pelanggan/tiket hanya di database lokal",
+t("settings.privacy_body"),
                 fontSize = 12.sp,
                 lineHeight = 20.sp
             )

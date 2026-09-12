@@ -53,6 +53,11 @@ import com.mporttech.pro.ui.theme.LocalThemeMode
 import com.mporttech.pro.ui.theme.MPorTTechTheme
 import com.mporttech.pro.ui.theme.ThemeMode
 import com.mporttech.pro.ui.theme.rememberThemeModeState
+import com.mporttech.pro.ui.i18n.LocalAppLanguage
+import com.mporttech.pro.ui.i18n.loadSavedLanguage
+import com.mporttech.pro.ui.i18n.rememberAppLanguageState
+import com.mporttech.pro.ui.i18n.t
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -66,10 +71,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val context = this
             val themeModeState = rememberThemeModeState(ThemeMode.DARK)
+            val languageState = rememberAppLanguageState(loadSavedLanguage(context))
             // Read via `by` so MaterialTheme recomposes when Profile toggles dark mode
             val themeMode by themeModeState
-            CompositionLocalProvider(LocalThemeMode provides themeModeState) {
+            CompositionLocalProvider(
+                LocalThemeMode provides themeModeState,
+                LocalAppLanguage provides languageState
+            ) {
                 MPorTTechTheme(themeMode = themeMode) {
                     var showStartup by remember { mutableStateOf(true) }
                     LaunchedEffect(Unit) {

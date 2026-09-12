@@ -31,6 +31,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.mporttech.pro.ui.i18n.t
 import com.mporttech.pro.core.database.CustomerEntity
 import com.mporttech.pro.data.repository.CustomerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -272,7 +273,7 @@ fun CustomerScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("Cari nama, telepon, alamat…") },
+                placeholder = { Text(com.mporttech.pro.ui.i18n.t("customers.search")) },
                 leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF7BA3C9)) },
                 trailingIcon = {
                     if (query.isNotBlank()) {
@@ -321,7 +322,7 @@ fun CustomerScreen(
                             }
                         }
                         Spacer(Modifier.height(12.dp))
-                        Text("Belum ada pelanggan", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        Text(com.mporttech.pro.ui.i18n.t("customers.empty"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "Tekan + Tambah untuk menyimpan data pelanggan ke database lokal.",

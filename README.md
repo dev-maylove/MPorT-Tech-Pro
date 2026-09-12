@@ -77,3 +77,11 @@ git tag v1.2.3 && git push origin v1.2.3
 
 ## Security
 Use network diagnostics only on networks and systems you own or are authorized to administer. MikroTik credentials should not be embedded in the APK.
+
+
+## Language / Bahasa
+In-app bilingual UI: **Indonesia** and **English**.
+
+- Open **Profile** → **App language / Bahasa aplikasi**
+- Choice is saved on device (SharedPreferences)
+- Bottom navigation and main screens follow the selected language

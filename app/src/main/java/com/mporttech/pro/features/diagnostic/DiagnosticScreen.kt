@@ -23,6 +23,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.mporttech.pro.ui.i18n.t
 import com.mporttech.pro.core.database.DiagnosticEntity
 import com.mporttech.pro.data.repository.DiagnosticRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -136,7 +137,7 @@ fun DiagnosticScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Text(
-                        "Belum ada hasil. Jalankan ping ke host yang diizinkan.",
+                        com.mporttech.pro.ui.i18n.t("diagnostic.empty"),
                         modifier = Modifier.padding(14.dp),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

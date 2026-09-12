@@ -20,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.mporttech.pro.ui.i18n.t
 import com.mporttech.pro.features.about.AboutScreen
 import com.mporttech.pro.features.customers.CustomerScreen
 import com.mporttech.pro.features.dashboard.DashboardScreen
@@ -58,35 +59,35 @@ fun AppNavigation() {
                                 }
                             },
                             icon = Icons.Default.Home,
-                            label = "Home",
+                            label = t("nav.home"),
                             modifier = Modifier.weight(1f)
                         )
                         BottomItem(
                             selected = route == "network",
                             onClick = { nav.navigate("network") { launchSingleTop = true } },
                             icon = Icons.Default.NetworkCheck,
-                            label = "Network",
+                            label = t("nav.network"),
                             modifier = Modifier.weight(1f)
                         )
                         BottomItem(
                             selected = route == "tools",
                             onClick = { nav.navigate("tools") { launchSingleTop = true } },
                             icon = Icons.Default.Build,
-                            label = "Tools",
+                            label = t("nav.tools"),
                             modifier = Modifier.weight(1f)
                         )
                         BottomItem(
                             selected = route == "alerts",
                             onClick = { nav.navigate("alerts") { launchSingleTop = true } },
                             icon = Icons.Default.Notifications,
-                            label = "Alerts",
+                            label = t("nav.alerts"),
                             modifier = Modifier.weight(1f)
                         )
                         BottomItem(
                             selected = route == "profile",
                             onClick = { nav.navigate("profile") { launchSingleTop = true } },
                             icon = Icons.Default.Person,
-                            label = "Profile",
+                            label = t("nav.profile"),
                             modifier = Modifier.weight(1f)
                         )
                     }

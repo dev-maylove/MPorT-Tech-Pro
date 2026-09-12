@@ -31,6 +31,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.mporttech.pro.ui.i18n.t
 import com.mporttech.pro.core.database.TicketEntity
 import com.mporttech.pro.data.repository.TicketRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
