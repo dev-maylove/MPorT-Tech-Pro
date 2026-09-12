@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MPorTTechPro.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#050A14</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="windowSplashScreenAnimationDuration">700</item>
+        <item name="postSplashScreenTheme">@style/Theme.MPorTTechPro</item>
+    </style>
+</resources>
