@@ -30,15 +30,23 @@ class AuthorizedNetworkScanner {
             )
         require(startHost in 1..254 && endHost in startHost..254)
 
-        // Parallel batches for speed
-        coroutineScope {
-            (startHost..endHost).map { host ->
-                async(Dispatchers.IO) {
-                    val ip = "$normalized.$host"
-                    probe(ip, timeoutMs)
-                }
-            }.awaitAll().filter { it.reachable }
+        // Parallel in batches (avoid 254 concurrent sockets)
+        val results = ArrayList<ScanHost>()
+        val hosts = (startHost..endHost).toList()
+        val batchSize = 32
+        for (i in hosts.indices step batchSize) {
+            val batch = hosts.subList(i, minOf(i + batchSize, hosts.size))
+            val part = coroutineScope {
+                batch.map { host ->
+                    async(Dispatchers.IO) {
+                        val ip = "$normalized.$host"
+                        probe(ip, timeoutMs)
+                    }
+                }.awaitAll()
+            }
+            results.addAll(part.filter { it.reachable })
         }
+        results
     }
 
     private fun probe(ip: String, timeoutMs: Int): ScanHost {

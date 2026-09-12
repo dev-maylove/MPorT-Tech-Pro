@@ -70,7 +70,7 @@ fun NetworkMonitorScreen(nav: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Overview", "Devices", "Grafik")
+    val tabs = listOf("Ringkasan", "Perangkat", "Grafik")
     var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
     var rxMbps by remember { mutableStateOf(0.0) }
     var txMbps by remember { mutableStateOf(0.0) }
@@ -1700,7 +1700,7 @@ fun ProfileScreen(nav: NavController) {
         SettingsRow(t("screen.customers"), Icons.Default.People) { nav.navigate("customers") }
         SettingsRow("Work Order", Icons.Default.ConfirmationNumber) { nav.navigate("tickets") }
         SettingsRow(t("screen.reports"), Icons.Default.BarChart) { nav.navigate("reports") }
-        SettingsRow("Backup & Restore", Icons.Default.Backup) {
+        SettingsRow("Backup data", Icons.Default.Backup) {
             try {
                 val dbFile = context.getDatabasePath("mport_tech.db")
                 val outDir = context.getExternalFilesDir(null) ?: context.filesDir
@@ -1708,20 +1708,38 @@ fun ProfileScreen(nav: NavController) {
                 val out = java.io.File(outDir, "mport_backup_$stamp.db")
                 if (dbFile.exists()) {
                     dbFile.copyTo(out, overwrite = true)
-                    // also export session/tech roster
-                    val meta = java.io.File(outDir, "mport_backup_$stamp.json")
-                    meta.writeText(
-                        org.json.JSONObject()
-                            .put("exportedAt", stamp)
-                            .put("app", "MPorT Tech Pro")
-                            .toString()
-                    )
-                    Toast.makeText(context, "Backup disimpan:\n${out.absolutePath}", Toast.LENGTH_LONG).show()
+                    for (sfx in listOf("-wal", "-shm")) {
+                        val side = java.io.File(dbFile.path + sfx)
+                        if (side.exists()) side.copyTo(java.io.File(out.path + sfx), overwrite = true)
+                    }
+                    Toast.makeText(context, "Backup OK:\n${out.absolutePath}", Toast.LENGTH_LONG).show()
                 } else {
-                    Toast.makeText(context, "Database belum ada", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Database belum ada — buat ticket/pelanggan dulu", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Backup gagal: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+        SettingsRow("Restore data terakhir", Icons.Default.Restore) {
+            try {
+                val outDir = context.getExternalFilesDir(null) ?: context.filesDir
+                val latest = outDir.listFiles()?.filter { it.name.startsWith("mport_backup_") && it.name.endsWith(".db") }
+                    ?.maxByOrNull { it.lastModified() }
+                if (latest == null) {
+                    Toast.makeText(context, "Tidak ada file backup", Toast.LENGTH_SHORT).show()
+                } else {
+                    val dbFile = context.getDatabasePath("mport_tech.db")
+                    // close isn't available here — copy over; app restart recommended
+                    latest.copyTo(dbFile, overwrite = true)
+                    for (sfx in listOf("-wal", "-shm")) {
+                        val side = java.io.File(latest.path + sfx)
+                        val dest = java.io.File(dbFile.path + sfx)
+                        if (side.exists()) side.copyTo(dest, overwrite = true) else if (dest.exists()) dest.delete()
+                    }
+                    Toast.makeText(context, "Restore dari ${latest.name}. Restart app agar Room memuat ulang.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Restore gagal: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
         if (com.mporttech.pro.core.auth.SessionManager.isAdmin(context)) {
@@ -1730,7 +1748,8 @@ fun ProfileScreen(nav: NavController) {
         SettingsRow("Keluar", Icons.Default.ExitToApp) {
             com.mporttech.pro.core.auth.SessionManager.logout(context)
             nav.navigate("login") {
-                popUpTo(0) { inclusive = true }
+                popUpTo(nav.graph.startDestinationId) { inclusive = true }
+                launchSingleTop = true
             }
         }
         SettingsRow(t("screen.about"), Icons.Default.Info) { nav.navigate("about") }

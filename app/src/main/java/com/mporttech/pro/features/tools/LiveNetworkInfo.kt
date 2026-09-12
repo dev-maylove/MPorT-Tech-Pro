@@ -185,8 +185,40 @@ object LiveNetworkInfo {
                     kind = kind
                 )
             }
+            // ARP neighbors (local segment) even if TCP probe missed them
+            for (ip in readArpTable(base)) {
+                if (found.containsKey(ip)) continue
+                val (_, ms) = probe(ip, 400)
+                val kind = guessKind(ip, gateway)
+                found[ip] = LiveDevice(
+                    name = defaultName(kind, ip),
+                    ip = ip,
+                    online = true, // present in ARP cache
+                    latencyMs = ms,
+                    kind = kind
+                )
+            }
             found.values.sortedWith(compareByDescending<LiveDevice> { it.online }.thenBy { it.ip })
         }
+
+
+    /** Linux ARP cache — devices seen recently on local L2 segment */
+    private fun readArpTable(base: String): List<String> {
+        return try {
+            val out = mutableListOf<String>()
+            java.io.File("/proc/net/arp").forEachLine { line ->
+                val parts = line.trim().split(Regex("\\s+"))
+                if (parts.size >= 4 && parts[0].startsWith("$base.")) {
+                    val ip = parts[0]
+                    val mac = parts[3]
+                    if (mac != "00:00:00:00:00:00" && mac.contains(":")) out.add(ip)
+                }
+            }
+            out.distinct()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
 
     suspend fun measureTrafficDeltaMbps(sampleMs: Long = 1200L): Pair<Double, Double> =
         withContext(Dispatchers.IO) {
