@@ -14,7 +14,7 @@ jobs:
   build-debug:
     name: Build Debug APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -28,7 +28,11 @@ jobs:
           check-latest: true
           cache: gradle
 
-      # AGP 8.6.1 requires a compatible Gradle (not runner system Gradle 9.x).
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'tools platform-tools platforms;android-35 build-tools;35.0.0'
+
       - name: Set up Gradle 8.7
         run: |
           curl -fsSL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle-8.7-bin.zip
@@ -42,6 +46,8 @@ jobs:
         run: |
           java --version
           gradle --version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          sdkmanager --list_installed 2>/dev/null | head -20 || true
 
       - name: Build Debug APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon

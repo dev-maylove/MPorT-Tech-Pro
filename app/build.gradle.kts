@@ -15,17 +15,24 @@ val appVersionCode: Int = (project.findProperty("versionCode") as String?)
     ?: 1
 
 // ── Signing: env (CI) → keystore.properties (local) → gradle properties ──
-val keystorePropertiesFile = rootProject.file("keystore.properties")
-val keystoreProperties = java.util.Properties()
-if (keystorePropertiesFile.exists()) {
-    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+// Parse keystore.properties without java.util.Properties (avoids Kotlin DSL unresolved ref)
+val keystoreProps: Map<String, String> = run {
+    val file = rootProject.file("keystore.properties")
+    if (!file.exists()) return@run emptyMap()
+    file.readLines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+        .associate { line ->
+            val idx = line.indexOf('=')
+            line.substring(0, idx).trim() to line.substring(idx + 1).trim()
+        }
 }
 
-fun resolveSigningValue(key: String): String? =
-    System.getenv(key)
-        ?: keystoreProperties.getProperty(key)
-        ?: (project.findProperty(key) as String?)
-            ?.takeIf { it.isNotBlank() }
+fun resolveSigningValue(key: String): String? {
+    System.getenv(key)?.takeIf { it.isNotBlank() }?.let { return it }
+    keystoreProps[key]?.takeIf { it.isNotBlank() }?.let { return it }
+    return (project.findProperty(key) as? String)?.takeIf { it.isNotBlank() }
+}
 
 // Detect whether any release task is requested (so debug builds still work without keystore)
 val isReleaseTask = gradle.startParameter.taskNames.any {
@@ -73,16 +80,17 @@ android {
                     "Release signing requires KEY_PASSWORD (or keyPassword)."
                 }
 
-                val keystoreFile = file(storeFilePath!!)
+                val path: String = storeFilePath
+                val keystoreFile = file(path)
                 val resolved = if (keystoreFile.exists()) {
                     keystoreFile
                 } else {
-                    rootProject.file(storeFilePath)
+                    rootProject.file(path)
                 }
                 require(resolved.exists()) {
-                    "Keystore file not found: $storeFilePath\n" +
+                    "Keystore file not found: $path\n" +
                         "  tried: ${keystoreFile.absolutePath}\n" +
-                        "  tried: ${rootProject.file(storeFilePath).absolutePath}"
+                        "  tried: ${rootProject.file(path).absolutePath}"
                 }
 
                 storeFile = resolved
@@ -95,9 +103,9 @@ android {
                 !alias.isNullOrBlank() &&
                 !keyPass.isNullOrBlank()
             ) {
-                // Credentials present even on non-release tasks — configure for completeness
-                val keystoreFile = file(storeFilePath)
-                val resolved = if (keystoreFile.exists()) keystoreFile else rootProject.file(storeFilePath)
+                val path: String = storeFilePath
+                val keystoreFile = file(path)
+                val resolved = if (keystoreFile.exists()) keystoreFile else rootProject.file(path)
                 if (resolved.exists()) {
                     storeFile = resolved
                     storePassword = storePass
