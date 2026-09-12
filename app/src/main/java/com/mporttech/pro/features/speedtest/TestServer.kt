@@ -24,6 +24,17 @@ data class TestServer(
 ) {
     val baseUrl: String get() = "$scheme://$host"
 
+    /** UI label: server name only */
+    val displayName: String get() = name.ifBlank { sponsor }.ifBlank { host.substringBefore(":") }
+
+    /** UI subtitle: location + optional latency — no full ookla URL */
+    val displaySubtitle: String
+        get() {
+            val loc = location.ifBlank { country }
+            val lat = latencyMs?.let { " · ${it.toInt()} ms" } ?: ""
+            return if (loc.isNotBlank()) "$loc$lat" else host.substringBefore(":") + lat
+        }
+
     fun applyToConfig() {
         ServerConfig.baseUrl = baseUrl
         ServerConfig.downloadPath = downloadPath

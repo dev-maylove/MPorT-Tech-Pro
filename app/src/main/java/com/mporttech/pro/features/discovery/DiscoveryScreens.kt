@@ -1,5 +1,7 @@
 package com.mporttech.pro.features.discovery
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -58,15 +60,20 @@ fun DiscoveryHubScreen(nav: NavController) {
     var status by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        // Quick gateway + me without full scan
         scanning = true
         status = "Searching network…"
         try {
+            // Always show gateway + this device first
             nodes = DiscoveryEngine.discover(context, authorized = false)
-        } catch (_: Exception) {
+            // Then expand scan on private LAN (user is on local network)
+            status = "Searching for nearby devices…"
+            val full = DiscoveryEngine.discover(context, authorized = true)
+            if (full.isNotEmpty()) nodes = full
+            status = if (nodes.isEmpty()) "No devices found" else "${nodes.size} devices found"
+        } catch (e: Exception) {
+            status = e.message ?: "Search failed"
         }
         scanning = false
-        status = ""
     }
 
     val msgAuth = t("net.authorize_first")
@@ -548,7 +555,19 @@ fun DeviceDetailRichScreen(nav: NavController) {
             Text("Network", fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(Modifier.height(8.dp))
             InfoGroup {
-                InfoLine("IP Address", ip, valueColor = Accent)
+                InfoLine(
+                    "IP Address",
+                    ip,
+                    valueColor = Accent,
+                    onClick = {
+                        try {
+                            val url = if (80 in ports) "http://$ip/" else if (443 in ports) "https://$ip/" else "http://$ip/"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        } catch (e: Exception) {
+                            Toast.makeText(context, e.message ?: "Cannot open", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
                 InfoLine(
                     "Ping",
                     if (probing) "…" else ms?.let { "$it ms" } ?: "Timeout",
@@ -560,8 +579,38 @@ fun DeviceDetailRichScreen(nav: NavController) {
             Text("UPNP / Web", fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(Modifier.height(8.dp))
             InfoGroup {
-                InfoLine("Product Site", if (80 in ports || 443 in ports) "http://$ip/" else "—", valueColor = Accent)
-                InfoLine("Manufacturer Site", vendorSite(vendor), valueColor = Accent)
+                val product = if (80 in ports || 443 in ports) {
+                    if (443 in ports && 80 !in ports) "https://$ip/" else "http://$ip/"
+                } else "—"
+                InfoLine(
+                    "Product Site",
+                    product,
+                    valueColor = Accent,
+                    onClick = {
+                        if (product != "—") {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(product)))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, e.message ?: "Cannot open", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                )
+                val mfg = vendorSite(vendor)
+                InfoLine(
+                    "Manufacturer Site",
+                    mfg,
+                    valueColor = Accent,
+                    onClick = {
+                        if (mfg != "—" && mfg.startsWith("http")) {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(mfg)))
+                            } catch (e: Exception) {
+                                Toast.makeText(context, e.message ?: "Cannot open", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                )
             }
             Spacer(Modifier.height(12.dp))
             Text("Open Ports", fontWeight = FontWeight.Bold, color = Color.White)
@@ -610,10 +659,16 @@ private fun InfoGroup(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun InfoLine(label: String, value: String, valueColor: Color = Color.White) {
+private fun InfoLine(
+    label: String,
+    value: String,
+    valueColor: Color = Color.White,
+    onClick: (() -> Unit)? = null
+) {
     Row(
         Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {

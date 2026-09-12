@@ -41,6 +41,8 @@ import com.mporttech.pro.features.speedtest.ServerConfig
 import com.mporttech.pro.features.speedtest.ServerSelector
 import com.mporttech.pro.features.speedtest.TestServer
 import com.mporttech.pro.features.speedtest.SpeedTestEngine
+import com.mporttech.pro.features.speedtest.SpeedTestHistoryStore
+import com.mporttech.pro.features.speedtest.SpeedTestRecord
 import com.mporttech.pro.features.wifi.Band
 import com.mporttech.pro.features.wifi.WifiAnalyzer
 import com.mporttech.pro.features.wifi.WifiScanSnapshot
@@ -72,6 +74,8 @@ fun NetworkMonitorScreen(nav: NavController) {
     var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
     var rxMbps by remember { mutableStateOf(0.0) }
     var txMbps by remember { mutableStateOf(0.0) }
+    var rxHistory by remember { mutableStateOf<List<Double>>(emptyList()) }
+    var txHistory by remember { mutableStateOf<List<Double>>(emptyList()) }
     var gatewayMs by remember { mutableStateOf<Long?>(null) }
     var gatewayOk by remember { mutableStateOf(false) }
     var devices by remember { mutableStateOf<List<LiveDevice>>(emptyList()) }
@@ -89,6 +93,8 @@ fun NetworkMonitorScreen(nav: NavController) {
             val (rx, tx) = LiveNetworkInfo.measureTrafficDeltaMbps(1000)
             rxMbps = rx
             txMbps = tx
+            rxHistory = (rxHistory + rx).takeLast(30)
+            txHistory = (txHistory + tx).takeLast(30)
             refreshLink()
             val gw = link.gateway
             if (!gw.isNullOrBlank()) {
@@ -203,24 +209,31 @@ fun NetworkMonitorScreen(nav: NavController) {
                         SelectedDeviceStore.ip = d.ip
                         SelectedDeviceStore.name = d.name
                         SelectedDeviceStore.kind = d.kind
-                        nav.navigate("deviceDetail")
+                        nav.navigate("deviceDetailRich")
                     }
                 }
             }
             else -> {
-                CardBlock("Throughput sample") {
+                CardBlock("Throughput live") {
                     Text(
                         "RX ${String.format("%.2f", rxMbps)} Mbps  •  TX ${String.format("%.2f", txMbps)} Mbps",
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Peak RX ${String.format("%.2f", (rxHistory.maxOrNull() ?: 0.0))}  ·  Peak TX ${String.format("%.2f", (txHistory.maxOrNull() ?: 0.0))} Mbps",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(8.dp))
                     LinearProgressIndicator(
-                        progress = { ((rxMbps + txMbps) / 150.0).toFloat().coerceIn(0.02f, 1f) },
+                        progress = { ((rxMbps + txMbps) / 100.0).toFloat().coerceIn(0.02f, 1f) },
                         modifier = Modifier.fillMaxWidth().height(8.dp)
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Sample 1s dari TrafficStats (semua interface)",
+                        "Avg RX ${String.format("%.2f", if (rxHistory.isEmpty()) 0.0 else rxHistory.average())}  ·  samples ${rxHistory.size}",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -694,7 +707,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
     // Apply selected server to engine config
     LaunchedEffect(selected) {
         ServerSelector.select(selected)
-        status = "Server: ${selected.name} • ${selected.location}"
+        status = "${selected.displayName} • ${selected.displaySubtitle}"
     }
 
     Page("Speed Test", Icons.Default.Speed, nav) {
@@ -712,7 +725,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                 Column(Modifier.weight(1f)) {
                     Text(selected.name, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     Text(
-                        "${selected.location} • ${selected.host}",
+                        selected.displaySubtitle,
                         fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -764,7 +777,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                             modifier = Modifier.weight(1f)
                         ) { Text("DEFAULT HaaNSirO", fontSize = 10.sp) }
                     }
-                    Text("Katalog server (${catalog.size}) — resource MPorT-Tes-Speed", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Katalog server (${catalog.size})", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     catalog.take(12).forEach { s ->
                         val active = s.id == selected.id
                         Surface(
@@ -856,7 +869,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                     phase = "Ping..."
                     progress = 0.05f
                     ServerSelector.select(selected)
-                    status = "Tes ke ${selected.host}"
+                    status = "Tes ke ${selected.displayName}"
                     downloadMbps = 0.0; uploadMbps = 0.0; pingMs = 0.0; jitterMs = 0.0; lossPct = 0.0
                     scope.launch {
                         try {
@@ -893,8 +906,21 @@ fun SpeedTestScreen(nav: NavController? = null) {
                             status = "Selesai • ${result.server} • DL ${String.format(Locale.US, "%.1f", result.downloadMbps)} / UL ${String.format(Locale.US, "%.1f", result.uploadMbps)} Mbps"
                             val ts = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()).format(Date())
                             history = listOf(
-                                "$ts — ${String.format(Locale.US, "%.1f", result.downloadMbps)} / ${String.format(Locale.US, "%.1f", result.uploadMbps)} Mbps  •  ${selected.name}"
+                                "$ts — ${String.format(Locale.US, "%.1f", result.downloadMbps)} / ${String.format(Locale.US, "%.1f", result.uploadMbps)} Mbps  •  ${selected.displayName}"
                             ) + history.filterNot { it.startsWith("—") }.take(9)
+                            SpeedTestHistoryStore.add(
+                                context,
+                                SpeedTestRecord(
+                                    timestamp = System.currentTimeMillis(),
+                                    serverName = selected.displayName,
+                                    location = selected.location,
+                                    downloadMbps = result.downloadMbps,
+                                    uploadMbps = result.uploadMbps,
+                                    pingMs = result.pingMs,
+                                    jitterMs = result.jitterMs,
+                                    lossPct = result.packetLossPercent
+                                )
+                            )
                         } catch (e: SpeedTestEngine.SpeedTestCancelledException) {
                             phase = "Dibatalkan"; status = "Tes dibatalkan"
                         } catch (e: Exception) {
@@ -921,15 +947,19 @@ fun SpeedTestScreen(nav: NavController? = null) {
                 ) { Text("STOP") }
             }
         }
-        Text("History", fontWeight = FontWeight.Bold)
+        Text("History Test Speed", fontWeight = FontWeight.Bold)
         history.forEach { line ->
             val parts = line.split(" — ")
             HistoryRow(parts.getOrElse(0) { line }, parts.getOrElse(1) { "" })
         }
-        CardBlock("Resources (MPorT-Tes-Speed)") {
+        OutlinedButton(
+            onClick = { nav?.navigate("speedResults") },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Lihat semua hasil Speed Test") }
+        CardBlock("History Test Speed") {
             Text(
                 "Katalog: ${catalog.size} server\n" +
-                    "Default: ${TestServer.haansiro().host}\n" +
+                    "Default: ${TestServer.haansiro().displayName} · ${TestServer.haansiro().location}\n" +
                     "Engine: multi-thread DL ${ServerConfig.downloadThreads} / UL ${ServerConfig.uploadThreads}\n" +
                     "Paths: download • upload.php • latency.txt",
                 fontSize = 11.sp,
@@ -1011,7 +1041,7 @@ fun DeviceManagerScreen(nav: NavController) {
                         SelectedDeviceStore.ip = gw
                         SelectedDeviceStore.name = "Gateway"
                         SelectedDeviceStore.kind = "gateway"
-                        nav.navigate("deviceDetail")
+                        nav.navigate("deviceDetailRich")
                     } else {
                         Toast.makeText(context, "Gateway tidak terdeteksi", Toast.LENGTH_SHORT).show()
                     }
@@ -1038,7 +1068,7 @@ fun DeviceManagerScreen(nav: NavController) {
                 SelectedDeviceStore.ip = d.ip
                 SelectedDeviceStore.name = d.name
                 SelectedDeviceStore.kind = d.kind
-                nav.navigate("deviceDetail")
+                nav.navigate("deviceDetailRich")
             }
         }
     }

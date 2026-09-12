@@ -28,6 +28,7 @@ import com.mporttech.pro.features.discovery.DiscoveryHubScreen
 import com.mporttech.pro.features.discovery.SignalHubScreen
 import com.mporttech.pro.features.discovery.LatencyHubScreen
 import com.mporttech.pro.features.discovery.DeviceDetailRichScreen
+import com.mporttech.pro.features.speedtest.SpeedTestResultsScreen
 import com.mporttech.pro.features.diagnostic.DiagnosticScreen
 import com.mporttech.pro.features.networktools.DnsLookupScreen
 import com.mporttech.pro.features.networktools.PingToolScreen
@@ -133,6 +134,7 @@ fun AppNavigation() {
             composable("signalHub") { SignalHubScreen(nav) }
             composable("latencyHub") { LatencyHubScreen(nav) }
             composable("deviceDetailRich") { DeviceDetailRichScreen(nav) }
+            composable("speedResults") { SpeedTestResultsScreen(nav) }
         }
     }
 }

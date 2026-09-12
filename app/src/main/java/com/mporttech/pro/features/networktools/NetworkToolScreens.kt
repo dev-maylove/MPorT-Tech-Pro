@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 
 // ─────────────────────────────────────────────────────────────
 // Shared premium chrome
@@ -237,6 +238,7 @@ fun PingToolScreen(nav: NavController? = null) {
     var host by remember { mutableStateOf("8.8.8.8") }
     var count by remember { mutableStateOf(4) }
     var running by remember { mutableStateOf(false) }
+    val runFlag = remember { AtomicBoolean(false) }
     var samples by remember { mutableStateOf<List<PingSample>>(emptyList()) }
     var stats by remember { mutableStateOf(PingStats()) }
     var lastRunAt by remember { mutableStateOf<String?>(null) }
@@ -311,58 +313,71 @@ fun PingToolScreen(nav: NavController? = null) {
                 }
             }
 
-            ActionButton(
-                text = "START PING",
-                loading = running,
-                enabled = host.isNotBlank()
-            ) {
-                if (host.isBlank()) {
-                    Toast.makeText(context, "Masukkan host / IP", Toast.LENGTH_SHORT).show()
-                    return@ActionButton
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        if (running) return@Button
+                        if (host.isBlank()) {
+                            Toast.makeText(context, "Masukkan host / IP", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        running = true
+                        runFlag.set(true)
+                        samples = emptyList()
+                        stats = PingStats()
+                        scope.launch {
+                            var seq = 0
+                            val streamed = mutableListOf<PingSample>()
+                            // Continuous ping until STOP
+                            while (runFlag.get()) {
+                                seq++
+                                val summary = try {
+                                    NetworkOutputParser.ping(host, count = 1, timeoutSec = 2)
+                                } catch (_: Exception) {
+                                    null
+                                }
+                                val s = summary?.samples?.firstOrNull()
+                                val sample = if (s != null) {
+                                    PingSample(
+                                        seq = seq,
+                                        success = s.success,
+                                        latencyMs = s.timeMs?.toLong(),
+                                        message = s.raw.ifBlank {
+                                            if (s.success) "seq=$seq time=${s.timeMs} ms" else "seq=$seq timeout"
+                                        }
+                                    )
+                                } else {
+                                    PingSample(seq, false, null, "seq=$seq no response")
+                                }
+                                streamed.add(sample)
+                                // keep last 40 lines visible
+                                if (streamed.size > 40) streamed.removeAt(0)
+                                samples = streamed.toList()
+                                stats = computeStats(streamed)
+                                lastRunAt = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) +
+                                    " • continuous"
+                                delay(800)
+                            }
+                        }
+                    },
+                    enabled = host.isNotBlank() && !running,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color(0xFF001A2B))
+                ) {
+                    Text(if (running) "RUNNING…" else "START PING", fontWeight = FontWeight.Bold)
                 }
-                running = true
-                samples = emptyList()
-                stats = PingStats()
-                scope.launch {
-                    // Optimized: native ICMP parse (single process) → TCP fallback
-                    val summary = NetworkOutputParser.ping(host, count)
-                    val results = summary.samples.map { s ->
-                        PingSample(
-                            seq = s.seq,
-                            success = s.success,
-                            latencyMs = s.timeMs?.toLong(),
-                            message = s.raw
-                        )
-                    }
-                    // Stream samples for UI responsiveness
-                    val streamed = mutableListOf<PingSample>()
-                    for (s in results) {
-                        streamed.add(s)
-                        samples = streamed.toList()
-                        stats = computeStats(streamed)
-                        delay(60)
-                    }
-                    // Prefer parser-level stats when available
-                    if (summary.transmitted > 0) {
-                        stats = PingStats(
-                            sent = summary.transmitted,
-                            received = summary.received,
-                            lost = summary.transmitted - summary.received,
-                            minMs = summary.minMs?.toLong(),
-                            avgMs = summary.avgMs,
-                            maxMs = summary.maxMs?.toLong(),
-                            lossPct = summary.lossPct
-                        )
-                    }
-                    lastRunAt = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) +
-                        " • ${summary.source.uppercase()}"
-                    running = false
-                }
+                OutlinedButton(
+                    onClick = { runFlag.set(false); running = false },
+                    enabled = running,
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("STOP") }
             }
         }
 
-        // Live stats
-        AnimatedVisibility(visible = samples.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
+        // Live stats — show immediately while running or when samples exist
+        AnimatedVisibility(visible = running || samples.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
             PremiumCard {
                 Text("STATISTICS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
                 Row(
