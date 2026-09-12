@@ -29,7 +29,7 @@ jobs:
           cache: gradle
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           packages: 'tools platform-tools platforms;android-35 build-tools;35.0.0'
 
@@ -53,7 +53,7 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Upload Debug APK
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: MPorT-Tech-Pro-Debug
           path: app/build/outputs/apk/debug/*.apk
