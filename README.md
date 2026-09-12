@@ -1,4 +1,8 @@
 # MPorT Tech Pro
+
+**Architecture:** Full Core V2 (see `docs/ARCHITECTURE.md`).
+
+# MPorT Tech Pro
 Android Kotlin application for authorized WiFi/network technicians.
 
 ## Build

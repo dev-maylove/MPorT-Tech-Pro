@@ -36,6 +36,11 @@ import com.mporttech.pro.features.networktools.PortCheckerScreen
 import com.mporttech.pro.features.networktools.TracerouteScreen
 import com.mporttech.pro.features.tickets.TicketScreen
 import com.mporttech.pro.features.tools.*
+import com.mporttech.pro.features.mikrotik.presentation.MikroTikScreen
+import com.mporttech.pro.features.network.scanner.presentation.NetworkScannerScreen
+import com.mporttech.pro.features.diagnostics.ping.PingScreen
+import com.mporttech.pro.features.diagnostics.dns.DnsScreen
+import com.mporttech.pro.features.diagnostics.traceroute.TracerouteScreen as DiagnosticsTracerouteScreen
 
 @Composable
 fun AppNavigation() {
@@ -113,6 +118,7 @@ fun AppNavigation() {
             composable("wifiTools") { WifiToolsScreen(nav) }
             composable("wifi") { WifiAnalyzerScreen(nav) }
             composable("scanner") { NetworkScannerScreen(nav) }
+            composable("networkScanner") { NetworkScannerScreen(nav) }
             composable("speedtest") { SpeedTestScreen(nav) }
             composable("mikrotik") { MikroTikScreen(nav) }
             composable("activity") { ActivityScreen(nav) }
@@ -120,9 +126,9 @@ fun AppNavigation() {
             composable("tickets") { TicketScreen(nav) }
             composable("jobs") { JobsScreen(nav) }
             composable("diagnostic") { DiagnosticScreen(nav) }
-            composable("ping") { PingToolScreen(nav) }
-            composable("traceroute") { TracerouteScreen(nav) }
-            composable("dns") { DnsLookupScreen(nav) }
+            composable("ping") { PingScreen(nav) }
+            composable("traceroute") { DiagnosticsTracerouteScreen(nav) }
+            composable("dns") { DnsScreen(nav) }
             composable("portcheck") { PortCheckerScreen(nav) }
             composable("devices") { DeviceManagerScreen(nav) }
             composable("deviceDetail") { DeviceDetailScreen(nav) }

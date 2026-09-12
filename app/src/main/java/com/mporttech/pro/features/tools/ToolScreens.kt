@@ -586,7 +586,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
 }
 
 @Composable
-fun NetworkScannerScreen(nav: NavController? = null) {
+fun LegacyNetworkScannerScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var allowed by remember { mutableStateOf(false) }
@@ -1770,7 +1770,7 @@ fun ProfileScreen(nav: NavController) {
 }
 
 @Composable
-fun MikroTikScreen(nav: NavController? = null) {
+fun LegacyMikroTikScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snap = remember { LiveNetworkInfo.snapshot(context) }

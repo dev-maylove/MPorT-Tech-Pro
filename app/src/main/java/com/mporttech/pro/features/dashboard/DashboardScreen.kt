@@ -56,6 +56,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mporttech.pro.features.dashboard.DashboardViewModel
 import com.mporttech.pro.features.tools.LiveNetworkInfo
 import com.mporttech.pro.ui.i18n.t
 import kotlinx.coroutines.delay
@@ -69,7 +72,8 @@ private data class DashboardAction(
 )
 
 @Composable
-fun DashboardScreen(nav: NavController) {
+fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()) {
+    val dash by vm.uiState.collectAsStateWithLifecycle()
     val actions = listOf(
         DashboardAction("Network Monitor", "Router, latency & traffic", Icons.Default.NetworkCheck, "network"),
         DashboardAction("WiFi Tools", "Signal, channel & networks", Icons.Default.Wifi, "wifiTools"),
@@ -77,6 +81,8 @@ fun DashboardScreen(nav: NavController) {
         DashboardAction("Technician Tools", "Diagnostics & utilities", Icons.Default.Build, "tools"),
         DashboardAction("Discovery", "LAN devices · live", Icons.Default.Search, "discovery"),
         DashboardAction("Signal", "RSSI & latency hub", Icons.Default.BarChart, "signalHub"),
+        DashboardAction("MikroTik", "RouterOS session", Icons.Default.Router, "mikrotik"),
+        DashboardAction("LAN Scanner", "V2 UseCase scan", Icons.Default.Search, "networkScanner"),
         DashboardAction("Jobs", "Installation & repair tasks", Icons.Default.ConfirmationNumber, "jobs")
     )
 
@@ -130,7 +136,7 @@ fun DashboardScreen(nav: NavController) {
             }
         }
         item { TechnicianIdentityCard(nav) }
-        item { NetworkHealthCard() }
+        item { NetworkHealthCard(dash) }
         item { DashboardOverview(nav) }
         item {
             Text(
@@ -140,7 +146,7 @@ fun DashboardScreen(nav: NavController) {
                 letterSpacing = 1.sp
             )
         }
-        item { BandwidthCard() }
+        item { BandwidthCard(dash) }
         item {
             Text(
                 t("dash.quick_access"),
@@ -212,30 +218,18 @@ private fun TechnicianIdentityCard(nav: NavController) {
 }
 
 @Composable
-private fun NetworkHealthCard() {
-    val context = LocalContext.current
-    var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
-    var gwMs by remember { mutableStateOf<Long?>(null) }
-    var gwOk by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            link = LiveNetworkInfo.snapshot(context)
-            val gw = link.gateway
-            if (gw != null) {
-                val (ok, ms) = LiveNetworkInfo.probe(gw, 800)
-                gwOk = ok
-                gwMs = ms
-            }
-            delay(3000)
-        }
-    }
+private fun NetworkHealthCard(dash: DashboardUiState) {
     val score = when {
-        !link.online -> 0.15f
-        gwOk && (gwMs ?: 999) < 50 -> 0.95f
-        gwOk && (gwMs ?: 999) < 120 -> 0.8f
-        gwOk -> 0.65f
+        !dash.online -> 0.15f
+        dash.gatewayReachable && (dash.gatewayMs ?: 999) < 50 -> 0.95f
+        dash.gatewayReachable && (dash.gatewayMs ?: 999) < 120 -> 0.8f
+        dash.gatewayReachable -> 0.65f
         else -> 0.35f
     }
+    val linkOnline = dash.online
+    val gwOk = dash.gatewayReachable
+    val gwMs = dash.gatewayMs
+    val link = dash
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -315,17 +309,9 @@ private fun MiniStat(
 }
 
 @Composable
-private fun BandwidthCard() {
-    val context = LocalContext.current
-    var rx by remember { mutableStateOf(0.0) }
-    var tx by remember { mutableStateOf(0.0) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            val (r, t) = LiveNetworkInfo.measureTrafficDeltaMbps(1200)
-            rx = r
-            tx = t
-        }
-    }
+private fun BandwidthCard(dash: DashboardUiState) {
+    val rx = dash.rxMbps
+    val tx = dash.txMbps
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
