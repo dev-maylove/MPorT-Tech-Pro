@@ -93,6 +93,7 @@ fun NetworkMonitorScreen(nav: NavController) {
             val (rx, tx) = LiveNetworkInfo.measureTrafficDeltaMbps(1000)
             rxMbps = rx
             txMbps = tx
+            // Functional update avoids stale list capture
             rxHistory = (rxHistory + rx).takeLast(30)
             txHistory = (txHistory + tx).takeLast(30)
             refreshLink()
@@ -102,7 +103,8 @@ fun NetworkMonitorScreen(nav: NavController) {
                 gatewayOk = ok
                 gatewayMs = ms
             }
-            delay(2000)
+            // measureTraffic already waited ~1s; short pause before next cycle
+            delay(500)
         }
     }
 
@@ -378,17 +380,30 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
     }
 
     fun doScan(force: Boolean = false) {
-        scanning = true
-        status = if (force) "Force scan..." else "Scanning (optimized)..."
+        if (scanning) return
         permissionHint = null
+        // Instant paint from memory cache (no spinner if we already have data)
+        if (!force) {
+            analyzer.peekCache()?.let { cached ->
+                if (cached.networks.isNotEmpty()) {
+                    snapshot = cached
+                    networks = cached.networks
+                    status = "Cache • ${cached.networks.size} AP • instant"
+                }
+            }
+        }
+        scanning = true
+        status = if (force) "Force scan…" else "Refreshing…"
         scope.launch {
             try {
                 if (!analyzer.isWifiEnabled()) {
-                    status = "WiFi mati — mengaktifkan..."
+                    status = "WiFi mati — mengaktifkan…"
                     analyzer.setWifiEnabled(true)
-                    delay(600)
+                    delay(400)
                 }
-                val snap = withContext(Dispatchers.IO) { analyzer.scan(force = force) }
+                val snap = withContext(Dispatchers.IO) {
+                    analyzer.scan(force = force, preferCache = false)
+                }
                 snapshot = snap
                 networks = snap.networks
                 connected = analyzer.currentConnection()
@@ -432,8 +447,16 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
         } else doScan(force)
     }
 
-    // Auto-scan once when opened (uses cache if fresh)
+    // First frame: peek cache, then background refresh (no forced radio if cache warm)
     LaunchedEffect(Unit) {
+        analyzer.peekCache()?.let { cached ->
+            if (cached.networks.isNotEmpty()) {
+                snapshot = cached
+                networks = cached.networks
+                status = "Cache • ${cached.networks.size} AP"
+            }
+        }
+        connected = analyzer.currentConnection()
         if (hasLocationPermission()) doScan(force = false)
     }
 

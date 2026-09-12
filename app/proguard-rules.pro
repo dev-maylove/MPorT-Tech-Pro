@@ -52,3 +52,14 @@
 -keepclassmembers enum * { *; }
 
 -keep class com.mporttech.pro.features.discovery.** { *; }
+
+# Full Core V2
+-keep class com.mporttech.pro.domain.** { *; }
+-keep class com.mporttech.pro.di.** { *; }
+-keep class com.mporttech.pro.core.security.** { *; }
+-keep class com.mporttech.pro.core.network.** { *; }
+-keep class com.mporttech.pro.core.common.** { *; }
+-keep class com.mporttech.pro.features.mikrotik.** { *; }
+-keep class com.mporttech.pro.features.network.** { *; }
+-keep class com.mporttech.pro.features.diagnostics.** { *; }
+-keep class com.mporttech.pro.features.dashboard.DashboardViewModel { *; }

@@ -49,19 +49,27 @@ class NetworkScannerViewModel @Inject constructor(
     }
 
     fun quickScan() {
-        // gateway + me first, then full if authorized
         viewModelScope.launch {
-            _ui.update { it.copy(loading = true, status = "Searching nearby…") }
+            _ui.update { it.copy(loading = true, status = "Searching nearby…", error = null) }
             when (val quick = scanNetwork(false)) {
                 is Result.Success -> {
-                    _ui.update { it.copy(devices = quick.data, status = "Expanding scan…") }
+                    _ui.update {
+                        it.copy(
+                            devices = quick.data,
+                            status = if (it.authorized) "Expanding scan…" else "${quick.data.size} devices"
+                        )
+                    }
                 }
-                else -> Unit
+                is Result.Error -> {
+                    _ui.update { it.copy(loading = false, error = quick.message, status = quick.message) }
+                    return@launch
+                }
+                Result.Loading -> Unit
             }
             if (_ui.value.authorized) {
                 scan(true)
             } else {
-                _ui.update { it.copy(loading = false, status = "${_ui.value.devices.size} devices") }
+                _ui.update { it.copy(loading = false) }
             }
         }
     }

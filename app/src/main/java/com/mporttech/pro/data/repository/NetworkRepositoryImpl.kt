@@ -19,6 +19,8 @@ class NetworkRepositoryImpl @Inject constructor(
         val s = LiveNetworkInfo.snapshot(context)
         Result.Success(
             NetworkInfo(
+                online = s.online,
+                transport = s.transport,
                 ssid = s.ssid,
                 ip = s.ip,
                 gateway = s.gateway,

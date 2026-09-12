@@ -30,10 +30,7 @@ import com.mporttech.pro.features.discovery.LatencyHubScreen
 import com.mporttech.pro.features.discovery.DeviceDetailRichScreen
 import com.mporttech.pro.features.speedtest.SpeedTestResultsScreen
 import com.mporttech.pro.features.diagnostic.DiagnosticScreen
-import com.mporttech.pro.features.networktools.DnsLookupScreen
-import com.mporttech.pro.features.networktools.PingToolScreen
 import com.mporttech.pro.features.networktools.PortCheckerScreen
-import com.mporttech.pro.features.networktools.TracerouteScreen
 import com.mporttech.pro.features.tickets.TicketScreen
 import com.mporttech.pro.features.tools.*
 import com.mporttech.pro.features.mikrotik.presentation.MikroTikScreen

@@ -55,64 +55,100 @@ data class WifiScanSnapshot(
 )
 
 /**
- * Optimized WiFi analyzer:
- * - scan throttle + in-memory cache (Android rate-limits startScan)
- * - fast path: return cache if fresh, refresh in background pattern
- * - BSSID dedupe, quality scoring, channel congestion
- * - estimated link speed from RSSI / band / channel width
+ * High-performance WiFi analyzer:
+ * 1) Instant path: system scanResults / memory cache (0–20 ms)
+ * 2) Throttled startScan (Android rate-limit ~4 / 2 min)
+ * 3) Short await timeout; never block full 6s if results already present
+ * 4) Single-pass BSSID dedupe + channel stats
+ * 5) Stale-while-revalidate for UI snappiness
  */
 class WifiAnalyzer(private val context: Context) {
     private val wifi: WifiManager =
         context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
     companion object {
-        private const val CACHE_TTL_MS = 8_000L
-        private const val MIN_SCAN_INTERVAL_MS = 6_000L
-        private const val DEFAULT_TIMEOUT_MS = 6_500L
+        /** Serve memory cache without radio work */
+        private const val CACHE_TTL_MS = 12_000L
+        /** Minimum gap between startScan() calls */
+        private const val MIN_SCAN_INTERVAL_MS = 8_000L
+        /** Max wait for SCAN_RESULTS_AVAILABLE when we already have partial data */
+        private const val FAST_TIMEOUT_MS = 2_800L
+        /** Max wait on forced cold scan */
+        private const val FORCE_TIMEOUT_MS = 4_500L
         private val lastScanAt = AtomicLong(0L)
         private val cacheRef = AtomicReference<WifiScanSnapshot?>(null)
+        private val preferred24 = listOf(1, 6, 11)
+        private val preferred5 = listOf(36, 40, 44, 48, 149, 153, 157, 161)
     }
 
+    /**
+     * @param force ignore TTL and try startScan if throttle allows
+     * @param preferCache if true and cache exists, return it immediately (UI first paint)
+     */
     suspend fun scan(
         force: Boolean = false,
-        timeoutMs: Long = DEFAULT_TIMEOUT_MS
+        preferCache: Boolean = false,
+        timeoutMs: Long? = null
     ): WifiScanSnapshot = withContext(Dispatchers.IO) {
         val started = SystemClock.elapsedRealtime()
-        val now = SystemClock.elapsedRealtime()
+        val now = started
         val cached = cacheRef.get()
-        val age = cached?.let { now - lastScanAt.get() } ?: Long.MAX_VALUE
+        val age = if (cached != null) now - lastScanAt.get() else Long.MAX_VALUE
 
-        // Fast path: fresh cache
-        if (!force && cached != null && age < CACHE_TTL_MS) {
+        // 1) Prefer memory cache for instant UI
+        if (preferCache && cached != null && cached.networks.isNotEmpty()) {
             return@withContext cached.copy(fromCache = true, scanDurationMs = 0)
         }
-
-        // Throttle startScan — Android limits ~4 scans / 2 minutes on many devices
-        val sinceLast = now - lastScanAt.get()
-        val canStart = force || sinceLast >= MIN_SCAN_INTERVAL_MS
+        if (!force && cached != null && age < CACHE_TTL_MS && cached.networks.isNotEmpty()) {
+            return@withContext cached.copy(fromCache = true, scanDurationMs = 0)
+        }
 
         val connectedBssid = currentBssid()
         val connectedSsid = currentSsid()
 
-        var results: List<ScanResult> = emptyList()
-        if (canStart) {
-            results = withTimeoutOrNull(timeoutMs) { awaitScanResults() } ?: emptyList()
-            if (results.isNotEmpty()) lastScanAt.set(SystemClock.elapsedRealtime())
-        }
-        if (results.isEmpty()) {
-            results = wifi.scanResults ?: emptyList()
+        // 2) Instant system buffer (last OS scan) — often non-empty without startScan
+        @Suppress("DEPRECATION")
+        var results: List<ScanResult> = wifi.scanResults ?: emptyList()
+
+        val sinceLast = now - lastScanAt.get()
+        val throttleOk = force || sinceLast >= MIN_SCAN_INTERVAL_MS
+        val needRadio = force || results.isEmpty() || age >= CACHE_TTL_MS
+
+        if (needRadio && throttleOk) {
+            val wait = timeoutMs ?: if (results.isEmpty()) FORCE_TIMEOUT_MS else FAST_TIMEOUT_MS
+            val fresh = withTimeoutOrNull(wait) { awaitScanResults() }
+            if (!fresh.isNullOrEmpty()) {
+                results = fresh
+                lastScanAt.set(SystemClock.elapsedRealtime())
+            } else if (results.isEmpty()) {
+                // last resort: re-read system buffer after failed/timeout scan
+                @Suppress("DEPRECATION")
+                results = wifi.scanResults ?: emptyList()
+            }
+        } else if (results.isEmpty() && cached != null) {
+            return@withContext cached.copy(
+                fromCache = true,
+                scanDurationMs = SystemClock.elapsedRealtime() - started
+            )
         }
 
         val networks = mapAndEnrich(results, connectedBssid, connectedSsid)
+        if (networks.isEmpty() && cached != null) {
+            return@withContext cached.copy(
+                fromCache = true,
+                scanDurationMs = SystemClock.elapsedRealtime() - started
+            )
+        }
+
         val ch24 = buildChannelStats(networks, Band.GHZ_24)
         val ch5 = buildChannelStats(networks, Band.GHZ_5)
         val snap = WifiScanSnapshot(
             networks = networks,
             channels24 = ch24,
             channels5 = ch5,
-            recommended24 = pickBestChannel(ch24, preferred = listOf(1, 6, 11)),
-            recommended5 = pickBestChannel(ch5, preferred = listOf(36, 40, 44, 48, 149, 153, 157, 161)),
-            fromCache = results.isEmpty() && cached != null,
+            recommended24 = pickBestChannel(ch24, preferred24),
+            recommended5 = pickBestChannel(ch5, preferred5),
+            fromCache = false,
             scanDurationMs = SystemClock.elapsedRealtime() - started
         )
         if (networks.isNotEmpty()) {
@@ -121,6 +157,9 @@ class WifiAnalyzer(private val context: Context) {
         }
         snap
     }
+
+    /** Non-suspending peek for first frame (main thread safe). */
+    fun peekCache(): WifiScanSnapshot? = cacheRef.get()
 
     fun cachedSnapshot(): WifiScanSnapshot? = cacheRef.get()
 
@@ -227,48 +266,70 @@ class WifiAnalyzer(private val context: Context) {
         connectedSsid: String?
     ): List<WifiNetworkInfo> {
         if (results.isEmpty()) return emptyList()
-        // Dedupe by BSSID, keep strongest
-        val best = LinkedHashMap<String, ScanResult>(results.size)
+        // Single-pass BSSID dedupe (keep strongest RSSI)
+        val best = LinkedHashMap<String, ScanResult>(results.size * 2)
         for (r in results) {
             val key = r.BSSID ?: continue
             val prev = best[key]
             if (prev == null || r.level > prev.level) best[key] = r
         }
-        return best.values.map { result ->
+        val out = ArrayList<WifiNetworkInfo>(best.size)
+        for (result in best.values) {
             val freq = result.frequency
             val band = bandOf(freq)
             val width = channelWidthMhz(result)
             val rssi = result.level
-            val bssid = result.BSSID ?: ""
-            val ssid = result.SSID?.ifBlank { "<Hidden SSID>" } ?: "<Hidden SSID>"
-            WifiNetworkInfo(
-                ssid = ssid,
-                bssid = bssid,
-                rssiDbm = rssi,
-                frequencyMhz = freq,
-                channel = channelFromFrequency(freq),
-                security = simplifySecurity(result.capabilities ?: ""),
-                widthMhz = width,
-                band = band,
-                qualityScore = qualityFromRssi(rssi),
-                estimatedMbps = estimateMbps(rssi, band, width),
-                isConnected = (connectedBssid != null && bssid.equals(connectedBssid, true)) ||
-                    (connectedSsid != null && ssid == connectedSsid)
+            val bssid = result.BSSID.orEmpty()
+            val rawSsid = result.SSID
+            val ssid = if (rawSsid.isNullOrBlank()) "<Hidden SSID>" else rawSsid
+            val connected = when {
+                connectedBssid != null && bssid.equals(connectedBssid, ignoreCase = true) -> true
+                connectedSsid != null && ssid == connectedSsid -> true
+                else -> false
+            }
+            out.add(
+                WifiNetworkInfo(
+                    ssid = ssid,
+                    bssid = bssid,
+                    rssiDbm = rssi,
+                    frequencyMhz = freq,
+                    channel = channelFromFrequency(freq),
+                    security = simplifySecurity(result.capabilities.orEmpty()),
+                    widthMhz = width,
+                    band = band,
+                    qualityScore = qualityFromRssi(rssi),
+                    estimatedMbps = estimateMbps(rssi, band, width),
+                    isConnected = connected
+                )
             )
-        }.sortedWith(
+        }
+        out.sortWith(
             compareByDescending<WifiNetworkInfo> { it.isConnected }
                 .thenByDescending { it.rssiDbm }
         )
+        return out
     }
 
     private fun buildChannelStats(networks: List<WifiNetworkInfo>, band: Band): List<ChannelStat> {
-        val grouped = networks.filter { it.band == band }.groupBy { it.channel }
-        return grouped.map { (ch, list) ->
-            val strongest = list.maxOf { it.rssiDbm }
-            // congestion: count + strong neighbors weight
-            val congestion = min(100, list.size * 18 + max(0, strongest + 70))
-            ChannelStat(ch, band, list.size, strongest, congestion)
-        }.sortedBy { it.channel }
+        // One pass: channel -> (count, strongest)
+        val counts = HashMap<Int, Int>(16)
+        val strongestMap = HashMap<Int, Int>(16)
+        for (n in networks) {
+            if (n.band != band || n.channel < 0) continue
+            val ch = n.channel
+            counts[ch] = (counts[ch] ?: 0) + 1
+            val prev = strongestMap[ch]
+            if (prev == null || n.rssiDbm > prev) strongestMap[ch] = n.rssiDbm
+        }
+        if (counts.isEmpty()) return emptyList()
+        val out = ArrayList<ChannelStat>(counts.size)
+        for ((ch, cnt) in counts) {
+            val strongest = strongestMap[ch] ?: -100
+            val congestion = min(100, cnt * 18 + max(0, strongest + 70))
+            out.add(ChannelStat(ch, band, cnt, strongest, congestion))
+        }
+        out.sortBy { it.channel }
+        return out
     }
 
     private fun pickBestChannel(stats: List<ChannelStat>, preferred: List<Int>): Int? {

@@ -33,16 +33,26 @@ class DashboardViewModel @Inject constructor(
         if (loopJob?.isActive == true) return
         loopJob = viewModelScope.launch {
             while (true) {
-                refreshOnce()
-                // traffic sample (~1.2s)
-                val (rx, tx) = LiveNetworkInfo.measureTrafficDeltaMbps(1200)
-                _ui.update { it.copy(rxMbps = rx, txMbps = tx) }
+                try {
+                    refreshOnce()
+                    val (rx, tx) = LiveNetworkInfo.measureTrafficDeltaMbps(1200)
+                    _ui.update { it.copy(rxMbps = rx, txMbps = tx) }
+                } catch (e: Exception) {
+                    _ui.update { it.copy(error = e.message, loading = false) }
+                    delay(2000)
+                }
             }
         }
     }
 
     fun refresh() {
-        viewModelScope.launch { refreshOnce() }
+        viewModelScope.launch {
+            try {
+                refreshOnce()
+            } catch (e: Exception) {
+                _ui.update { it.copy(error = e.message, loading = false) }
+            }
+        }
     }
 
     private suspend fun refreshOnce() {
@@ -52,7 +62,7 @@ class DashboardViewModel @Inject constructor(
                 var gwMs: Long? = null
                 var gwOk = false
                 val gw = n.gateway
-                if (!gw.isNullOrBlank()) {
+                if (!gw.isNullOrBlank() && n.online) {
                     val (ok, ms) = LiveNetworkInfo.probe(gw, 800)
                     gwOk = ok
                     gwMs = ms
@@ -60,8 +70,8 @@ class DashboardViewModel @Inject constructor(
                 _ui.update {
                     it.copy(
                         loading = false,
-                        online = n.ip != null,
-                        transport = if (n.ssid != null) "Wi‑Fi" else "Network",
+                        online = n.online,
+                        transport = n.transport,
                         ssid = n.ssid,
                         ip = n.ip,
                         gateway = n.gateway,
@@ -74,7 +84,7 @@ class DashboardViewModel @Inject constructor(
                 }
             }
             is Result.Error -> {
-                _ui.update { it.copy(loading = false, error = r.message) }
+                _ui.update { it.copy(loading = false, error = r.message, online = false) }
             }
             Result.Loading -> {
                 _ui.update { it.copy(loading = true) }

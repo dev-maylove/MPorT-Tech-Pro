@@ -58,11 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mporttech.pro.features.dashboard.DashboardViewModel
-import com.mporttech.pro.features.tools.LiveNetworkInfo
 import com.mporttech.pro.ui.i18n.t
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 private data class DashboardAction(
     val title: String,
@@ -275,7 +271,7 @@ private fun DashboardOverview(nav: NavController) {
             nav.navigate("devices")
         }
         MiniStat("Device\nScan", "LAN", Color(0xFFFF5E67), Modifier.weight(1f)) {
-            nav.navigate("devices")
+            nav.navigate("networkScanner")
         }
         MiniStat("Active\nAlerts", "Live", Color(0xFFFFB547), Modifier.weight(1f)) {
             nav.navigate("alerts")
