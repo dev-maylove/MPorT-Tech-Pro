@@ -59,6 +59,8 @@ import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mporttech.pro.ui.i18n.t
+import com.mporttech.pro.core.auth.SessionManager
+import com.mporttech.pro.core.auth.UserRole
 
 private data class DashboardAction(
     val title: String,
@@ -69,18 +71,25 @@ private data class DashboardAction(
 
 @Composable
 fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()) {
+    val context = LocalContext.current
     val dash by vm.uiState.collectAsStateWithLifecycle()
-    val actions = listOf(
-        DashboardAction("Network Monitor", "Router, latency & traffic", Icons.Default.NetworkCheck, "network"),
-        DashboardAction("WiFi Tools", "Signal, channel & networks", Icons.Default.Wifi, "wifiTools"),
-        DashboardAction("Speed Test", "Download, upload & quality", Icons.Default.Speed, "speedtest"),
-        DashboardAction("Technician Tools", "Diagnostics & utilities", Icons.Default.Build, "tools"),
-        DashboardAction("Discovery", "LAN devices · live", Icons.Default.Search, "discovery"),
-        DashboardAction("Signal", "RSSI & latency hub", Icons.Default.BarChart, "signalHub"),
-        DashboardAction("MikroTik", "RouterOS session", Icons.Default.Router, "mikrotik"),
-        DashboardAction("LAN Scanner", "V2 UseCase scan", Icons.Default.Search, "networkScanner"),
-        DashboardAction("Jobs", "Installation & repair tasks", Icons.Default.ConfirmationNumber, "jobs")
-    )
+    val isAdmin = SessionManager.isAdmin(context)
+    val actions = buildList {
+        add(DashboardAction(t("dash.network_monitor"), t("dash.network_monitor_sub"), Icons.Default.NetworkCheck, "network"))
+        add(DashboardAction(t("dash.wifi_tools"), t("dash.wifi_tools_sub"), Icons.Default.Wifi, "wifiTools"))
+        add(DashboardAction(t("dash.speedtest"), t("dash.speedtest_sub"), Icons.Default.Speed, "speedtest"))
+        add(DashboardAction(t("dash.tech_tools"), t("dash.tech_tools_sub"), Icons.Default.Build, "tools"))
+        add(DashboardAction(t("dash.discovery"), t("dash.discovery_sub"), Icons.Default.Search, "discovery"))
+        add(DashboardAction(t("dash.signal"), t("dash.signal_sub"), Icons.Default.BarChart, "signalHub"))
+        add(DashboardAction(t("dash.jobs"), t("dash.jobs_sub"), Icons.Default.ConfirmationNumber, "jobs"))
+        // MikroTik + admin modules only for ADMIN
+        if (isAdmin) {
+            add(DashboardAction(t("dash.mikrotik"), t("dash.mikrotik_sub"), Icons.Default.Router, "mikrotik"))
+            add(DashboardAction(t("dash.customers"), t("dash.customers_sub"), Icons.Default.People, "customers"))
+            add(DashboardAction(t("dash.reports"), t("dash.reports_sub"), Icons.Default.BarChart, "reports"))
+            add(DashboardAction(t("screen.tech_admin"), t("profile.role_admin"), Icons.Default.SupervisorAccount, "techAdmin"))
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -190,16 +199,23 @@ private fun TechnicianIdentityCard(nav: NavController) {
             }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text("Budi Santoso", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Text(
-                    "Teknisi Lapangan",
+                    SessionManager.currentUser(context)?.name ?: t("dash.field_tech"),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+                Text(
+                    (when (SessionManager.currentUser(context)?.role) {
+                        UserRole.ADMIN -> t("profile.role_admin")
+                        else -> t("profile.role_tech")
+                    }),
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             AssistChip(
                 onClick = { nav.navigate("profile") },
-                label = { Text("Online", fontSize = 9.sp) },
+                label = { Text(t("common.online"), fontSize = 9.sp) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Circle,
@@ -235,7 +251,7 @@ private fun NetworkHealthCard(dash: DashboardUiState) {
                 Text(t("dash.network_health"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Spacer(Modifier.weight(1f))
                 Text(
-                    if (link.online) link.transport else "Offline",
+                    if (link.online) link.transport else t("common.offline"),
                     fontSize = 11.sp,
                     color = if (link.online) Color(0xFF35E381) else Color(0xFFFF5E67)
                 )
@@ -254,7 +270,7 @@ private fun NetworkHealthCard(dash: DashboardUiState) {
             Text(
                 buildString {
                     append(link.ssid?.let { "$it · " } ?: "")
-                    append(link.ip ?: "No IP")
+                    append(link.ip ?: t("dash.no_ip"))
                     append(gwMs?.let { " · GW ${it}ms" } ?: "")
                 },
                 fontSize = 11.sp,
@@ -267,13 +283,13 @@ private fun NetworkHealthCard(dash: DashboardUiState) {
 @Composable
 private fun DashboardOverview(nav: NavController) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        MiniStat("Device\nManager", "Go", Color(0xFF35E381), Modifier.weight(1f)) {
+        MiniStat(t("dash.device_manager"), "Go", Color(0xFF35E381), Modifier.weight(1f)) {
             nav.navigate("devices")
         }
-        MiniStat("Device\nScan", "LAN", Color(0xFFFF5E67), Modifier.weight(1f)) {
+        MiniStat(t("dash.device_scan"), "LAN", Color(0xFFFF5E67), Modifier.weight(1f)) {
             nav.navigate("networkScanner")
         }
-        MiniStat("Active\nAlerts", "Live", Color(0xFFFFB547), Modifier.weight(1f)) {
+        MiniStat(t("dash.active_alerts"), "Live", Color(0xFFFFB547), Modifier.weight(1f)) {
             nav.navigate("alerts")
         }
     }

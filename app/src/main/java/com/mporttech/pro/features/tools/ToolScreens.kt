@@ -70,7 +70,7 @@ fun NetworkMonitorScreen(nav: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Ringkasan", "Perangkat", "Grafik")
+    val tabs = listOf(t("screen.overview"), t("screen.devices"), t("screen.graph"))
     var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
     var rxMbps by remember { mutableStateOf(0.0) }
     var txMbps by remember { mutableStateOf(0.0) }
@@ -527,12 +527,12 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                         CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(6.dp))
                     }
-                    Text(if (miniRunning) "TESTING..." else "SPEED TEST", fontSize = 11.sp)
+                    Text(if (miniRunning) "…" else t("wifi.speed_test"), fontSize = 11.sp)
                 }
                 OutlinedButton(
                     onClick = { nav?.navigate("speedtest") },
                     modifier = Modifier.weight(1f)
-                ) { Text("FULL TEST", fontSize = 11.sp) }
+                ) { Text(t("wifi.full_test"), fontSize = 11.sp) }
             }
             miniSpeed?.let {
                 Spacer(Modifier.height(8.dp))
@@ -552,13 +552,13 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                     Spacer(Modifier.width(6.dp))
                 }
-                Text(if (scanning) "SCAN..." else "SCAN WIFI")
+                Text(if (scanning) "…" else t("wifi.scan"))
             }
             OutlinedButton(
                 onClick = { doScan(force = false) },
                 enabled = !scanning,
                 modifier = Modifier.weight(1f)
-            ) { Text("CACHE/REFRESH") }
+            ) { Text(t("wifi.cache")) }
         }
 
 
@@ -1621,10 +1621,23 @@ fun ProfileScreen(nav: NavController) {
     }
     var notifications by remember { mutableStateOf(true) }
     var biometrics by remember { mutableStateOf(false) }
-    var displayName by remember { mutableStateOf("Budi Santoso") }
-    var role by remember { mutableStateOf("Teknisi Lapangan") }
+    val sessionUser = remember { com.mporttech.pro.core.auth.SessionManager.currentUser(context) }
+    val isAdmin = com.mporttech.pro.core.auth.SessionManager.isAdmin(context)
+    var displayName by remember {
+        mutableStateOf(sessionUser?.name ?: "User")
+    }
+    var role by remember {
+        mutableStateOf(
+            when (sessionUser?.role) {
+                com.mporttech.pro.core.auth.UserRole.ADMIN -> "Administrator"
+                else -> "Teknisi"
+            }
+        )
+    }
     var phone by remember { mutableStateOf("0812-3456-7890") }
-    var email by remember { mutableStateOf("budi@mport.tech") }
+    var email by remember {
+        mutableStateOf(sessionUser?.username?.let { "$it@mport.tech" } ?: "user@mport.tech")
+    }
     var showEditProfile by remember { mutableStateOf(false) }
     var showSecurity by remember { mutableStateOf(false) }
     var showServer by remember { mutableStateOf(false) }
@@ -1695,12 +1708,12 @@ fun ProfileScreen(nav: NavController) {
             notifications = it
         }
         SettingsRow(t("profile.security"), Icons.Default.Security) { showSecurity = true }
-        SettingsRow("Koneksi MikroTik", Icons.Default.Router) { nav.navigate("mikrotik") }
-        SettingsRow("Pengaturan Server", Icons.Default.Cloud) { showServer = true }
-        SettingsRow(t("screen.customers"), Icons.Default.People) { nav.navigate("customers") }
-        SettingsRow("Work Order", Icons.Default.ConfirmationNumber) { nav.navigate("tickets") }
-        SettingsRow(t("screen.reports"), Icons.Default.BarChart) { nav.navigate("reports") }
-        SettingsRow("Backup data", Icons.Default.Backup) {
+        if (isAdmin) SettingsRow(t("profile.mikrotik"), Icons.Default.Router) { nav.navigate("mikrotik") }
+        if (isAdmin) SettingsRow(t("profile.server"), Icons.Default.Cloud) { showServer = true }
+        if (isAdmin) SettingsRow(t("screen.customers"), Icons.Default.People) { nav.navigate("customers") }
+        SettingsRow(t("screen.tickets"), Icons.Default.ConfirmationNumber) { nav.navigate("tickets") }
+        if (isAdmin) SettingsRow(t("screen.reports"), Icons.Default.BarChart) { nav.navigate("reports") }
+        if (isAdmin) SettingsRow(t("profile.backup"), Icons.Default.Backup) {
             try {
                 val dbFile = context.getDatabasePath("mport_tech.db")
                 val outDir = context.getExternalFilesDir(null) ?: context.filesDir
@@ -1720,7 +1733,7 @@ fun ProfileScreen(nav: NavController) {
                 Toast.makeText(context, "Backup gagal: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
-        SettingsRow("Restore data terakhir", Icons.Default.Restore) {
+        if (isAdmin) SettingsRow(t("profile.restore"), Icons.Default.Restore) {
             try {
                 val outDir = context.getExternalFilesDir(null) ?: context.filesDir
                 val latest = outDir.listFiles()?.filter { it.name.startsWith("mport_backup_") && it.name.endsWith(".db") }
@@ -1743,9 +1756,9 @@ fun ProfileScreen(nav: NavController) {
             }
         }
         if (com.mporttech.pro.core.auth.SessionManager.isAdmin(context)) {
-            SettingsRow("Kelola Teknisi", Icons.Default.People) { nav.navigate("techAdmin") }
+            SettingsRow(t("screen.tech_admin"), Icons.Default.People) { nav.navigate("techAdmin") }
         }
-        SettingsRow("Keluar", Icons.Default.ExitToApp) {
+        SettingsRow(t("common.logout"), Icons.Default.ExitToApp) {
             com.mporttech.pro.core.auth.SessionManager.logout(context)
             nav.navigate("login") {
                 popUpTo(nav.graph.startDestinationId) { inclusive = true }
@@ -2032,14 +2045,14 @@ private fun Page(
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
-                            text = { Text("Refresh") },
+                            text = { Text(t("common.refresh")) },
                             onClick = {
                                 menuOpen = false
                             },
                             leadingIcon = { Icon(Icons.Default.Refresh, null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Pengaturan Lokasi") },
+                            text = { Text(t("net.location_settings")) },
                             onClick = {
                                 menuOpen = false
                                 try {
@@ -2053,7 +2066,7 @@ private fun Page(
                             leadingIcon = { Icon(Icons.Default.LocationOn, null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Bagikan halaman") },
+                            text = { Text(t("net.share_page")) },
                             onClick = {
                                 menuOpen = false
                                 val share = Intent(Intent.ACTION_SEND).apply {

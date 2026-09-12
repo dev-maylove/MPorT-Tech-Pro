@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mporttech.pro.R
 import com.mporttech.pro.core.auth.SessionManager
+import com.mporttech.pro.ui.i18n.t
 import com.mporttech.pro.core.auth.UserRole
 
 @Composable
@@ -68,7 +69,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
-                label = { Text("Username") },
+                label = { Text(t("login.username")) },
                 leadingIcon = { Icon(Icons.Default.Person, null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -78,7 +79,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text(t("login.password")) },
                 leadingIcon = { Icon(Icons.Default.Lock, null) },
                 trailingIcon = {
                     IconButton(onClick = { showPass = !showPass }) {
@@ -105,18 +106,18 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                         Toast.makeText(context, "Selamat datang, ${user.name} ($role)", Toast.LENGTH_SHORT).show()
                         onLoggedIn()
                     } else {
-                        Toast.makeText(context, "Username atau password salah", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, t("login.failed"), Toast.LENGTH_SHORT).show()
                     }
                 },
                 enabled = !loading && username.isNotBlank() && password.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(if (loading) "Masuk…" else "Masuk", fontWeight = FontWeight.Bold)
+                Text(if (loading) "…" else t("login.button"), fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(16.dp))
             Text(
-                "Admin default: admin / admin123\nTeknisi contoh: budi / budi123",
+                t("login.hint"),
                 color = Color(0xFF6A829E),
                 fontSize = 11.sp,
                 lineHeight = 16.sp

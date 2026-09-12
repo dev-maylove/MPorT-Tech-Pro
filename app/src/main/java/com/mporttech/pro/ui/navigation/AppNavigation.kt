@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.mporttech.pro.ui.i18n.t
@@ -136,7 +137,13 @@ fun AppNavigation() {
             composable("reports") { ReportsScreen(nav) }
             composable("settings") { SettingsScreen(nav) }
             composable("about") { AboutScreen(nav) }
-            composable("techAdmin") { TechnicianAdminScreen(nav) }
+            composable("techAdmin") {
+                if (SessionManager.isAdmin(LocalContext.current)) TechnicianAdminScreen(nav)
+                else {
+                    // non-admin redirected
+                    androidx.compose.runtime.LaunchedEffect(Unit) { nav.popBackStack() }
+                }
+            }
             composable("login") {
                 LoginScreen(onLoggedIn = {
                     nav.navigate("dashboard") {

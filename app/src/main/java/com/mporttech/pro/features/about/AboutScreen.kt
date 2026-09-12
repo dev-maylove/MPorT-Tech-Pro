@@ -1,6 +1,7 @@
 package com.mporttech.pro.features.about
 
 import com.mporttech.pro.R
+import com.mporttech.pro.ui.i18n.t
 
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -265,7 +266,7 @@ fun AboutScreen(
 
                     Text(
 
-                        text = "TENTANG",
+                        text = t("about.title"),
 
                         color = cyan,
 
