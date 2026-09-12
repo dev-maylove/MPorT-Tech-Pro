@@ -263,16 +263,17 @@ private fun PremiumStartupScreen() {
                     )
                 }
 
+                // Transparent-bg logo (no black square) blends into dark splash
                 Image(
                     painter = painterResource(R.drawable.mport_tech_logo),
                     contentDescription = "MPorT Tech",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .fillMaxWidth(0.72f)
+                        .fillMaxWidth(0.78f)
                         .graphicsLayer(
                             scaleX = pulse,
                             scaleY = pulse,
-                            alpha = 0.97f + glow * 0.03f
+                            alpha = 0.98f
                         )
                 )
             }
