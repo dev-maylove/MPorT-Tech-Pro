@@ -61,44 +61,175 @@ private data class Tile(val title: String, val subtitle: String, val icon: Image
 
 @Composable
 fun NetworkMonitorScreen(nav: NavController) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Overview", "Devices", "Grafik")
+    var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
+    var rxMbps by remember { mutableStateOf(0.0) }
+    var txMbps by remember { mutableStateOf(0.0) }
+    var gatewayMs by remember { mutableStateOf<Long?>(null) }
+    var gatewayOk by remember { mutableStateOf(false) }
+    var devices by remember { mutableStateOf<List<LiveDevice>>(emptyList()) }
+    var scanning by remember { mutableStateOf(false) }
+    var ifaces by remember { mutableStateOf(LiveNetworkInfo.interfaceNames()) }
+
+    fun refreshLink() {
+        link = LiveNetworkInfo.snapshot(context)
+        ifaces = LiveNetworkInfo.interfaceNames()
+    }
+
+    LaunchedEffect(Unit) {
+        refreshLink()
+        while (true) {
+            val (rx, tx) = LiveNetworkInfo.measureTrafficDeltaMbps(1000)
+            rxMbps = rx
+            txMbps = tx
+            refreshLink()
+            val gw = link.gateway
+            if (!gw.isNullOrBlank()) {
+                val (ok, ms) = LiveNetworkInfo.probe(gw, 800)
+                gatewayOk = ok
+                gatewayMs = ms
+            }
+            delay(2000)
+        }
+    }
+
     Page("Network Monitor", Icons.Default.NetworkCheck, nav) {
         InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
         when (selectedTab) {
             0 -> {
-                RouterHero()
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    MetricBox("CPU", "18%", Color(0xFF35E381), Modifier.weight(1f))
-                    MetricBox("RAM", "42%", Color(0xFF4EDCFF), Modifier.weight(1f))
-                    MetricBox("Temp", "45°C", Color(0xFFFF5E67), Modifier.weight(1f))
+                CardBlock(
+                    if (link.online) "Link  ·  ${link.transport}  ·  Online"
+                    else "Link  ·  Offline"
+                ) {
+                    Text(
+                        buildString {
+                            append(link.ssid?.let { "SSID  $it\n" } ?: "")
+                            append("IP  ${link.ip ?: "—"}\n")
+                            append("Gateway  ${link.gateway ?: "—"}\n")
+                            append("DNS  ${link.dns ?: "—"}\n")
+                            append(link.linkMbps?.let { "Link speed  $it Mbps" } ?: "Link speed  —")
+                        },
+                        fontSize = 12.sp,
+                        lineHeight = 20.sp
+                    )
                 }
-                CardBlock("Traffic RX / TX") {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        Text("↑ RX\n120 Mbps", color = Color(0xFF35E381), textAlign = TextAlign.Center)
-                        Text("↓ TX\n45 Mbps", color = Color(0xFFB680FF), textAlign = TextAlign.Center)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    MetricBox(
+                        "RX",
+                        String.format("%.1f", rxMbps),
+                        Color(0xFF35E381),
+                        Modifier.weight(1f)
+                    )
+                    MetricBox(
+                        "TX",
+                        String.format("%.1f", txMbps),
+                        Color(0xFF4EDCFF),
+                        Modifier.weight(1f)
+                    )
+                    MetricBox(
+                        "GW ms",
+                        gatewayMs?.toString() ?: "—",
+                        if (gatewayOk) Color(0xFF35E381) else Color(0xFFFF5E67),
+                        Modifier.weight(1f)
+                    )
+                }
+                CardBlock("Traffic (Mbps, live)") {
+                    Text(
+                        "↑ RX  ${String.format("%.2f", rxMbps)} Mbps     ↓ TX  ${String.format("%.2f", txMbps)} Mbps",
+                        fontSize = 12.sp
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { (rxMbps / 100.0).toFloat().coerceIn(0.02f, 1f) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                CardBlock("Network interfaces") {
+                    if (ifaces.isEmpty()) {
+                        Text("Tidak ada interface aktif", fontSize = 12.sp)
+                    } else {
+                        ifaces.take(8).forEach {
+                            Text(it, fontSize = 11.sp, lineHeight = 18.sp)
+                        }
                     }
                 }
-                CardBlock("Ping  12 ms     Packet Loss  0%     Uptime  12d 4h") {
-                    LinearProgressIndicator(progress = { 0.88f }, modifier = Modifier.fillMaxWidth())
-                }
-                InterfaceList()
             }
             1 -> {
-                DeviceCard("MikroTik CCR1009", "192.168.1.1", true) { nav.navigate("deviceDetail") }
-                DeviceCard("Access Point Office", "192.168.1.10", true) { nav.navigate("deviceDetail") }
-                DeviceCard("Switch Lantai 2", "192.168.1.20", false) { nav.navigate("deviceDetail") }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        if (scanning) "Scanning LAN…" else "Perangkat di segmen lokal",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedButton(
+                        enabled = !scanning,
+                        onClick = {
+                            scanning = true
+                            scope.launch {
+                                try {
+                                    devices = LiveNetworkInfo.discoverDevices(context, authorized = true)
+                                    Toast.makeText(context, "${devices.size} host ditemukan", Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, e.message ?: "Scan gagal", Toast.LENGTH_LONG).show()
+                                } finally {
+                                    scanning = false
+                                }
+                            }
+                        }
+                    ) { Text(if (scanning) "…" else "SCAN") }
+                }
+                if (devices.isEmpty() && !scanning) {
+                    CardBlock("Belum ada data") {
+                        Text(
+                            "Ketuk SCAN untuk probe gateway + host RFC1918 (.1–.40). Hanya jaringan yang Anda kelola.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                devices.forEach { d ->
+                    DeviceCard(d.name, d.ip, d.online) {
+                        SelectedDeviceStore.ip = d.ip
+                        SelectedDeviceStore.name = d.name
+                        SelectedDeviceStore.kind = d.kind
+                        nav.navigate("deviceDetail")
+                    }
+                }
             }
             else -> {
-                CardBlock("Traffic Graph (24h)") {
-                    Text("Peak RX: 145 Mbps  •  Peak TX: 62 Mbps", fontSize = 12.sp)
+                CardBlock("Throughput sample") {
+                    Text(
+                        "RX ${String.format("%.2f", rxMbps)} Mbps  •  TX ${String.format("%.2f", txMbps)} Mbps",
+                        fontSize = 12.sp
+                    )
                     Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(progress = { 0.72f }, modifier = Modifier.fillMaxWidth().height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { ((rxMbps + txMbps) / 150.0).toFloat().coerceIn(0.02f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(8.dp)
+                    )
                     Spacer(Modifier.height(6.dp))
-                    Text("Average utilization 68%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Sample 1s dari TrafficStats (semua interface)",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                CardBlock("Latency Trend") {
-                    Text("Min 8 ms  •  Avg 14 ms  •  Max 48 ms", fontSize = 12.sp)
+                CardBlock("Gateway latency") {
+                    Text(
+                        when {
+                            link.gateway == null -> "Gateway tidak terdeteksi"
+                            gatewayMs != null && gatewayOk -> "Ping ${link.gateway}  ·  ${gatewayMs} ms  ·  reachable"
+                            else -> "Ping ${link.gateway}  ·  no response"
+                        },
+                        fontSize = 12.sp
+                    )
                 }
             }
         }
@@ -804,27 +935,100 @@ fun SpeedTestScreen(nav: NavController? = null) {
 
 @Composable
 fun DeviceManagerScreen(nav: NavController) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("All (7)", "Routers (2)", "AP (3)", "Switch (2)")
+    var devices by remember { mutableStateOf<List<LiveDevice>>(emptyList()) }
+    var scanning by remember { mutableStateOf(false) }
+    var authorized by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf("Aktifkan otorisasi lalu scan segmen privat") }
+
+    val routers = devices.filter { it.kind == "gateway" || it.kind == "router" }
+    val aps = devices.filter { it.kind == "ap" }
+    val switches = devices.filter { it.kind == "switch" }
+    val tabs = listOf(
+        "All (${devices.size})",
+        "GW/Router (${routers.size})",
+        "AP (${aps.size})",
+        "Switch (${switches.size})"
+    )
+    val filtered = when (selectedTab) {
+        1 -> routers
+        2 -> aps
+        3 -> switches
+        else -> devices
+    }
+
     Page("Device Manager", Icons.Default.Storage, nav) {
-        InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
-        val all = listOf(
-            Triple("MikroTik CCR1009", "192.168.1.1", true),
-            Triple("Access Point Office", "192.168.1.10", true),
-            Triple("Switch Lantai 2", "192.168.1.20", false),
-            Triple("MikroTik hAP ac2", "192.168.1.30", true),
-            Triple("Access Point Lobby", "192.168.1.31", true),
-            Triple("Switch Core", "192.168.1.2", true),
-            Triple("AP Gudang", "192.168.1.40", true)
-        )
-        val filtered = when (selectedTab) {
-            1 -> all.filter { it.first.contains("MikroTik", true) || it.first.contains("Router", true) }
-            2 -> all.filter { it.first.contains("AP", true) || it.first.contains("Access Point", true) }
-            3 -> all.filter { it.first.contains("Switch", true) }
-            else -> all
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = authorized, onCheckedChange = { authorized = it })
+            Text(
+                "Saya berwenang scan LAN privat (RFC1918)",
+                fontSize = 12.sp,
+                modifier = Modifier.clickable { authorized = !authorized }
+            )
         }
-        filtered.forEach { (name, ip, online) ->
-            DeviceCard(name, ip, online) { nav.navigate("deviceDetail") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                enabled = !scanning,
+                onClick = {
+                    if (!authorized) {
+                        Toast.makeText(context, "Centang otorisasi dulu", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    scanning = true
+                    status = "Scanning…"
+                    scope.launch {
+                        try {
+                            devices = LiveNetworkInfo.discoverDevices(context, authorized = true)
+                            status = "${devices.size} perangkat · ${devices.count { it.online }} online"
+                        } catch (e: Exception) {
+                            status = e.message ?: "Scan gagal"
+                            Toast.makeText(context, status, Toast.LENGTH_LONG).show()
+                        } finally {
+                            scanning = false
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            ) { Text(if (scanning) "SCANNING…" else "SCAN LAN") }
+            OutlinedButton(
+                onClick = {
+                    val snap = LiveNetworkInfo.snapshot(context)
+                    val gw = snap.gateway
+                    if (gw != null) {
+                        SelectedDeviceStore.ip = gw
+                        SelectedDeviceStore.name = "Gateway"
+                        SelectedDeviceStore.kind = "gateway"
+                        nav.navigate("deviceDetail")
+                    } else {
+                        Toast.makeText(context, "Gateway tidak terdeteksi", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            ) { Text("GATEWAY") }
+        }
+        Text(status, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
+        if (filtered.isEmpty()) {
+            CardBlock("Kosong") {
+                Text(
+                    "Belum ada hasil scan. Gunakan SCAN LAN pada jaringan yang Anda kelola.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        filtered.forEach { d ->
+            DeviceCard(
+                name = "${d.name}${d.latencyMs?.let { "  ·  ${it}ms" } ?: ""}",
+                ip = d.ip,
+                online = d.online
+            ) {
+                SelectedDeviceStore.ip = d.ip
+                SelectedDeviceStore.name = d.name
+                SelectedDeviceStore.kind = d.kind
+                nav.navigate("deviceDetail")
+            }
         }
     }
 }
@@ -833,37 +1037,95 @@ fun DeviceManagerScreen(nav: NavController) {
 fun DeviceDetailScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val ip = SelectedDeviceStore.ip
+    val name = SelectedDeviceStore.name
+    val kind = SelectedDeviceStore.kind
     var pingResult by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
+    var online by remember { mutableStateOf(false) }
+    var latency by remember { mutableStateOf<Long?>(null) }
+    var openPorts by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var logLines by remember { mutableStateOf(listOf("Siap probe $ip")) }
+
+    fun appendLog(line: String) {
+        logLines = (listOf(line) + logLines).take(30)
+    }
+
+    LaunchedEffect(ip) {
+        busy = true
+        val (ok, ms) = LiveNetworkInfo.probe(ip, 1000)
+        online = ok
+        latency = ms
+        appendLog(
+            if (ok) "Reachable $ip ${ms ?: "?"}ms"
+            else "No response from $ip"
+        )
+        // port sweep common management ports
+        val ports = listOf(22, 53, 80, 443, 8728, 8291, 8080, 8291)
+        val open = mutableListOf<Int>()
+        withContext(Dispatchers.IO) {
+            for (port in ports.distinct()) {
+                try {
+                    java.net.Socket().use { s ->
+                        s.connect(java.net.InetSocketAddress(ip, port), 400)
+                        open.add(port)
+                    }
+                } catch (_: Exception) {
+                }
+            }
+        }
+        openPorts = open
+        if (open.isNotEmpty()) appendLog("Open ports: ${open.joinToString()}")
+        busy = false
+    }
 
     Page("Detail Perangkat", Icons.Default.Router, nav) {
-        CardBlock("MikroTik CCR1009     Online") {
-            Text("192.168.1.1", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+        CardBlock("$name     ${if (online) "Online" else "Offline"}") {
+            Text(ip, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+            Text(
+                "Jenis  $kind${latency?.let { "  ·  ${it} ms" } ?: ""}",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-        InteractiveTabStrip(listOf("Info", "Grafik", "Log"), selectedTab) { selectedTab = it }
+        InteractiveTabStrip(listOf("Info", "Ports", "Log"), selectedTab) { selectedTab = it }
         when (selectedTab) {
-            0 -> CardBlock("Device Information") {
+            0 -> CardBlock("Live probe") {
                 Text(
-                    "Model          CCR1009-7G-1C-1S+\n" +
-                        "MAC Address    00:0C:42:AE:8E:CC\n" +
-                        "Firmware       6.49.1\n" +
-                        "Uptime         12d 4h 32m\n" +
-                        "CPU            18%\n" +
-                        "RAM            42%\n" +
-                        "Temperature    45°C\n" +
-                        "Location       Ruang Server",
+                    "IP             $ip\n" +
+                        "Status         ${if (online) "Reachable" else "Unreachable"}\n" +
+                        "Latency        ${latency?.let { "$it ms" } ?: "—"}\n" +
+                        "Kind           $kind\n" +
+                        "Open ports     ${if (openPorts.isEmpty()) "—" else openPorts.joinToString()}",
                     lineHeight = 22.sp,
                     fontSize = 11.sp
                 )
             }
-            1 -> CardBlock("Resource Graph") {
-                Text("CPU average 22%  •  RAM average 40%", fontSize = 12.sp)
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(progress = { 0.22f }, modifier = Modifier.fillMaxWidth())
+            1 -> CardBlock("Common ports") {
+                val labels = mapOf(
+                    22 to "SSH", 53 to "DNS", 80 to "HTTP", 443 to "HTTPS",
+                    8728 to "RouterOS API", 8291 to "Winbox", 8080 to "HTTP-alt"
+                )
+                if (openPorts.isEmpty()) {
+                    Text(
+                        if (busy) "Probing…" else "Tidak ada port manajemen terbuka (atau difilter firewall)",
+                        fontSize = 12.sp
+                    )
+                } else {
+                    openPorts.forEach { port ->
+                        Text(
+                            "●  $port  ${labels[port] ?: ""}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF35E381)
+                        )
+                    }
+                }
             }
-            else -> CardBlock("Recent Logs") {
-                Text("12:01  Interface ether1 link up\n11:45  DHCP lease 192.168.1.55\n10:20  CPU spike 78%", lineHeight = 22.sp, fontSize = 11.sp)
+            else -> CardBlock("Probe log") {
+                logLines.forEach {
+                    Text(it, fontSize = 11.sp, lineHeight = 18.sp)
+                }
             }
         }
         pingResult?.let {
@@ -871,65 +1133,89 @@ fun DeviceDetailScreen(nav: NavController? = null) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             OutlinedButton(
+                enabled = !busy,
                 onClick = {
                     busy = true
                     scope.launch {
-                        try {
-                            val start = System.nanoTime()
-                            val ok = withContext(Dispatchers.IO) {
-                                InetAddress.getByName("192.168.1.1").isReachable(1500)
-                            }
-                            val ms = (System.nanoTime() - start) / 1_000_000
-                            pingResult = if (ok) "Ping OK — ${ms} ms" else "No response"
-                        } catch (e: Exception) {
-                            pingResult = "Error: ${e.message}"
-                        } finally {
-                            busy = false
-                        }
+                        val (ok, ms) = LiveNetworkInfo.probe(ip, 1500)
+                        online = ok
+                        latency = ms
+                        pingResult = if (ok) "Reachable ${ms}ms" else "No response"
+                        appendLog(pingResult!!)
+                        busy = false
                     }
                 },
-                enabled = !busy,
                 modifier = Modifier.weight(1f)
-            ) { Text("Ping") }
-            OutlinedButton(
-                onClick = {
-                    Toast.makeText(context, "Restart diminta (simulasi). Gunakan API RouterOS di production.", Toast.LENGTH_SHORT).show()
-                },
-                modifier = Modifier.weight(1f)
-            ) { Text("Restart") }
+            ) { Text(if (busy) "…" else "PING") }
             Button(
                 onClick = {
-                    Toast.makeText(context, "Reboot diminta (simulasi). Butuh kredensial operator yang aman.", Toast.LENGTH_SHORT).show()
+                    nav?.navigate("diagnostic")
                 },
                 modifier = Modifier.weight(1f)
-            ) { Text("Reboot") }
+            ) { Text("DIAGNOSTIC") }
         }
     }
 }
 
 @Composable
 fun AlertsScreen(nav: NavController) {
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("All (3)", "Critical (1)", "Warning (2)")
-    Page("Alerts & Problems", Icons.Default.Warning, nav) {
-        InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
-        val alerts = listOf(
-            AlertItem("Device Offline", "Switch Lantai 2", "15 menit yang lalu", Color(0xFFFF5E67), "critical"),
-            AlertItem("High Latency", "Router Office • Latency 230 ms", "32 menit yang lalu", Color(0xFFFFB547), "warning"),
-            AlertItem("High CPU Usage", "MikroTik CCR1009 • CPU 95%", "1 jam yang lalu", Color(0xFFFF8A3D), "warning"),
-            AlertItem("New Device Detected", "IP: 192.168.1.55", "2 jam yang lalu", Color(0xFF4EDCFF), "info"),
-            AlertItem("Job Assigned", "Maintenance AP Lobby", "3 jam yang lalu", Color(0xFF4EDCFF), "info")
-        )
-        val filtered = when (selectedTab) {
-            1 -> alerts.filter { it.kind == "critical" }
-            2 -> alerts.filter { it.kind == "warning" }
-            else -> alerts
+    val context = LocalContext.current
+    var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
+    var gatewayOk by remember { mutableStateOf<Boolean?>(null) }
+    var gatewayMs by remember { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(Unit) {
+        link = LiveNetworkInfo.snapshot(context)
+        val gw = link.gateway
+        if (gw != null) {
+            val (ok, ms) = LiveNetworkInfo.probe(gw, 1000)
+            gatewayOk = ok
+            gatewayMs = ms
+        } else {
+            gatewayOk = false
         }
-        filtered.forEach { a ->
+    }
+
+    val alerts = buildList {
+        if (!link.online) {
+            add(AlertItem("Tidak ada koneksi data", "Tidak ada transport aktif (Wi‑Fi/seluler/ethernet)", "now", Color(0xFFFF5E67), "critical"))
+        }
+        if (link.online && gatewayOk == false) {
+            add(AlertItem("Gateway tidak merespons", "Host ${link.gateway ?: "?"} tidak reachable", "now", Color(0xFFFF5E67), "critical"))
+        }
+        if (link.online && gatewayOk == true && (gatewayMs ?: 0) > 100) {
+            add(AlertItem("Latency gateway tinggi", "${link.gateway} · ${gatewayMs} ms", "now", Color(0xFFFFB020), "warning"))
+        }
+        if (link.online && link.transport == "Cellular") {
+            add(AlertItem("Menggunakan seluler", "Bukan Wi‑Fi — cek SSID lapangan jika diharapkan", "now", Color(0xFF4EDCFF), "info"))
+        }
+        if (link.online && link.ssid == null && link.transport == "Wi‑Fi") {
+            add(AlertItem("SSID tidak terbaca", "Butuh izin lokasi / Nearby Wi‑Fi di Android 13+", "now", Color(0xFFFFB020), "warning"))
+        }
+        if (isEmpty()) {
+            add(AlertItem("Semua nominal", "Link ${link.transport} OK${gatewayMs?.let { " · GW ${it}ms" } ?: ""}", "now", Color(0xFF35E381), "info"))
+        }
+    }
+
+    Page("Alerts", Icons.Default.Notifications, nav) {
+        Text(
+            "Live dari status perangkat (bukan server cloud)",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        alerts.forEach { a ->
             AlertCard(a.title, a.detail, a.time, a.color) {
-                if (a.title == "Job Assigned") nav.navigate("jobs") else nav.navigate("alertDetail")
+                SelectedDeviceStore.name = a.title
+                SelectedDeviceStore.ip = link.gateway ?: link.ip ?: "—"
+                nav.navigate("alertDetail")
             }
         }
+        OutlinedButton(
+            onClick = {
+                link = LiveNetworkInfo.snapshot(context)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("REFRESH STATUS") }
     }
 }
 
@@ -938,58 +1224,72 @@ private data class AlertItem(val title: String, val detail: String, val time: St
 @Composable
 fun AlertDetailScreen(nav: NavController? = null) {
     val context = LocalContext.current
-    var resolved by remember { mutableStateOf(false) }
-    Page("Detail Alert", Icons.Default.Warning, nav) {
-        CardBlock("⚠  High Latency     Router Office") {
-            Text("32 menit yang lalu", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-            Spacer(Modifier.height(10.dp))
+    val link = remember { LiveNetworkInfo.snapshot(context) }
+    Page("Detail Alert", Icons.Default.Notifications, nav) {
+        CardBlock(SelectedDeviceStore.name) {
             Text(
-                "Latency      230 ms\nThreshold    100 ms\nDevice       Router Office\nStatus       ${if (resolved) "Ditangani" else "Masih Aktif"}",
-                lineHeight = 24.sp,
-                fontSize = 12.sp
+                "Sumber  status lokal perangkat\n" +
+                    "Transport  ${link.transport}\n" +
+                    "IP lokal  ${link.ip ?: "—"}\n" +
+                    "Gateway  ${link.gateway ?: "—"}\n" +
+                    "SSID  ${link.ssid ?: "—"}",
+                fontSize = 12.sp,
+                lineHeight = 20.sp
             )
         }
-        CardBlock("Rekomendasi") {
-            Text("• Cek beban CPU\n• Periksa koneksi internet\n• Restart jika diperlukan", lineHeight = 22.sp, fontSize = 11.sp)
+        CardBlock("Tindakan disarankan") {
+            Text(
+                "1. Pastikan Wi‑Fi/ethernet tersambung\n" +
+                    "2. Probe gateway dari Device Manager\n" +
+                    "3. Jalankan Diagnostic / Ping ke target yang diizinkan\n" +
+                    "4. Cek izin lokasi jika SSID kosong",
+                fontSize = 12.sp,
+                lineHeight = 20.sp
+            )
         }
         Button(
-            onClick = {
-                resolved = true
-                Toast.makeText(context, "Alert ditandai sudah ditangani", Toast.LENGTH_SHORT).show()
-            },
-            enabled = !resolved,
+            onClick = { nav?.navigate("diagnostic") },
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (resolved) "SUDAH DITANGANI" else "TANDAI SUDAH DITANGANI")
-        }
+        ) { Text("BUKA DIAGNOSTIC") }
     }
 }
 
 @Composable
 fun JobsScreen(nav: NavController) {
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("All (5)", "Urgent (1)", "In Progress (2)")
-    Page("Jobs / Tickets", Icons.Default.ConfirmationNumber, nav) {
-        InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
-        val jobs = listOf(
-            JobItem("Urgent", "Gangguan Internet - Meter Pusat", "#JT-001", Color(0xFFFF5E67), "urgent"),
-            JobItem("Maintenance", "Maintenance AP Lobby", "4 jam lalu", Color(0xFF4EDCFF), "progress"),
-            JobItem("Repair", "Ganti Kabel FO - Lantai 2", "5 jam lalu", Color(0xFFFF8A3D), "progress"),
-            JobItem("Installation", "Instalasi AP Baru - Gudang", "1 hari lalu", Color(0xFF35E381), "open"),
-            JobItem("Completed", "Cek AP Reset Router - Cafe", "#JT-005", Color(0xFF9DB0C7), "done")
+    Page("Jobs / Work Orders", Icons.Default.Build, nav) {
+        Text(
+            "Work order lapangan terintegrasi dengan modul Tickets lokal (Room).",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        val filtered = when (selectedTab) {
-            1 -> jobs.filter { it.kind == "urgent" }
-            2 -> jobs.filter { it.kind == "progress" }
-            else -> jobs
-        }
-        filtered.forEach { j ->
+        val jobs = listOf(
+            JobItem("WO", "Buka & kelola tiket", "Buat, ubah status, catat keluhan pelanggan", Color(0xFF4EDCFF), "tickets"),
+            JobItem("SCAN", "Survey perangkat LAN", "Device Manager · scan RFC1918 berizin", Color(0xFF35E381), "devices"),
+            JobItem("WIFI", "Analisis spektrum", "WiFi Analyzer · channel & RSSI", Color(0xFFB680FF), "wifi"),
+            JobItem("SPEED", "Uji throughput", "Speed Test HTTPS operator", Color(0xFFFFB020), "speedtest"),
+            JobItem("DIAG", "Ping / reachability", "Diagnostic ke host yang diizinkan", Color(0xFFFF5E67), "diagnostic")
+        )
+        jobs.forEach { j ->
             JobCard(j.tag, j.title, j.detail, j.color) {
-                nav.navigate("tickets")
+                when (j.kind) {
+                    "tickets" -> nav.navigate("tickets")
+                    "devices" -> nav.navigate("devices")
+                    "wifi" -> nav.navigate("wifi")
+                    "speedtest" -> nav.navigate("speedtest")
+                    "diagnostic" -> nav.navigate("diagnostic")
+                }
             }
         }
-        Button(onClick = { nav.navigate("tickets") }, modifier = Modifier.fillMaxWidth()) {
-            Text("BUKA WORK ORDERS")
+        CardBlock("Alur teknisi") {
+            Text(
+                "1. Ambil tiket di Tickets\n" +
+                    "2. Verifikasi link di Network Monitor\n" +
+                    "3. Scan perangkat / WiFi sesuai lokasi\n" +
+                    "4. Uji speed & catat hasil\n" +
+                    "5. Tutup tiket dengan status selesai",
+                fontSize = 12.sp,
+                lineHeight = 20.sp
+            )
         }
     }
 }
@@ -1244,8 +1544,13 @@ fun ReportsScreen(nav: NavController? = null) {
 fun ProfileScreen(nav: NavController) {
     val context = LocalContext.current
     val themeModeState = LocalThemeMode.current
-    var darkMode by remember(themeModeState.value) {
+    // Keep switch in sync with app-wide theme without stale local state
+    var darkMode by remember {
         mutableStateOf(themeModeState.value != ThemeMode.LIGHT)
+    }
+    // Re-sync if theme changed elsewhere
+    LaunchedEffect(themeModeState.value) {
+        darkMode = themeModeState.value != ThemeMode.LIGHT
     }
     var notifications by remember { mutableStateOf(true) }
     var biometrics by remember { mutableStateOf(false) }
@@ -1407,64 +1712,155 @@ fun ProfileScreen(nav: NavController) {
 @Composable
 fun MikroTikScreen(nav: NavController? = null) {
     val context = LocalContext.current
-    Page("MikroTik", Icons.Default.Router, nav) {
-        CardBlock("MikroTik CCR1009") {
-            Text("192.168.1.1   •   Online", color = Color(0xFF35E381), fontSize = 11.sp)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            MetricBox("CPU", "18%", Color(0xFF35E381), Modifier.weight(1f))
-            MetricBox("RAM", "42%", Color(0xFF4EDCFF), Modifier.weight(1f))
-            MetricBox("Temp", "45°C", Color(0xFFFF8A3D), Modifier.weight(1f))
-        }
-        CardBlock("Traffic") {
-            Text("RX  120 Mbps\nTX  45 Mbps", lineHeight = 26.sp)
-        }
-        CardBlock("Security") {
+    val scope = rememberCoroutineScope()
+    val snap = remember { LiveNetworkInfo.snapshot(context) }
+    var host by remember { mutableStateOf(snap.gateway ?: "192.168.88.1") }
+    var checking by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<String?>(null) }
+    var openApi by remember { mutableStateOf(false) }
+    var openWinbox by remember { mutableStateOf(false) }
+    var openWww by remember { mutableStateOf(false) }
+
+    Page("MikroTik / RouterOS", Icons.Default.Router, nav) {
+        CardBlock("Probe RouterOS (tanpa menyimpan password)") {
             Text(
-                "Gunakan akun RouterOS terbatas atau backend operator yang aman. Jangan menyimpan kredensial administrator di APK.",
-                fontSize = 11.sp,
+                "Aplikasi tidak menyematkan kredensial. Uji port API/Winbox/WebFig ke host yang Anda kelola.",
+                fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = host,
+                onValueChange = { host = it },
+                label = { Text("Host / IP router") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
         }
         Button(
+            enabled = !checking && host.isNotBlank(),
             onClick = {
-                Toast.makeText(context, "Koneksi API RouterOS (simulasi). Implementasikan via backend.", Toast.LENGTH_SHORT).show()
+                checking = true
+                result = null
+                scope.launch {
+                    val h = host.trim()
+                    fun portOpen(port: Int): Boolean {
+                        return try {
+                            java.net.Socket().use { s ->
+                                s.connect(java.net.InetSocketAddress(h, port), 1200)
+                                true
+                            }
+                        } catch (_: Exception) {
+                            false
+                        }
+                    }
+                    val api = withContext(Dispatchers.IO) { portOpen(8728) }
+                    val winbox = withContext(Dispatchers.IO) { portOpen(8291) }
+                    val www = withContext(Dispatchers.IO) { portOpen(80) || portOpen(443) }
+                    openApi = api
+                    openWinbox = winbox
+                    openWww = www
+                    result = buildString {
+                        append(if (api) "● API 8728 terbuka\n" else "○ API 8728 tertutup/filter\n")
+                        append(if (winbox) "● Winbox 8291 terbuka\n" else "○ Winbox 8291 tertutup/filter\n")
+                        append(if (www) "● Web 80/443 terbuka" else "○ Web 80/443 tertutup/filter")
+                    }
+                    checking = false
+                }
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("TEST CONNECTION") }
+        ) { Text(if (checking) "CHECKING…" else "PROBE PORT ROUTEROS") }
+
+        result?.let {
+            CardBlock("Hasil probe $host") {
+                Text(it, fontSize = 12.sp, lineHeight = 20.sp)
+            }
+        }
+
+        CardBlock("Checklist lapangan") {
+            Text(
+                "1. Pastikan management IP reachable\n" +
+                    "2. API (8728) hanya di jaringan trusted\n" +
+                    "3. Jangan simpan password di APK / chat\n" +
+                    "4. Gunakan Winbox/SSH terpisah untuk konfigurasi",
+                fontSize = 12.sp,
+                lineHeight = 20.sp
+            )
+        }
+        OutlinedButton(
+            onClick = { nav?.navigate("diagnostic") },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("PING / DIAGNOSTIC") }
     }
 }
 
 @Composable
 fun ActivityScreen(nav: NavController? = null) {
-    Page("Activity", Icons.Default.Timeline, nav) {
-        HistoryRow("Quick Diagnostic", "Ping 12 ms • Packet loss 0%")
-        HistoryRow("Speed Test", "92.4 / 48.7 Mbps")
-        HistoryRow("WiFi Analyzer", "MPorT-Office • CH 6")
-        HistoryRow("Network Scan", "12 hosts reachable")
-        HistoryRow("Ticket #JT-001", "Status updated to In Progress")
+    val context = LocalContext.current
+    var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
+    Page("Activity", Icons.Default.History, nav) {
+        CardBlock("Sesi perangkat saat ini") {
+            Text(
+                "Transport  ${link.transport}\n" +
+                    "SSID  ${link.ssid ?: "—"}\n" +
+                    "IP  ${link.ip ?: "—"}\n" +
+                    "Gateway  ${link.gateway ?: "—"}",
+                fontSize = 12.sp,
+                lineHeight = 20.sp
+            )
+        }
+        CardBlock("Pintasan riwayat") {
+            Text(
+                "Riwayat ping tersimpan di modul Diagnostic (database lokal Room).\n" +
+                    "Tiket lapangan tersimpan di modul Tickets.",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { nav?.navigate("diagnostic") }) { Text("Diagnostic") }
+                OutlinedButton(onClick = { nav?.navigate("tickets") }) { Text("Tickets") }
+            }
+        }
+        OutlinedButton(
+            onClick = { link = LiveNetworkInfo.snapshot(context) },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("REFRESH") }
     }
 }
 
 @Composable
 fun SettingsScreen(nav: NavController? = null) {
     val context = LocalContext.current
+    val link = remember { LiveNetworkInfo.snapshot(context) }
     Page("Settings", Icons.Default.Settings, nav) {
-        SwitchRow("Dark Mode", Icons.Default.DarkMode, true) {}
-        SwitchRow("Notifications", Icons.Default.Notifications, true) {}
-        SettingsRow("Security", Icons.Default.Security) {
-            Toast.makeText(context, "Security settings", Toast.LENGTH_SHORT).show()
+        CardBlock("Aplikasi") {
+            Text("MPorT Tech Pro", fontWeight = FontWeight.Bold)
+            Text("Toolkit teknisi jaringan · data lokal on-device", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        SettingsRow("Server Settings", Icons.Default.Cloud) {
-            Toast.makeText(context, "Server settings", Toast.LENGTH_SHORT).show()
+        CardBlock("Jaringan perangkat") {
+            Text(
+                "${link.transport}  ·  ${link.ip ?: "—"}\nGW ${link.gateway ?: "—"}",
+                fontSize = 12.sp
+            )
         }
-        SettingsRow("MikroTik Connection", Icons.Default.Router) {
-            nav?.navigate("mikrotik")
+        SettingsRow("Profile & tema", Icons.Default.Person) { nav?.navigate("profile") }
+        SettingsRow("Pelanggan (Room)", Icons.Default.People) { nav?.navigate("customers") }
+        SettingsRow("Tiket lapangan", Icons.Default.ConfirmationNumber) { nav?.navigate("tickets") }
+        SettingsRow("Diagnostic", Icons.Default.NetworkCheck) { nav?.navigate("diagnostic") }
+        SettingsRow("WiFi Analyzer", Icons.Default.Wifi) { nav?.navigate("wifi") }
+        SettingsRow("About", Icons.Default.Info) { nav?.navigate("about") }
+        CardBlock("Privasi & keamanan") {
+            Text(
+                "• Tidak ada kredensial MikroTik di APK\n" +
+                    "• Scan LAN membutuhkan konfirmasi otorisasi\n" +
+                    "• Data pelanggan/tiket hanya di database lokal",
+                fontSize = 12.sp,
+                lineHeight = 20.sp
+            )
         }
     }
 }
-
-// ─── Shared UI helpers ───────────────────────────────────────────────────────
 
 @Composable
 private fun Page(
@@ -1587,19 +1983,25 @@ private fun InteractiveTabStrip(items: List<String>, selected: Int, onSelect: (I
 
 @Composable
 private fun RouterHero() {
+    val context = LocalContext.current
+    val link = remember { LiveNetworkInfo.snapshot(context) }
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                Icon(Icons.Default.Router, null, modifier = Modifier.padding(12.dp), tint = MaterialTheme.colorScheme.primary)
-            }
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Router, null, tint = Color(0xFF4EDCFF), modifier = Modifier.size(36.dp))
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("MikroTik CCR1009", fontWeight = FontWeight.Bold)
-                Text("192.168.1.1", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("● Online", fontSize = 10.sp, color = Color(0xFF35E381))
+                Text(
+                    if (link.online) "Uplink · ${link.transport}" else "Uplink offline",
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    listOfNotNull(link.ssid, link.ip, link.gateway?.let { "GW $it" }).joinToString(" · ").ifBlank { "—" },
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -1717,11 +2119,16 @@ private fun DeviceCard(name: String, ip: String, online: Boolean, onClick: () ->
 
 @Composable
 private fun InterfaceList() {
-    CardBlock("Interface") {
-        listOf("ether1        1.2 Gbps", "ether2        1.0 Gbps", "ether3        500 Mbps", "ether4        100 Mbps")
-            .forEach {
-                Text(it, fontSize = 10.sp, modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val context = LocalContext.current
+    val ifaces = remember { LiveNetworkInfo.interfaceNames() }
+    CardBlock("Interfaces") {
+        if (ifaces.isEmpty()) {
+            Text("Tidak ada interface aktif", fontSize = 12.sp)
+        } else {
+            ifaces.take(10).forEach {
+                Text(it, fontSize = 11.sp, lineHeight = 18.sp)
             }
+        }
     }
 }
 

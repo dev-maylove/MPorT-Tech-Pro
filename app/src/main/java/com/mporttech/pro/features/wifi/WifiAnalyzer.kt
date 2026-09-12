@@ -188,7 +188,7 @@ class WifiAnalyzer(private val context: Context) {
                 override fun onReceive(ctx: Context?, intent: Intent?) {
                     if (intent?.action != WifiManager.SCAN_RESULTS_AVAILABLE_ACTION) return
                     try {
-                        context.unregisterReceiver(this)
+                        context.applicationContext.unregisterReceiver(this)
                     } catch (_: Exception) {
                     }
                     if (cont.isActive) {
@@ -196,13 +196,14 @@ class WifiAnalyzer(private val context: Context) {
                     }
                 }
             }
+            val appCtx = context.applicationContext
             try {
                 val filter = IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
                 if (Build.VERSION.SDK_INT >= 33) {
-                    context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                    appCtx.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
                 } else {
                     @Suppress("UnspecifiedRegisterReceiverFlag")
-                    context.registerReceiver(receiver, filter)
+                    appCtx.registerReceiver(receiver, filter)
                 }
                 try {
                     @Suppress("DEPRECATION")
@@ -214,7 +215,7 @@ class WifiAnalyzer(private val context: Context) {
             }
             cont.invokeOnCancellation {
                 try {
-                    context.unregisterReceiver(receiver)
+                    appCtx.unregisterReceiver(receiver)
                 } catch (_: Exception) {
                 }
             }

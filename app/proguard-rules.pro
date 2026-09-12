@@ -1,38 +1,52 @@
-# MPorT Tech Pro - ProGuard / R8 rules
+# MPorT Tech Pro — R8 / ProGuard rules (release)
 
-# Keep Room entities & DAOs
--keep class com.mporttech.pro.core.database.** { *; }
+# Keep line numbers for crash reports
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+-keepattributes Signature, InnerClasses, EnclosingMethod, *Annotation*, Exceptions
+
+# Application entry points
+-keep class com.mporttech.pro.MPorTTechApplication { *; }
+-keep class com.mporttech.pro.MainActivity { *; }
+
+# Room
 -keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.**
+-keep class com.mporttech.pro.core.database.** { *; }
 
 # Hilt / Dagger
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
 -keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
+-keepclasseswithmembers class * {
+    @dagger.hilt.* <methods>;
+}
+-keepclasseswithmembers class * {
+    @javax.inject.* <methods>;
+}
 
-# OkHttp / Retrofit
+# Kotlin metadata / coroutines
+-dontwarn kotlin.**
+-keep class kotlin.Metadata { *; }
+-keepclassmembers class **$WhenMappings { <fields>; }
+-keepclassmembers class kotlinx.coroutines.** { *; }
+
+# Compose (R8 full mode)
+-dontwarn androidx.compose.**
+-keep class androidx.compose.runtime.** { *; }
+
+# OkHttp / Retrofit / Gson
 -dontwarn okhttp3.**
 -dontwarn okio.**
 -dontwarn retrofit2.**
--keepattributes Signature
--keepattributes *Annotation*
 -keep class com.google.gson.** { *; }
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
+-keepclassmembers,allowobfuscation class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
 
-# Kotlin
--dontwarn kotlin.**
--keepclassmembers class **$WhenMappings { <fields>; }
--keepclassmembers class **$WhenMappings { *; }
-
-# Compose
--dontwarn androidx.compose.**
-
-# Keep application & entry points
--keep class com.mporttech.pro.MPorTTechApplication { *; }
--keep class com.mporttech.pro.MainActivity { *; }
-
-# Preserve line numbers for crash reports
--keepattributes SourceFile,LineNumberTable
--renamesourcefileattribute SourceFile
+# Enums used in Parcelable / Room / Gson
+-keepclassmembers enum * { *; }

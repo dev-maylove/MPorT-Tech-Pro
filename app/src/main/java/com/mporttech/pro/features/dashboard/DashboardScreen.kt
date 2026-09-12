@@ -40,6 +40,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,7 +52,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.mporttech.pro.features.tools.LiveNetworkInfo
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private data class DashboardAction(
     val title: String,
@@ -200,6 +209,29 @@ private fun TechnicianIdentityCard(nav: NavController) {
 
 @Composable
 private fun NetworkHealthCard() {
+    val context = LocalContext.current
+    var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
+    var gwMs by remember { mutableStateOf<Long?>(null) }
+    var gwOk by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            link = LiveNetworkInfo.snapshot(context)
+            val gw = link.gateway
+            if (gw != null) {
+                val (ok, ms) = LiveNetworkInfo.probe(gw, 800)
+                gwOk = ok
+                gwMs = ms
+            }
+            delay(3000)
+        }
+    }
+    val score = when {
+        !link.online -> 0.15f
+        gwOk && (gwMs ?: 999) < 50 -> 0.95f
+        gwOk && (gwMs ?: 999) < 120 -> 0.8f
+        gwOk -> 0.65f
+        else -> 0.35f
+    }
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -208,33 +240,32 @@ private fun NetworkHealthCard() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Network Health", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Spacer(Modifier.weight(1f))
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Text(
+                    if (link.online) link.transport else "Offline",
+                    fontSize = 11.sp,
+                    color = if (link.online) Color(0xFF35E381) else Color(0xFFFF5E67)
                 )
             }
             Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(72.dp)) {
-                    CircularProgressIndicator(
-                        progress = { 0.92f },
-                        strokeWidth = 7.dp,
-                        color = Color(0xFF4EDCFF),
-                        trackColor = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Text("92%", fontWeight = FontWeight.Black, fontSize = 17.sp)
+            LinearProgressIndicator(
+                progress = { score },
+                modifier = Modifier.fillMaxWidth().height(8.dp),
+                color = when {
+                    score > 0.8f -> Color(0xFF35E381)
+                    score > 0.5f -> Color(0xFFFFB020)
+                    else -> Color(0xFFFF5E67)
                 }
-                Spacer(Modifier.width(18.dp))
-                Column {
-                    Text("Excellent", color = Color(0xFF35E381), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("0 issues detected", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
-                    Spacer(Modifier.height(6.dp))
-                    Text("Server Online", color = Color(0xFF35E381), fontSize = 10.sp)
-                }
-            }
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                buildString {
+                    append(link.ssid?.let { "$it · " } ?: "")
+                    append(link.ip ?: "No IP")
+                    append(gwMs?.let { " · GW ${it}ms" } ?: "")
+                },
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -242,13 +273,13 @@ private fun NetworkHealthCard() {
 @Composable
 private fun DashboardOverview(nav: NavController) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        MiniStat("Device\nOnline", "12", Color(0xFF35E381), Modifier.weight(1f)) {
+        MiniStat("Device\nManager", "Go", Color(0xFF35E381), Modifier.weight(1f)) {
             nav.navigate("devices")
         }
-        MiniStat("Device\nOffline", "1", Color(0xFFFF5E67), Modifier.weight(1f)) {
+        MiniStat("Device\nScan", "LAN", Color(0xFFFF5E67), Modifier.weight(1f)) {
             nav.navigate("devices")
         }
-        MiniStat("Active\nAlerts", "3", Color(0xFFFFB547), Modifier.weight(1f)) {
+        MiniStat("Active\nAlerts", "Live", Color(0xFFFFB547), Modifier.weight(1f)) {
             nav.navigate("alerts")
         }
     }
@@ -281,6 +312,16 @@ private fun MiniStat(
 
 @Composable
 private fun BandwidthCard() {
+    val context = LocalContext.current
+    var rx by remember { mutableStateOf(0.0) }
+    var tx by remember { mutableStateOf(0.0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val (r, t) = LiveNetworkInfo.measureTrafficDeltaMbps(1200)
+            rx = r
+            tx = t
+        }
+    }
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -288,17 +329,17 @@ private fun BandwidthCard() {
         Column(Modifier.padding(14.dp)) {
             Row {
                 Column(Modifier.weight(1f)) {
-                    Text("120 Mbps", fontWeight = FontWeight.Bold)
-                    Text("Download", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(String.format("%.1f Mbps", rx), fontWeight = FontWeight.Bold)
+                    Text("Download (RX)", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text("45 Mbps", fontWeight = FontWeight.Bold, color = Color(0xFFB680FF))
-                    Text("Upload", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(String.format("%.1f Mbps", tx), fontWeight = FontWeight.Bold, color = Color(0xFFB680FF))
+                    Text("Upload (TX)", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(12.dp))
             LinearProgressIndicator(
-                progress = { 0.72f },
+                progress = { ((rx + tx) / 100.0).toFloat().coerceIn(0.02f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(5.dp),
@@ -307,7 +348,7 @@ private fun BandwidthCard() {
             )
             Spacer(Modifier.height(7.dp))
             Text(
-                "Live traffic monitoring",
+                "Live TrafficStats sample (~1s)",
                 fontSize = 9.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

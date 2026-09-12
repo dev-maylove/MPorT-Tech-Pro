@@ -67,8 +67,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeModeState = rememberThemeModeState(ThemeMode.DARK)
+            // Read via `by` so MaterialTheme recomposes when Profile toggles dark mode
+            val themeMode by themeModeState
             CompositionLocalProvider(LocalThemeMode provides themeModeState) {
-                MPorTTechTheme(themeMode = themeModeState.value) {
+                MPorTTechTheme(themeMode = themeMode) {
                     var showStartup by remember { mutableStateOf(true) }
                     LaunchedEffect(Unit) {
                         delay(2200)

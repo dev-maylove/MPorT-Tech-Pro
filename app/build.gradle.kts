@@ -34,10 +34,17 @@ fun resolveSigningValue(key: String): String? {
     return (project.findProperty(key) as? String)?.takeIf { it.isNotBlank() }
 }
 
-// Detect whether any release task is requested (so debug builds still work without keystore)
-val isReleaseTask = gradle.startParameter.taskNames.any {
-    it.contains("Release", ignoreCase = true) || it.contains("Bundle", ignoreCase = true)
+// Detect pure-debug / meta tasks so debug CI works without keystore.
+// Tasks like "assemble", "build", "assembleRelease", "bundleRelease" REQUIRE signing.
+val taskNamesLower = gradle.startParameter.taskNames.map { it.lowercase() }
+// Empty task list = IDE sync / configuration only → do not require keystore
+val isPureDebugOrMeta = taskNamesLower.isEmpty() || taskNamesLower.all { t ->
+    t.contains("debug") ||
+        t == "tasks" || t == "help" || t == "properties" ||
+        t.contains("dependencies") || t.contains("signingreport") ||
+        t.endsWith(":help")
 }
+val requiresReleaseSigning = !isPureDebugOrMeta
 
 android {
     namespace = "com.mporttech.pro"
@@ -49,9 +56,9 @@ android {
         targetSdk = 35
         versionCode = appVersionCode
         versionName = appVersionName
-        // Output: MPorT-Tech-Pro-v1.2.3-release.apk / .aab
-        setProperty("archivesBaseName", "MPorT-Tech-Pro-v${appVersionName}")
     }
+
+    // AGP 8+ recommended way for output name prefix
 
     signingConfigs {
         create("release") {
@@ -64,7 +71,7 @@ android {
             val keyPass = resolveSigningValue("KEY_PASSWORD")
                 ?: resolveSigningValue("keyPassword")
 
-            if (isReleaseTask) {
+            if (requiresReleaseSigning) {
                 // Release MUST be signed — fail fast, never produce unsigned APK/AAB
                 require(!storeFilePath.isNullOrBlank()) {
                     "Release signing requires KEYSTORE_PATH (or storeFile).\n" +
