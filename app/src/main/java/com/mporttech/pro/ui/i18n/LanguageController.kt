@@ -48,3 +48,6 @@ fun t(id: String): String {
 }
 
 fun t(id: String, lang: AppLanguage): String = Str.get(id, lang)
+
+/** Non-composable alias for use inside onClick / coroutines. */
+fun tr(id: String, lang: AppLanguage): String = Str.get(id, lang)

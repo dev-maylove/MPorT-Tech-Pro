@@ -963,11 +963,15 @@ fun DeviceManagerScreen(nav: NavController) {
         else -> devices
     }
 
+    val labelAuthorize = t("net.authorize_scan")
+    val msgAuthorizeFirst = t("net.authorize_first")
+    val labelScanLan = t("net.scan_lan")
+    val labelLoading = t("common.loading")
     Page(t("screen.device_manager"), Icons.Default.Storage, nav) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = authorized, onCheckedChange = { authorized = it })
             Text(
-                t("net.authorize_scan"),
+                labelAuthorize,
                 fontSize = 12.sp,
                 modifier = Modifier.clickable { authorized = !authorized }
             )
@@ -977,7 +981,7 @@ fun DeviceManagerScreen(nav: NavController) {
                 enabled = !scanning,
                 onClick = {
                     if (!authorized) {
-                        Toast.makeText(context, t("net.authorize_first"), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, msgAuthorizeFirst, Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     scanning = true
@@ -985,9 +989,9 @@ fun DeviceManagerScreen(nav: NavController) {
                     scope.launch {
                         try {
                             devices = LiveNetworkInfo.discoverDevices(context, authorized = true)
-                            status = "${devices.size} perangkat · ${devices.count { it.online }} online"
+                            status = "${devices.size} devices · ${devices.count { it.online }} online"
                         } catch (e: Exception) {
-                            status = e.message ?: "Scan gagal"
+                            status = e.message ?: "Scan failed"
                             Toast.makeText(context, status, Toast.LENGTH_LONG).show()
                         } finally {
                             scanning = false
@@ -995,7 +999,7 @@ fun DeviceManagerScreen(nav: NavController) {
                     }
                 },
                 modifier = Modifier.weight(1f)
-            ) { Text(if (scanning) t("common.loading") else t("net.scan_lan")) }
+            ) { Text(if (scanning) labelLoading else labelScanLan) }
             OutlinedButton(
                 onClick = {
                     val snap = LiveNetworkInfo.snapshot(context)
