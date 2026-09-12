@@ -63,3 +63,10 @@
 -keep class com.mporttech.pro.features.network.** { *; }
 -keep class com.mporttech.pro.features.diagnostics.** { *; }
 -keep class com.mporttech.pro.features.dashboard.DashboardViewModel { *; }
+
+# Security Crypto / Google Tink (EncryptedSharedPreferences)
+# R8 complains about errorprone annotations referenced only in Tink signatures
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn com.google.crypto.tink.**
+-keep class com.google.crypto.tink.** { *; }
+-keep class androidx.security.crypto.** { *; }
