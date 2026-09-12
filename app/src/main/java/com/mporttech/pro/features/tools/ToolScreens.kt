@@ -108,6 +108,18 @@ fun NetworkMonitorScreen(nav: NavController) {
         }
     }
 
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == 1 && devices.isEmpty() && !scanning) {
+            scanning = true
+            try {
+                devices = LiveNetworkInfo.discoverDevices(context, authorized = true, endHost = 254)
+            } catch (_: Exception) {
+            } finally {
+                scanning = false
+            }
+        }
+    }
+
     Page(t("screen.network_monitor"), Icons.Default.NetworkCheck, nav) {
         InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
         when (selectedTab) {
@@ -186,7 +198,7 @@ fun NetworkMonitorScreen(nav: NavController) {
                             scanning = true
                             scope.launch {
                                 try {
-                                    devices = LiveNetworkInfo.discoverDevices(context, authorized = true)
+                                    devices = LiveNetworkInfo.discoverDevices(context, authorized = true, endHost = 254)
                                     Toast.makeText(context, "${devices.size} host ditemukan", Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     Toast.makeText(context, e.message ?: "Scan gagal", Toast.LENGTH_LONG).show()
@@ -269,7 +281,7 @@ fun TechnicianToolsScreen(nav: NavController) {
         Tile("Speed Test", "Tes kecepatan", Icons.Default.Speed, "speedtest"),
         Tile("IP Scanner", "Scan perangkat", Icons.Default.Router, "scanner"),
         Tile("Customers", "Data pelanggan", Icons.Default.People, "customers"),
-        Tile("Tickets", "Work orders", Icons.Default.ConfirmationNumber, "tickets"),
+        Tile("Tiket / WO", "Work order lapangan", Icons.Default.ConfirmationNumber, "tickets"),
         Tile("Reports", "Laporan jaringan", Icons.Default.BarChart, "reports")
     )
     Page("Technician Tools", Icons.Default.Build, nav) {
@@ -549,16 +561,6 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
             ) { Text("CACHE/REFRESH") }
         }
 
-        OutlinedButton(
-            onClick = {
-                try {
-                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                } catch (_: Exception) {
-                    Toast.makeText(context, "Buka Settings → Location", Toast.LENGTH_SHORT).show()
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("BUKA LOCATION SETTINGS") }
 
         Text(status, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         permissionHint?.let { Text(it, fontSize = 11.sp, color = MaterialTheme.colorScheme.error) }
@@ -601,6 +603,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                     name = (if (net.isConnected) "★ " else "") + net.ssid,
                     detail = "CH ${net.channel} • ${net.frequencyMhz} MHz • ${net.security} • ${net.widthMhz}MHz • Q${net.qualityScore} • ~${net.estimatedMbps}Mbps",
                     signal = "${net.rssiDbm} dBm",
+                    rssi = net.rssiDbm,
                     onClick = { openWifiConnectDialog(context, net.ssid, net.security) }
                 )
             }
@@ -832,7 +835,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                 Modifier.fillMaxWidth().padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("SERVER  •  ${selected.name}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${selected.displayName}  •  ${selected.host.substringBefore(":")}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(phase, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(10.dp))
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.size(180.dp)) {
@@ -892,7 +895,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                     phase = "Ping..."
                     progress = 0.05f
                     ServerSelector.select(selected)
-                    status = "Tes ke ${selected.displayName}"
+                    status = "${selected.displayName} · ${selected.host.substringBefore(":")}"
                     downloadMbps = 0.0; uploadMbps = 0.0; pingMs = 0.0; jitterMs = 0.0; lossPct = 0.0
                     scope.launch {
                         try {
@@ -1044,7 +1047,7 @@ fun DeviceManagerScreen(nav: NavController) {
                     status = "Scanning…"
                     scope.launch {
                         try {
-                            devices = LiveNetworkInfo.discoverDevices(context, authorized = true)
+                            devices = LiveNetworkInfo.discoverDevices(context, authorized = true, endHost = 254)
                             status = "${devices.size} devices · ${devices.count { it.online }} online"
                         } catch (e: Exception) {
                             status = e.message ?: "Scan failed"
@@ -1692,13 +1695,43 @@ fun ProfileScreen(nav: NavController) {
             notifications = it
         }
         SettingsRow(t("profile.security"), Icons.Default.Security) { showSecurity = true }
-        SettingsRow("MikroTik Connection", Icons.Default.Router) { nav.navigate("mikrotik") }
-        SettingsRow("Server Settings", Icons.Default.Cloud) { showServer = true }
+        SettingsRow("Koneksi MikroTik", Icons.Default.Router) { nav.navigate("mikrotik") }
+        SettingsRow("Pengaturan Server", Icons.Default.Cloud) { showServer = true }
         SettingsRow(t("screen.customers"), Icons.Default.People) { nav.navigate("customers") }
-        SettingsRow("Work Orders", Icons.Default.ConfirmationNumber) { nav.navigate("tickets") }
+        SettingsRow("Work Order", Icons.Default.ConfirmationNumber) { nav.navigate("tickets") }
         SettingsRow(t("screen.reports"), Icons.Default.BarChart) { nav.navigate("reports") }
         SettingsRow("Backup & Restore", Icons.Default.Backup) {
-            Toast.makeText(context, "Backup lokal: mport_backup_${System.currentTimeMillis()}.db (simulasi)", Toast.LENGTH_LONG).show()
+            try {
+                val dbFile = context.getDatabasePath("mport_tech.db")
+                val outDir = context.getExternalFilesDir(null) ?: context.filesDir
+                val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+                val out = java.io.File(outDir, "mport_backup_$stamp.db")
+                if (dbFile.exists()) {
+                    dbFile.copyTo(out, overwrite = true)
+                    // also export session/tech roster
+                    val meta = java.io.File(outDir, "mport_backup_$stamp.json")
+                    meta.writeText(
+                        org.json.JSONObject()
+                            .put("exportedAt", stamp)
+                            .put("app", "MPorT Tech Pro")
+                            .toString()
+                    )
+                    Toast.makeText(context, "Backup disimpan:\n${out.absolutePath}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "Database belum ada", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Backup gagal: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+        if (com.mporttech.pro.core.auth.SessionManager.isAdmin(context)) {
+            SettingsRow("Kelola Teknisi", Icons.Default.People) { nav.navigate("techAdmin") }
+        }
+        SettingsRow("Keluar", Icons.Default.ExitToApp) {
+            com.mporttech.pro.core.auth.SessionManager.logout(context)
+            nav.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
         }
         SettingsRow(t("screen.about"), Icons.Default.Info) { nav.navigate("about") }
     }
@@ -1983,12 +2016,25 @@ private fun Page(
                             text = { Text("Refresh") },
                             onClick = {
                                 menuOpen = false
-                                // no-op visual refresh
                             },
                             leadingIcon = { Icon(Icons.Default.Refresh, null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Share page") },
+                            text = { Text("Pengaturan Lokasi") },
+                            onClick = {
+                                menuOpen = false
+                                try {
+                                    pageContext.startActivity(
+                                        Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                                    )
+                                } catch (_: Exception) {
+                                    Toast.makeText(pageContext, "Buka Settings → Location", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            leadingIcon = { Icon(Icons.Default.LocationOn, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Bagikan halaman") },
                             onClick = {
                                 menuOpen = false
                                 val share = Intent(Intent.ACTION_SEND).apply {
@@ -2135,25 +2181,65 @@ private fun ToolTile(tile: Tile, onClick: () -> Unit) {
 }
 
 @Composable
+private fun WifiSignalBars(rssi: Int, modifier: Modifier = Modifier) {
+    val bars = when {
+        rssi >= -55 -> 4
+        rssi >= -67 -> 3
+        rssi >= -78 -> 2
+        rssi >= -88 -> 1
+        else -> 0
+    }
+    val color = when {
+        rssi >= -65 -> Color(0xFF35E381) // kuat hijau
+        rssi >= -78 -> Color(0xFFFFB020) // menengah kuning
+        else -> Color(0xFFFF5E67) // lemah merah
+    }
+    Row(
+        modifier = modifier.height(18.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        val heights = listOf(6.dp, 10.dp, 14.dp, 18.dp)
+        heights.forEachIndexed { i, h ->
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .height(h)
+                    .background(
+                        if (i < bars) color else color.copy(alpha = 0.2f),
+                        RoundedCornerShape(1.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
 private fun WifiRow(
     name: String,
     detail: String,
     signal: String,
+    rssi: Int = -80,
     onClick: (() -> Unit)? = null
 ) {
+    val color = when {
+        rssi >= -65 -> Color(0xFF35E381)
+        rssi >= -78 -> Color(0xFFFFB020)
+        else -> Color(0xFFFF5E67)
+    }
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
     ) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Wifi, null, tint = Color(0xFF35E381))
+            WifiSignalBars(rssi)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(name.removePrefix("★ ").trim(), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 Text(detail, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text(signal, fontSize = 10.sp)
+            Text(signal, fontSize = 10.sp, color = color, fontWeight = FontWeight.SemiBold)
         }
     }
 }

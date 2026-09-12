@@ -28,6 +28,8 @@ class TicketRepository @Inject constructor(
     fun observe(): Flow<List<TicketEntity>> = dao.observeAll()
     suspend fun add(title: String, description: String) =
         dao.insert(TicketEntity(title = title, description = description, customerId = null))
+    suspend fun updateStatus(item: TicketEntity, status: String) =
+        dao.update(item.copy(status = status))
 }
 
 class DiagnosticRepository @Inject constructor(

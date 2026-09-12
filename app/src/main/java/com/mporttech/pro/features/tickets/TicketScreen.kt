@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.mporttech.pro.ui.i18n.t
+import com.mporttech.pro.core.auth.SessionManager
 import com.mporttech.pro.core.database.TicketEntity
 import com.mporttech.pro.data.repository.TicketRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,6 +49,8 @@ class TicketViewModel @Inject constructor(
     val items = repo.observe()
     fun add(title: String, description: String = "") =
         viewModelScope.launch { repo.add(title, description) }
+    fun setStatus(item: TicketEntity, status: String) =
+        viewModelScope.launch { repo.updateStatus(item, status) }
 }
 
 private val AccentBlue = Color(0xFF21B6FF)
@@ -135,7 +138,7 @@ fun TicketScreen(
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "Work Orders",
+                            "Work Order",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -164,8 +167,8 @@ fun TicketScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatChip("Total", "${items.size}", AccentBlue, Modifier.weight(1f))
-                StatChip("Open", "$openCount", WarningAmber, Modifier.weight(1f))
-                StatChip("Done", "$doneCount", SuccessGreen, Modifier.weight(1f))
+                StatChip("Terbuka", "$openCount", WarningAmber, Modifier.weight(1f))
+                StatChip("Selesai", "$doneCount", SuccessGreen, Modifier.weight(1f))
             }
         }
 
@@ -328,7 +331,7 @@ fun TicketScreen(
                         ) {
                             Icon(Icons.Default.Send, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("CREATE TICKET", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("BUAT TIKET", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
                 }
@@ -349,7 +352,7 @@ fun TicketScreen(
                     letterSpacing = 1.sp
                 )
                 Spacer(Modifier.weight(1f))
-                listOf("ALL" to "Semua", "OPEN" to "Open", "DONE" to "Done").forEach { (key, label) ->
+                listOf("ALL" to "Semua", "OPEN" to "Terbuka", "DONE" to "Selesai").forEach { (key, label) ->
                     FilterChip(
                         selected = filter == key,
                         onClick = { filter = key },
@@ -372,15 +375,23 @@ fun TicketScreen(
                 )
             }
         } else {
-            items(filtered, key = { it.id }) { t ->
-                TicketCard(t)
+            items(filtered, key = { it.id }) { ticket ->
+                TicketCard(
+                    ticket,
+                    isAdmin = SessionManager.isAdmin(context),
+                    onStatus = { st -> vm.setStatus(ticket, st) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun TicketCard(t: TicketEntity) {
+private fun TicketCard(
+    t: TicketEntity,
+    isAdmin: Boolean = false,
+    onStatus: (String) -> Unit = {}
+) {
     val statusColor = when (t.status.uppercase()) {
         "OPEN" -> WarningAmber
         "IN_PROGRESS" -> AccentBlue
@@ -421,6 +432,18 @@ private fun TicketCard(t: TicketEntity) {
                 )
                 Spacer(Modifier.weight(1f))
                 Text(date, fontSize = 10.sp, color = Color(0xFF6A829E))
+            }
+            if (isAdmin) {
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("OPEN" to "Buka", "IN_PROGRESS" to "Proses", "DONE" to "Selesai").forEach { (st, label) ->
+                        FilterChip(
+                            selected = t.status.equals(st, true),
+                            onClick = { onStatus(st) },
+                            label = { Text(label, fontSize = 10.sp) }
+                        )
+                    }
+                }
             }
             Spacer(Modifier.height(8.dp))
             Text(

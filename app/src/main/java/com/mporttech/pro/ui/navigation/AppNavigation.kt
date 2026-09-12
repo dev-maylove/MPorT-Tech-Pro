@@ -33,6 +33,9 @@ import com.mporttech.pro.features.diagnostic.DiagnosticScreen
 import com.mporttech.pro.features.networktools.PortCheckerScreen
 import com.mporttech.pro.features.tickets.TicketScreen
 import com.mporttech.pro.features.tools.*
+import com.mporttech.pro.features.auth.TechnicianAdminScreen
+import com.mporttech.pro.features.auth.LoginScreen
+import com.mporttech.pro.core.auth.SessionManager
 import com.mporttech.pro.features.mikrotik.presentation.MikroTikScreen
 import com.mporttech.pro.features.network.scanner.presentation.NetworkScannerScreen
 import com.mporttech.pro.features.diagnostics.ping.PingScreen
@@ -133,6 +136,14 @@ fun AppNavigation() {
             composable("reports") { ReportsScreen(nav) }
             composable("settings") { SettingsScreen(nav) }
             composable("about") { AboutScreen(nav) }
+            composable("techAdmin") { TechnicianAdminScreen(nav) }
+            composable("login") {
+                LoginScreen(onLoggedIn = {
+                    nav.navigate("dashboard") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                })
+            }
             composable("discovery") { DiscoveryHubScreen(nav) }
             composable("signalHub") { SignalHubScreen(nav) }
             composable("latencyHub") { LatencyHubScreen(nav) }

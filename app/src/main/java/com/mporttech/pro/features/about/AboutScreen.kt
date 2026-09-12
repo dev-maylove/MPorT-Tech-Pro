@@ -1,5 +1,7 @@
 package com.mporttech.pro.features.about
 
+import com.mporttech.pro.R
+
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -10,6 +12,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +52,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -260,7 +265,7 @@ fun AboutScreen(
 
                     Text(
 
-                        text = "ABOUT",
+                        text = "TENTANG",
 
                         color = cyan,
 
@@ -365,23 +370,14 @@ fun AboutScreen(
                 ) {
 
                     Box(
-
-                        contentAlignment =
-                            Alignment.Center
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
                     ) {
-
-                        Icon(
-
-                            imageVector =
-                                Icons.Default.SettingsEthernet,
-
-                            contentDescription =
-                                "MPorT Tech Logo",
-
-                            tint = cyan,
-
-                            modifier = Modifier
-                                .size(52.dp)
+                        Image(
+                            painter = painterResource(R.drawable.mport_tech_logo),
+                            contentDescription = "MPorT Tech Logo",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(72.dp)
                         )
                     }
                 }

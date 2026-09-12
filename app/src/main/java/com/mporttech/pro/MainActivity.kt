@@ -51,6 +51,8 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.mporttech.pro.ui.navigation.AppNavigation
 import com.mporttech.pro.ui.theme.LocalThemeMode
 import com.mporttech.pro.ui.theme.MPorTTechTheme
+import com.mporttech.pro.core.auth.SessionManager
+import com.mporttech.pro.features.auth.LoginScreen
 import com.mporttech.pro.ui.theme.ThemeMode
 import com.mporttech.pro.ui.theme.rememberThemeModeState
 import com.mporttech.pro.ui.i18n.LocalAppLanguage
@@ -86,7 +88,14 @@ class MainActivity : ComponentActivity() {
                         delay(2200)
                         showStartup = false
                     }
-                    if (showStartup) PremiumStartupScreen() else AppNavigation()
+                    var loggedIn by remember {
+                        mutableStateOf(SessionManager.isLoggedIn(context))
+                    }
+                    when {
+                        showStartup -> PremiumStartupScreen()
+                        !loggedIn -> LoginScreen(onLoggedIn = { loggedIn = true })
+                        else -> AppNavigation()
+                    }
                 }
             }
         }
@@ -263,17 +272,16 @@ private fun PremiumStartupScreen() {
                     )
                 }
 
-                // Transparent-bg logo (no black square) blends into dark splash
+                // Clean logo — residual black removed in asset (true alpha)
                 Image(
                     painter = painterResource(R.drawable.mport_tech_logo),
                     contentDescription = "MPorT Tech",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .fillMaxWidth(0.78f)
+                        .size(200.dp)
                         .graphicsLayer(
                             scaleX = pulse,
-                            scaleY = pulse,
-                            alpha = 0.98f
+                            scaleY = pulse
                         )
                 )
             }

@@ -136,7 +136,7 @@ object LiveNetworkInfo {
      * Discover live hosts on the current private /24 (requires authorized=true).
      * Always includes gateway first.
      */
-    suspend fun discoverDevices(context: Context, authorized: Boolean): List<LiveDevice> =
+    suspend fun discoverDevices(context: Context, authorized: Boolean, endHost: Int = 40): List<LiveDevice> =
         withContext(Dispatchers.IO) {
             val snap = snapshot(context)
             val gateway = snap.gateway
@@ -166,8 +166,8 @@ object LiveNetworkInfo {
                 scanner.scan(
                     base = base,
                     startHost = 1,
-                    endHost = 40,
-                    timeoutMs = 200,
+                    endHost = endHost.coerceIn(1, 254),
+                    timeoutMs = if (endHost > 80) 150 else 200,
                     authorized = true
                 )
             } catch (_: Exception) {
