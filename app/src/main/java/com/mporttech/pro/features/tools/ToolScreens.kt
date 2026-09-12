@@ -243,6 +243,9 @@ fun NetworkMonitorScreen(nav: NavController) {
 @Composable
 fun TechnicianToolsScreen(nav: NavController) {
     val tools = listOf(
+        Tile("Discovery", "LAN devices · WiFiman style", Icons.Default.Search, "discovery"),
+        Tile("Signal Hub", "RSSI · latency live", Icons.Default.BarChart, "signalHub"),
+        Tile("Network Latency", "Google · FB · X · GW", Icons.Default.Speed, "latencyHub"),
         Tile("Ping Tool", "Uji latency & loss", Icons.Default.NetworkCheck, "ping"),
         Tile("Traceroute", "Path & hop latency", Icons.Default.Timeline, "traceroute"),
         Tile("DNS Lookup", "Resolve A/AAAA", Icons.Default.Search, "dns"),
@@ -290,17 +293,17 @@ fun WifiToolsScreen(nav: NavController) {
     }
     val tiles = listOf(
         Tile("WiFi Scanner", "Scan AP sekitar (optimized)", Icons.Default.Wifi, "wifi"),
-        Tile("Signal Strength", "Kualitas & estimasi link", Icons.Default.NetworkCheck, "wifi"),
+        Tile("Signal Strength", "Kualitas & estimasi link", Icons.Default.NetworkCheck, "signalHub"),
         Tile("Channel Analyzer", "Rekomendasi channel", Icons.Default.BarChart, "wifi"),
         Tile("Network Information", "Info koneksi aktif", Icons.Default.Info, "wifi"),
-        Tile("Connected Devices", "Perangkat terhubung", Icons.Default.Groups, "devices"),
+        Tile("Connected Devices", "Perangkat terhubung", Icons.Default.Groups, "discovery"),
         Tile("Speed Test", "Tes kecepatan penuh", Icons.Default.Speed, "speedtest")
     )
     Page("WiFi Tools", Icons.Default.Wifi, nav) {
         CardBlock(connected?.ssid ?: "WiFi tidak terhubung") {
             if (connected != null) {
                 Text(
-                    "RSSI ${connected!!.rssiDbm} dBm • Q${connected!!.qualityScore}/100 • ~${connected!!.estimatedMbps} Mbps",
+                    "RSSI ${(connected?.rssiDbm ?: 0)} dBm • Q${(connected?.qualityScore ?: 0)}/100 • ~${(connected?.estimatedMbps ?: 0)} Mbps",
                     color = Color(0xFF35E381),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
@@ -426,13 +429,13 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
         CardBlock(connected?.ssid ?: "Belum terhubung WiFi") {
             if (connected != null) {
                 Text(
-                    "RSSI ${connected!!.rssiDbm} dBm  •  CH ${connected!!.channel}  •  ${connected!!.frequencyMhz} MHz",
+                    "RSSI ${(connected?.rssiDbm ?: 0)} dBm  •  CH ${(connected?.channel ?: 0)}  •  ${(connected?.frequencyMhz ?: 0)} MHz",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Kualitas ${connected!!.qualityScore}/100  •  Estimasi link ~${connected!!.estimatedMbps} Mbps",
+                    "Kualitas ${(connected?.qualityScore ?: 0)}/100  •  Estimasi link ~${(connected?.estimatedMbps ?: 0)} Mbps",
                     color = Color(0xFF35E381),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
@@ -703,7 +706,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
         ) {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                    Icon(Icons.Default.Dns, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(10.dp))
+                    Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(10.dp))
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {

@@ -24,6 +24,10 @@ import com.mporttech.pro.ui.i18n.t
 import com.mporttech.pro.features.about.AboutScreen
 import com.mporttech.pro.features.customers.CustomerScreen
 import com.mporttech.pro.features.dashboard.DashboardScreen
+import com.mporttech.pro.features.discovery.DiscoveryHubScreen
+import com.mporttech.pro.features.discovery.SignalHubScreen
+import com.mporttech.pro.features.discovery.LatencyHubScreen
+import com.mporttech.pro.features.discovery.DeviceDetailRichScreen
 import com.mporttech.pro.features.diagnostic.DiagnosticScreen
 import com.mporttech.pro.features.networktools.DnsLookupScreen
 import com.mporttech.pro.features.networktools.PingToolScreen
@@ -125,6 +129,10 @@ fun AppNavigation() {
             composable("reports") { ReportsScreen(nav) }
             composable("settings") { SettingsScreen(nav) }
             composable("about") { AboutScreen(nav) }
+            composable("discovery") { DiscoveryHubScreen(nav) }
+            composable("signalHub") { SignalHubScreen(nav) }
+            composable("latencyHub") { LatencyHubScreen(nav) }
+            composable("deviceDetailRich") { DeviceDetailRichScreen(nav) }
         }
     }
 }

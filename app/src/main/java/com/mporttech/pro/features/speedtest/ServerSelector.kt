@@ -52,7 +52,7 @@ object ServerSelector {
                     }
                 }
             }
-            if (bestLat < 12.0) return@withContext best!!.also { select(it) }
+            if (best != null && bestLat < 12.0) return@withContext best.also { select(it) }
         }
 
         val chosen = best ?: TestServer.haansiro()

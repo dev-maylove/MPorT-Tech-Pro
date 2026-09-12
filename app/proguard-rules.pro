@@ -50,3 +50,5 @@
 
 # Enums used in Parcelable / Room / Gson
 -keepclassmembers enum * { *; }
+
+-keep class com.mporttech.pro.features.discovery.** { *; }

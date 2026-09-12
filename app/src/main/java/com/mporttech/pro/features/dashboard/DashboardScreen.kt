@@ -73,7 +73,8 @@ fun DashboardScreen(nav: NavController) {
         DashboardAction("WiFi Tools", "Signal, channel & networks", Icons.Default.Wifi, "wifiTools"),
         DashboardAction("Speed Test", "Download, upload & quality", Icons.Default.Speed, "speedtest"),
         DashboardAction("Technician Tools", "Diagnostics & utilities", Icons.Default.Build, "tools"),
-        DashboardAction("Devices", "Network device manager", Icons.Default.Router, "devices"),
+        DashboardAction("Discovery", "LAN devices · live", Icons.Default.Search, "discovery"),
+        DashboardAction("Signal", "RSSI & latency hub", Icons.Default.BarChart, "signalHub"),
         DashboardAction("Jobs", "Installation & repair tasks", Icons.Default.ConfirmationNumber, "jobs")
     )
 
