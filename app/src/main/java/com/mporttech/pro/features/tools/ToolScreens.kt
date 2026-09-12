@@ -1626,14 +1626,11 @@ fun ProfileScreen(nav: NavController) {
     var displayName by remember {
         mutableStateOf(sessionUser?.name ?: "User")
     }
-    var role by remember {
-        mutableStateOf(
-            when (sessionUser?.role) {
-                com.mporttech.pro.core.auth.UserRole.ADMIN -> "Administrator"
-                else -> "Teknisi"
-            }
-        )
+    val roleLabel = when (sessionUser?.role) {
+        com.mporttech.pro.core.auth.UserRole.ADMIN -> t("profile.role_admin")
+        else -> t("profile.role_tech")
     }
+    var editRole by remember { mutableStateOf(roleLabel) }
     var phone by remember { mutableStateOf("0812-3456-7890") }
     var email by remember {
         mutableStateOf(sessionUser?.username?.let { "$it@mport.tech" } ?: "user@mport.tech")
@@ -1668,7 +1665,7 @@ fun ProfileScreen(nav: NavController) {
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(role, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(roleLabel, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(email, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -1678,7 +1675,7 @@ fun ProfileScreen(nav: NavController) {
             }
         }
 
-        SettingsRow(t("profile.edit"), Icons.Default.Person) { showEditProfile = true }
+        SettingsRow(t("profile.edit"), Icons.Default.Person) { editRole = roleLabel; showEditProfile = true }
         SwitchRow(t("common.dark_mode"), Icons.Default.DarkMode, darkMode) {
             darkMode = it
             themeModeState.value = if (it) ThemeMode.DARK else ThemeMode.LIGHT
@@ -1760,10 +1757,12 @@ fun ProfileScreen(nav: NavController) {
         }
         SettingsRow(t("common.logout"), Icons.Default.ExitToApp) {
             com.mporttech.pro.core.auth.SessionManager.logout(context)
-            nav.navigate("login") {
-                popUpTo(nav.graph.startDestinationId) { inclusive = true }
-                launchSingleTop = true
-            }
+            // Recreate activity so MainActivity re-reads session → LoginScreen
+            (context as? android.app.Activity)?.recreate()
+                ?: nav.navigate("login") {
+                    popUpTo(nav.graph.startDestinationId) { inclusive = true }
+                    launchSingleTop = true
+                }
         }
         SettingsRow(t("screen.about"), Icons.Default.Info) { nav.navigate("about") }
     }
@@ -1775,7 +1774,7 @@ fun ProfileScreen(nav: NavController) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(displayName, { displayName = it }, label = { Text("Nama") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(role, { role = it }, label = { Text("Jabatan") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(editRole, { editRole = it }, label = { Text("Jabatan") }, singleLine = true, modifier = Modifier.fillMaxWidth(), enabled = isAdmin)
                     OutlinedTextField(phone, { phone = it }, label = { Text("Telepon") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(email, { email = it }, label = { Text("Email") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 }
@@ -1795,7 +1794,7 @@ fun ProfileScreen(nav: NavController) {
     if (showSecurity) {
         AlertDialog(
             onDismissRequest = { showSecurity = false },
-            title = { Text("Security", fontWeight = FontWeight.Bold) },
+            title = { Text(t("profile.security"), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1824,7 +1823,7 @@ fun ProfileScreen(nav: NavController) {
                 }) { Text("Simpan") }
             },
             dismissButton = {
-                TextButton(onClick = { showSecurity = false }) { Text("Tutup") }
+                TextButton(onClick = { showSecurity = false }) { Text(t("common.close")) }
             }
         )
     }
@@ -1832,7 +1831,7 @@ fun ProfileScreen(nav: NavController) {
     if (showServer) {
         AlertDialog(
             onDismissRequest = { showServer = false },
-            title = { Text("Server Settings", fontWeight = FontWeight.Bold) },
+            title = { Text(t("profile.server"), fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(serverHost, { serverHost = it }, label = { Text("API Host") }, singleLine = true, modifier = Modifier.fillMaxWidth())
