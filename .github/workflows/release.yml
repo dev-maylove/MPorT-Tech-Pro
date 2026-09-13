@@ -1,13 +1,15 @@
 name: Android Release
 
+# Auto-run when project is pushed (e.g. from Termux) + tags + manual
 on:
   push:
+    branches: [main, master]
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'Version name (e.g. 1.1.0). Leave empty to use tag or default 1.0.0'
+        description: 'Version name (e.g. 1.1.0). Leave empty to auto-generate'
         required: false
         type: string
 
@@ -26,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve version from tag / input
+      - name: Resolve version from tag / input / push
         id: version
         run: |
           RAW="${{ github.event.inputs.version_name }}"
@@ -34,17 +36,24 @@ jobs:
             RAW="${GITHUB_REF#refs/tags/v}"
           fi
           if [ -z "$RAW" ]; then
-            RAW="1.0.0"
+            # Auto version from date + short SHA (Termux / normal push)
+            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            RAW="1.0.$(date -u +%y%m%d)-${SHORT_SHA}"
           fi
           VERSION_NAME="${RAW#v}"
-          if ! [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][A-Za-z0-9.]+)?$ ]]; then
-            echo "::error::Invalid version '$VERSION_NAME'. Expected like 1.2.3 or 1.2.3-rc1"
-            exit 1
+          # versionCode: monotonic-ish from date YYYYMMDDHH (fits int)
+          VERSION_CODE=$(date -u +%y%m%d%H)
+          # Prefer numeric from semver when available
+          if [[ "$VERSION_NAME" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+            VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+            # Avoid collision on same patch: append hour
+            if [[ "${{ github.ref }}" != refs/tags/* ]]; then
+              VERSION_CODE=$((VERSION_CODE * 100 + 10#$(date -u +%H)))
+            fi
           fi
-          MAJOR=$(echo "$VERSION_NAME" | cut -d. -f1)
-          MINOR=$(echo "$VERSION_NAME" | cut -d. -f2)
-          PATCH=$(echo "$VERSION_NAME" | cut -d. -f3 | sed 's/[^0-9].*//')
-          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
           echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "Resolved versionName=$VERSION_NAME  versionCode=$VERSION_CODE"
@@ -76,15 +85,15 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::Secret KEYSTORE_BASE64 is not set."
+            echo "::error::Secret KEYSTORE_BASE64 is missing. Add it in repo Settings → Secrets."
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 -d > "${{ github.workspace }}/release.keystore"
-          echo "KEYSTORE_PATH=${{ github.workspace }}/release.keystore" >> "$GITHUB_ENV"
           ls -la "${{ github.workspace }}/release.keystore"
 
       - name: Build signed Release APK + AAB
         env:
+          KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -137,7 +146,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Create GitHub Release (on tag)
+      - name: Create GitHub Release (on tag only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
