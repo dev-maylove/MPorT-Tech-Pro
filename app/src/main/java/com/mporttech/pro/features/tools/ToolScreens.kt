@@ -1756,23 +1756,26 @@ fun ProfileScreen(nav: NavController) {
             SettingsRow(t("screen.tech_admin"), Icons.Default.People) { nav.navigate("techAdmin") }
         }
         SettingsRow(t("common.logout"), Icons.Default.ExitToApp) {
+            // Clear local session (guest / staff)
             com.mporttech.pro.core.auth.SessionManager.logout(context)
-            // Clear Sanctum tokens from encrypted storage
+            // Clear Sanctum tokens
             try {
-                val secure = com.mporttech.pro.core.security.SecureStorage(
-                    // reconstruct lightweight — prefers EncryptedSharedPreferences
-                    (context.applicationContext)
-                )
+                val secure = com.mporttech.pro.core.security.SecureStorage(context.applicationContext)
                 secure.remove("auth_access_token")
                 secure.remove("auth_refresh_token")
                 secure.remove("auth_token_type")
                 secure.remove("auth_expires_at_ms")
             } catch (_: Exception) { /* ignore */ }
-            (context as? android.app.Activity)?.recreate()
-                ?: nav.navigate("login") {
+            // Restart activity so MainActivity re-evaluates session → LoginScreen
+            val act = context as? android.app.Activity
+            if (act != null) {
+                act.recreate()
+            } else {
+                nav.navigate("login") {
                     popUpTo(nav.graph.startDestinationId) { inclusive = true }
                     launchSingleTop = true
                 }
+            }
         }
         SettingsRow(t("screen.about"), Icons.Default.Info) { nav.navigate("about") }
     }

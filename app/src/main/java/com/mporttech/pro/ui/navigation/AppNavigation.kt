@@ -48,6 +48,9 @@ import com.mporttech.pro.features.diagnostics.traceroute.TracerouteScreen as Dia
 @Composable
 fun AppNavigation() {
     val nav = rememberNavController()
+    val context = LocalContext.current
+    val isStaff = SessionManager.isStaff(context)
+    val isGuest = SessionManager.isGuest(context)
     val route = nav.currentBackStackEntryAsState().value?.destination?.route ?: "dashboard"
     val topLevel = setOf("dashboard", "network", "tools", "alerts", "profile")
 
@@ -82,13 +85,23 @@ fun AppNavigation() {
                             label = t("nav.network"),
                             modifier = Modifier.weight(1f)
                         )
-                        BottomItem(
-                            selected = route == "tools",
-                            onClick = { nav.navigate("tools") { launchSingleTop = true } },
-                            icon = Icons.Default.Build,
-                            label = t("nav.tools"),
-                            modifier = Modifier.weight(1f)
-                        )
+                        if (isStaff) {
+                            BottomItem(
+                                selected = route == "tools",
+                                onClick = { nav.navigate("tools") { launchSingleTop = true } },
+                                icon = Icons.Default.Build,
+                                label = t("nav.tools"),
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            BottomItem(
+                                selected = route == "diagnostic" || route == "ping",
+                                onClick = { nav.navigate("diagnostic") { launchSingleTop = true } },
+                                icon = Icons.Default.Build,
+                                label = t("nav.tools"),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                         BottomItem(
                             selected = route == "alerts",
                             onClick = { nav.navigate("alerts") { launchSingleTop = true } },

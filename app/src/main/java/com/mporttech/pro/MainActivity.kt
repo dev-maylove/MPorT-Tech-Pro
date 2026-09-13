@@ -88,12 +88,15 @@ class MainActivity : ComponentActivity() {
                         delay(2200)
                         showStartup = false
                     }
-                    var loggedIn by remember {
-                        mutableStateOf(SessionManager.isLoggedIn(context))
+                    var hasSession by remember {
+                        mutableStateOf(SessionManager.hasSession(context))
                     }
                     when {
                         showStartup -> PremiumStartupScreen()
-                        !loggedIn -> LoginScreen(onLoggedIn = { loggedIn = true })
+                        !hasSession -> LoginScreen(
+                            onLoggedIn = { hasSession = true },
+                            onContinueAsGuest = { hasSession = true }
+                        )
                         else -> AppNavigation()
                     }
                 }

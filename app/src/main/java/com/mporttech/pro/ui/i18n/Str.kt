@@ -118,7 +118,7 @@ object Str {
 
         // Login
         "login.title" to "MPorT Tech",
-        "login.subtitle" to "Masuk untuk melanjutkan",
+        "login.subtitle" to "Toolkit teknisi jaringan",
         "login.username" to "Username",
         "login.password" to "Password",
         "login.button" to "Masuk",
@@ -304,7 +304,7 @@ object Str {
         "profile.role_tech" to "Technician",
 
         "login.title" to "MPorT Tech",
-        "login.subtitle" to "Sign in to continue",
+        "login.subtitle" to "Network technician toolkit",
         "login.username" to "Username",
         "login.password" to "Password",
         "login.button" to "Sign in",
