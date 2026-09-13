@@ -1625,12 +1625,17 @@ fun ProfileScreen(nav: NavController) {
     var biometrics by remember { mutableStateOf(false) }
     val sessionUser = remember { com.mporttech.pro.core.auth.SessionManager.currentUser(context) }
     val isAdmin = com.mporttech.pro.core.auth.SessionManager.isAdmin(context)
+    val isGuest = com.mporttech.pro.core.auth.SessionManager.isGuest(context) ||
+        sessionUser?.role == com.mporttech.pro.core.auth.UserRole.GUEST ||
+        sessionUser == null
     var displayName by remember {
         mutableStateOf(sessionUser?.name ?: "User")
     }
     val roleLabel = when (sessionUser?.role) {
         com.mporttech.pro.core.auth.UserRole.ADMIN -> t("profile.role_admin")
-        else -> t("profile.role_tech")
+        com.mporttech.pro.core.auth.UserRole.TECHNICIAN -> t("profile.role_tech")
+        com.mporttech.pro.core.auth.UserRole.GUEST -> t("profile.role_guest")
+        null -> t("profile.role_guest")
     }
     var editRole by remember { mutableStateOf(roleLabel) }
     var phone by remember { mutableStateOf("0812-3456-7890") }
@@ -1645,39 +1650,83 @@ fun ProfileScreen(nav: NavController) {
     var pinEnabled by remember { mutableStateOf(true) }
 
     Page(t("screen.profile"), Icons.Default.Person, nav) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            displayName.take(1).uppercase(),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+        if (!isGuest) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                displayName.take(1).uppercase(),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(roleLabel, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(email, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("● Online", color = Color(0xFF35E381), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Field Unit", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(displayName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(roleLabel, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(email, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            SettingsRow(t("profile.edit"), Icons.Default.Person) { editRole = roleLabel; showEditProfile = true }
+        } else {
+            // Guest: no "Pengguna Umum" identity — show staff sign-in CTA only
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                onClick = {
+                    com.mporttech.pro.core.auth.SessionManager.logout(context)
+                    nav.navigate("login") {
+                        popUpTo(0) { inclusive = false }
+                        launchSingleTop = true
+                    }
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("● Online", color = Color(0xFF35E381), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("Field Unit", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(t("login.staff_button"), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(
+                            t("login.subtitle"),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
-
-        SettingsRow(t("profile.edit"), Icons.Default.Person) { editRole = roleLabel; showEditProfile = true }
         SwitchRow(t("common.dark_mode"), Icons.Default.DarkMode, darkMode) {
             darkMode = it
             themeModeState.value = if (it) ThemeMode.DARK else ThemeMode.LIGHT

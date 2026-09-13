@@ -14,6 +14,17 @@ val appVersionCode: Int = (project.findProperty("versionCode") as String?)
     ?.toIntOrNull()
     ?: 1
 
+// ── API base URL (CI: -PapiBaseUrl=https://api.mandalanet.id/) ──
+// Trailing slash required for Retrofit.
+fun normalizeApiBaseUrl(raw: String): String {
+    val t = raw.trim()
+    return if (t.endsWith("/")) t else "$t/"
+}
+val appApiBaseUrl: String = (project.findProperty("apiBaseUrl") as String?)
+    ?.takeIf { it.isNotBlank() }
+    ?.let { normalizeApiBaseUrl(it) }
+    ?: "https://api.mandalanet.id/"
+
 // ── Signing: env (CI) → keystore.properties (local) → gradle properties ──
 // Parse keystore.properties without java.util.Properties (avoids Kotlin DSL unresolved ref)
 val keystoreProps: Map<String, String> = run {
@@ -56,8 +67,8 @@ android {
         targetSdk = 35
         versionCode = appVersionCode
         versionName = appVersionName
-        // Default production API (override per buildType)
-        buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.102:8000/\"")
+        // API base — overridable via -PapiBaseUrl=... (CI workflow)
+        buildConfigField("String", "API_BASE_URL", "\"${appApiBaseUrl}\"")
         buildConfigField("boolean", "ALLOW_OFFLINE_DEMO_LOGIN", "false")
         buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")
     }
@@ -133,8 +144,12 @@ android {
             versionNameSuffix = "-debug"
             isMinifyEnabled = false
             isDebuggable = true
-            // Emulator → host machine. Device LAN: change to http://192.168.x.x:8000/
-            buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.102:8000/\"")
+            // Local LAN default; CI can still override via -PapiBaseUrl
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                if (project.hasProperty("apiBaseUrl")) "\"${appApiBaseUrl}\"" else "\"http://192.168.1.102:8000/\""
+            )
             buildConfigField("boolean", "ALLOW_OFFLINE_DEMO_LOGIN", "true")
             buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")
         }
@@ -142,7 +157,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = false
-            buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.102:8000/\"")
+            buildConfigField("String", "API_BASE_URL", "\"${appApiBaseUrl}\"")
             buildConfigField("boolean", "ALLOW_OFFLINE_DEMO_LOGIN", "false")
             // Enable when production cert pins are configured in NetworkModule
             buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")

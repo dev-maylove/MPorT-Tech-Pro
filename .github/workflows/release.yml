@@ -9,9 +9,15 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'Version name (e.g. 1.1.0). Leave empty to auto-generate'
+        description: 'Version label, e.g. 2.0.1'
+        required: true
+        type: string
+        default: '2.0.1'
+      api_base_url:
+        description: 'Production API base URL'
         required: false
         type: string
+        default: 'https://api.mandalanet.id'
 
 permissions:
   contents: write
@@ -102,9 +108,20 @@ jobs:
             echo "::error::Missing KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD secrets."
             exit 1
           fi
+          # Normalize API URL (ensure trailing slash)
+          API_URL="${{ github.event.inputs.api_base_url }}"
+          if [ -z "$API_URL" ]; then
+            API_URL="https://api.mandalanet.id"
+          fi
+          case "$API_URL" in
+            */) ;;
+            *) API_URL="${API_URL}/" ;;
+          esac
+          echo "Using API_BASE_URL=$API_URL"
           gradle :app:assembleRelease :app:bundleRelease \
             -PversionName="${{ steps.version.outputs.version_name }}" \
             -PversionCode="${{ steps.version.outputs.version_code }}" \
+            -PapiBaseUrl="$API_URL" \
             --stacktrace --no-daemon
 
       - name: Rename & stage artifacts

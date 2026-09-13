@@ -179,7 +179,10 @@ fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()
                 }
             }
         }
-        item { TechnicianIdentityCard(nav, context) }
+        // Hide guest identity card on home — public users see tools only
+        if (!isGuest) {
+            item { TechnicianIdentityCard(nav, context) }
+        }
         item { NetworkHealthCard(dash) }
         item { DashboardOverview(nav) }
         item {

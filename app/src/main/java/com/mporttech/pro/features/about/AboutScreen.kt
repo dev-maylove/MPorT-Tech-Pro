@@ -353,7 +353,7 @@ fun AboutScreen(
 
                     shape = CircleShape,
 
-                    color = Color(0xFF0B1220),
+                    color = Color.Transparent,
 
                     border = androidx.compose.foundation.BorderStroke(
 
@@ -378,7 +378,7 @@ fun AboutScreen(
                             painter = painterResource(R.drawable.mport_tech_logo),
                             contentDescription = "MPorT Tech Logo",
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier.size(72.dp)
+                            modifier = Modifier.size(88.dp)
                         )
                     }
                 }

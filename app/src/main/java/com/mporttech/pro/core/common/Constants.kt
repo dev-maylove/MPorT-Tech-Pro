@@ -18,12 +18,12 @@ object Constants {
     const val PREFS_LANG = "mport_lang"
 
     /**
-     * Backend base URL — LAN server MPorT.
+     * Backend base URL — production API (override via BuildConfig / -PapiBaseUrl).
      * Must end with trailing slash for Retrofit.
      * Override per build via BuildConfig if needed.
      */
     val API_BASE_URL: String = BuildConfig.API_BASE_URL.ifBlank {
-        "http://192.168.1.102:8000/"
+        "https://api.mandalanet.id/"
     }
 
     /** Offline demo login (debug). */
