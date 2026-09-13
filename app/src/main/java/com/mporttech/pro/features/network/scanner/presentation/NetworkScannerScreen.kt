@@ -83,7 +83,7 @@ fun NetworkScannerScreen(
                         Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Router, null, tint = if (d.online) Color(0xFF35E381) else Color.Gray)
+                        Icon(Icons.Default.Router, null, tint = if (d.online) Color(0xFF39FF14) else Color(0xFF5EC8E8))
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(d.name, fontWeight = FontWeight.Bold)
@@ -92,7 +92,7 @@ fun NetworkScannerScreen(
                         Text(
                             d.latencyMs?.let { "$it ms" } ?: if (d.online) "online" else "offline",
                             fontSize = 12.sp,
-                            color = if (d.online) Color(0xFF35E381) else Color.Gray
+                            color = if (d.online) Color(0xFF39FF14) else Color(0xFF5EC8E8)
                         )
                     }
                 }

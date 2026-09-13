@@ -281,7 +281,7 @@ private fun TechnicianIdentityCard(nav: NavController, context: android.content.
                     Icon(
                         Icons.Default.Circle,
                         contentDescription = null,
-                        tint = if (isGuest) Color(0xFFFFB020) else Color(0xFF35E381),
+                        tint = if (isGuest) Color(0xFFFFD60A) else Color(0xFF39FF14),
                         modifier = Modifier.size(8.dp)
                     )
                 }
@@ -314,7 +314,7 @@ private fun NetworkHealthCard(dash: DashboardUiState) {
                 Text(
                     if (link.online) link.transport else t("common.offline"),
                     fontSize = 11.sp,
-                    color = if (link.online) Color(0xFF35E381) else Color(0xFFFF5E67)
+                    color = if (link.online) Color(0xFF39FF14) else Color(0xFFFF2E63)
                 )
             }
             Spacer(Modifier.height(10.dp))
@@ -322,9 +322,9 @@ private fun NetworkHealthCard(dash: DashboardUiState) {
                 progress = { score },
                 modifier = Modifier.fillMaxWidth().height(8.dp),
                 color = when {
-                    score > 0.8f -> Color(0xFF35E381)
-                    score > 0.5f -> Color(0xFFFFB020)
-                    else -> Color(0xFFFF5E67)
+                    score > 0.8f -> Color(0xFF39FF14)
+                    score > 0.5f -> Color(0xFFFFD60A)
+                    else -> Color(0xFFFF2E63)
                 }
             )
             Spacer(Modifier.height(8.dp))
@@ -344,10 +344,10 @@ private fun NetworkHealthCard(dash: DashboardUiState) {
 @Composable
 private fun DashboardOverview(nav: NavController) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        MiniStat(t("dash.device_manager"), "Go", Color(0xFF35E381), Modifier.weight(1f)) {
+        MiniStat(t("dash.device_manager"), "Go", Color(0xFF39FF14), Modifier.weight(1f)) {
             nav.navigate("devices")
         }
-        MiniStat(t("dash.device_scan"), "LAN", Color(0xFFFF5E67), Modifier.weight(1f)) {
+        MiniStat(t("dash.device_scan"), "LAN", Color(0xFFFF2E63), Modifier.weight(1f)) {
             nav.navigate("networkScanner")
         }
         MiniStat(t("dash.active_alerts"), "Live", Color(0xFFFFB547), Modifier.weight(1f)) {

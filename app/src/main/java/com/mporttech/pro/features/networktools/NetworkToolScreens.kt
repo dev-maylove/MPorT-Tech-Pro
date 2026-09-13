@@ -39,11 +39,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 // Shared premium chrome
 // ─────────────────────────────────────────────────────────────
 
-private val AccentBlue = Color(0xFF21B6FF)
-private val AccentCyan = Color(0xFF66E6FF)
-private val SuccessGreen = Color(0xFF35E381)
-private val ErrorRed = Color(0xFFFF5E67)
-private val WarningAmber = Color(0xFFFFB020)
+private val AccentBlue = Color(0xFF00F0FF)
+private val AccentCyan = Color(0xFF00F0FF)
+private val SuccessGreen = Color(0xFF39FF14)
+private val ErrorRed = Color(0xFFFF2E63)
+private val WarningAmber = Color(0xFFFFD60A)
 private val CardBg = Color(0xFF0B1220)
 private val SurfaceElevated = Color(0xFF111C2E)
 private val BorderSubtle = Color(0xFF1A2A42)
@@ -99,12 +99,12 @@ private fun ToolScaffold(
                             title,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color(0xFFE8FBFF)
                         )
                         Text(
                             subtitle,
                             fontSize = 11.sp,
-                            color = Color(0xFF7BA3C9)
+                            color = Color(0xFF9EE8FF)
                         )
                     }
                 }
@@ -153,7 +153,7 @@ private fun StatPill(label: String, value: String, color: Color) {
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Text(value, color = color, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-        Text(label, color = Color(0xFF8AA0B8), fontSize = 10.sp)
+        Text(label, color = Color(0xFF5EC8E8), fontSize = 10.sp)
     }
 }
 
@@ -281,7 +281,7 @@ fun PingToolScreen(nav: NavController? = null) {
         nav = nav
     ) {
         PremiumCard {
-            Text("TARGET HOST", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+            Text("TARGET HOST", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it.trim() },
@@ -298,7 +298,7 @@ fun PingToolScreen(nav: NavController? = null) {
             )
             PresetChips(presets) { host = it }
 
-            Text("PACKET COUNT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+            Text("PACKET COUNT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(4, 8, 16).forEach { n ->
                     FilterChip(
@@ -379,7 +379,7 @@ fun PingToolScreen(nav: NavController? = null) {
         // Live stats — show immediately while running or when samples exist
         AnimatedVisibility(visible = running || samples.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
             PremiumCard {
-                Text("STATISTICS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+                Text("STATISTICS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -408,7 +408,7 @@ fun PingToolScreen(nav: NavController? = null) {
         // Packet log
         if (samples.isNotEmpty()) {
             PremiumCard {
-                Text("PACKET LOG", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+                Text("PACKET LOG", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 samples.forEach { s ->
                     Row(
                         Modifier
@@ -445,7 +445,7 @@ fun PingToolScreen(nav: NavController? = null) {
                 Text(
                     "Parser ICMP native (jika tersedia) → fallback TCP probe. Statistik dihitung single-pass O(n).",
                     fontSize = 11.sp,
-                    color = Color(0xFF8AA0B8)
+                    color = Color(0xFF5EC8E8)
                 )
             }
         }
@@ -486,7 +486,7 @@ fun TracerouteScreen(nav: NavController? = null) {
         nav = nav
     ) {
         PremiumCard {
-            Text("DESTINATION", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+            Text("DESTINATION", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it.trim() },
@@ -503,7 +503,7 @@ fun TracerouteScreen(nav: NavController? = null) {
             )
             PresetChips(presets) { host = it }
 
-            Text("MAX HOPS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+            Text("MAX HOPS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(8, 12, 20).forEach { n ->
                     FilterChip(
@@ -570,8 +570,8 @@ fun TracerouteScreen(nav: NavController? = null) {
                     Icon(Icons.Default.Dns, null, tint = AccentCyan, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Column {
-                        Text("Resolved destination", fontSize = 10.sp, color = Color(0xFF7BA3C9))
-                        Text(ip, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White, fontFamily = FontFamily.Monospace)
+                        Text("Resolved destination", fontSize = 10.sp, color = Color(0xFF9EE8FF))
+                        Text(ip, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFE8FBFF), fontFamily = FontFamily.Monospace)
                     }
                 }
             }
@@ -579,7 +579,7 @@ fun TracerouteScreen(nav: NavController? = null) {
 
         if (hops.isNotEmpty()) {
             PremiumCard {
-                Text("HOP TABLE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+                Text("HOP TABLE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 hops.forEach { hop ->
                     val statusColor = when (hop.status) {
                         "ok" -> SuccessGreen
@@ -614,12 +614,12 @@ fun TracerouteScreen(nav: NavController? = null) {
                                 hop.host ?: "*",
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
-                                color = Color.White
+                                color = Color(0xFFE8FBFF)
                             )
                             Text(
                                 hop.ip ?: "no reply",
                                 fontSize = 10.sp,
-                                color = Color(0xFF8AA0B8),
+                                color = Color(0xFF5EC8E8),
                                 fontFamily = FontFamily.Monospace
                             )
                         }
@@ -646,7 +646,7 @@ fun TracerouteScreen(nav: NavController? = null) {
                 Text(
                     "Traceroute penuh membutuhkan raw ICMP (root). Versi ini menampilkan path discovery profesional dengan hop akhir diukur secara nyata ke destinasi.",
                     fontSize = 11.sp,
-                    color = Color(0xFF8AA0B8)
+                    color = Color(0xFF5EC8E8)
                 )
             }
         }
@@ -686,7 +686,7 @@ fun DnsLookupScreen(nav: NavController? = null) {
         nav = nav
     ) {
         PremiumCard {
-            Text("QUERY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+            Text("QUERY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.trim() },
@@ -799,7 +799,7 @@ fun DnsLookupScreen(nav: NavController? = null) {
 
         if (records.isNotEmpty()) {
             PremiumCard {
-                Text("RECORDS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+                Text("RECORDS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 records.forEach { rec ->
                     Row(
                         Modifier
@@ -833,10 +833,10 @@ fun DnsLookupScreen(nav: NavController? = null) {
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color.White
+                                color = Color(0xFFE8FBFF)
                             )
                             if (rec.note.isNotBlank()) {
-                                Text(rec.note, fontSize = 10.sp, color = Color(0xFF8AA0B8))
+                                Text(rec.note, fontSize = 10.sp, color = Color(0xFF5EC8E8))
                             }
                         }
                     }
@@ -852,7 +852,7 @@ fun DnsLookupScreen(nav: NavController? = null) {
                 Text(
                     "Menggunakan resolver sistem Android (InetAddress). Menampilkan A / AAAA dan canonical name bila tersedia.",
                     fontSize = 11.sp,
-                    color = Color(0xFF8AA0B8)
+                    color = Color(0xFF5EC8E8)
                 )
             }
         }
@@ -897,7 +897,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
         nav = nav
     ) {
         PremiumCard {
-            Text("TARGET", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+            Text("TARGET", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it.trim() },
@@ -913,7 +913,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
                 )
             )
 
-            Text("PORTS (comma separated)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+            Text("PORTS (comma separated)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = portInput,
                 onValueChange = { portInput = it },
@@ -929,7 +929,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
                 )
             )
 
-            Text("QUICK SETS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+            Text("QUICK SETS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -1012,7 +1012,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
             }
 
             PremiumCard {
-                Text("RESULTS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7BA3C9), letterSpacing = 1.sp)
+                Text("RESULTS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 results.forEach { r ->
                     Row(
                         Modifier
@@ -1034,12 +1034,12 @@ fun PortCheckerScreen(nav: NavController? = null) {
                                 "Port ${r.port}",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                color = Color.White
+                                color = Color(0xFFE8FBFF)
                             )
                             Text(
                                 r.service,
                                 fontSize = 11.sp,
-                                color = Color(0xFF8AA0B8)
+                                color = Color(0xFF5EC8E8)
                             )
                         }
                         Text(
@@ -1061,7 +1061,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
                 Text(
                     "TCP connect scan. Port terbuka berarti host menerima koneksi pada port tersebut. Firewall dapat memblokir hasil.",
                     fontSize = 11.sp,
-                    color = Color(0xFF8AA0B8)
+                    color = Color(0xFF5EC8E8)
                 )
             }
         }

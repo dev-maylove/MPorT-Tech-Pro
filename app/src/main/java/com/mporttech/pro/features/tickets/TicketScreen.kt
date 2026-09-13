@@ -75,10 +75,10 @@ class TicketViewModel @Inject constructor(
     fun consumeSyncMessage() { _syncMessage.value = null }
 }
 
-private val AccentBlue = Color(0xFF21B6FF)
-private val SuccessGreen = Color(0xFF35E381)
-private val WarningAmber = Color(0xFFFFB020)
-private val ErrorRed = Color(0xFFFF5E67)
+private val AccentBlue = Color(0xFF00F0FF)
+private val SuccessGreen = Color(0xFF39FF14)
+private val WarningAmber = Color(0xFFFFD60A)
+private val ErrorRed = Color(0xFFFF2E63)
 private val CardBg = Color(0xFF0B1220)
 private val SurfaceElev = Color(0xFF111C2E)
 private val BorderSubtle = Color(0xFF1A2A42)
@@ -172,12 +172,12 @@ fun TicketScreen(
                             "Work Order",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color(0xFFE8FBFF)
                         )
                         Text(
                             "Ticket & job tracking",
                             fontSize = 11.sp,
-                            color = Color(0xFF7BA3C9)
+                            color = Color(0xFF9EE8FF)
                         )
                     }
                     TextButton(onClick = { showForm = !showForm }) {
@@ -260,7 +260,7 @@ fun TicketScreen(
                             "PRIORITAS",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF7BA3C9),
+                            color = Color(0xFF9EE8FF),
                             letterSpacing = 1.sp
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -270,7 +270,7 @@ fun TicketScreen(
                                     "Critical" -> ErrorRed
                                     "High" -> WarningAmber
                                     "Normal" -> AccentBlue
-                                    else -> Color(0xFF8AA0B8)
+                                    else -> Color(0xFF5EC8E8)
                                 }
                                 FilterChip(
                                     selected = selected,
@@ -288,7 +288,7 @@ fun TicketScreen(
                             "KATEGORI",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF7BA3C9),
+                            color = Color(0xFF9EE8FF),
                             letterSpacing = 1.sp
                         )
                         val categories = listOf("Gangguan", "Instalasi", "Maintenance", "Upgrade")
@@ -379,7 +379,7 @@ fun TicketScreen(
                     "DAFTAR",
                     fontWeight = FontWeight.Bold,
                     fontSize = 11.sp,
-                    color = Color(0xFF7BA3C9),
+                    color = Color(0xFF9EE8FF),
                     letterSpacing = 1.sp
                 )
                 Spacer(Modifier.weight(1f))
@@ -427,7 +427,7 @@ private fun TicketCard(
         "OPEN" -> WarningAmber
         "IN_PROGRESS" -> AccentBlue
         "DONE", "CLOSED" -> SuccessGreen
-        else -> Color(0xFF9DB0C7)
+        else -> Color(0xFF9EE8FF)
     }
     val date = remember(t.createdAt) {
         SimpleDateFormat("dd MMM yyyy • HH:mm", Locale("id")).format(Date(t.createdAt))
@@ -458,7 +458,7 @@ private fun TicketCard(
                 Text(
                     "#${t.id}",
                     fontSize = 11.sp,
-                    color = Color(0xFF7BA3C9),
+                    color = Color(0xFF9EE8FF),
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(Modifier.weight(1f))
@@ -481,14 +481,14 @@ private fun TicketCard(
                 t.title,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-                color = Color.White
+                color = Color(0xFFE8FBFF)
             )
             if (t.description.isNotBlank()) {
                 Spacer(Modifier.height(4.dp))
                 Text(
                     t.description,
                     fontSize = 12.sp,
-                    color = Color(0xFF8AA0B8),
+                    color = Color(0xFF5EC8E8),
                     lineHeight = 16.sp
                 )
             }
@@ -507,7 +507,7 @@ private fun StatChip(label: String, value: String, color: Color, modifier: Modif
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(value, color = color, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Text(label, color = Color(0xFF8AA0B8), fontSize = 10.sp)
+        Text(label, color = Color(0xFF5EC8E8), fontSize = 10.sp)
     }
 }
 
@@ -538,12 +538,12 @@ private fun EmptyState(
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFE8FBFF))
             Spacer(Modifier.height(4.dp))
             Text(
                 subtitle,
                 fontSize = 12.sp,
-                color = Color(0xFF8AA0B8),
+                color = Color(0xFF5EC8E8),
                 lineHeight = 16.sp
             )
         }

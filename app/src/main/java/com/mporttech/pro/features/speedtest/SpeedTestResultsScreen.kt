@@ -82,7 +82,7 @@ fun SpeedTestResultsScreen(nav: NavController? = null) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column {
                                     Text("Download", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(String.format(Locale.US, "%.1f Mbps", r.downloadMbps), fontWeight = FontWeight.Bold, color = Color(0xFF21B6FF))
+                                    Text(String.format(Locale.US, "%.1f Mbps", r.downloadMbps), fontWeight = FontWeight.Bold, color = Color(0xFF00F0FF))
                                 }
                                 Column {
                                     Text("Upload", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -90,7 +90,7 @@ fun SpeedTestResultsScreen(nav: NavController? = null) {
                                 }
                                 Column {
                                     Text("Ping", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(String.format(Locale.US, "%.0f ms", r.pingMs), fontWeight = FontWeight.Bold, color = Color(0xFF35E381))
+                                    Text(String.format(Locale.US, "%.0f ms", r.pingMs), fontWeight = FontWeight.Bold, color = Color(0xFF39FF14))
                                 }
                             }
                             Spacer(Modifier.height(4.dp))

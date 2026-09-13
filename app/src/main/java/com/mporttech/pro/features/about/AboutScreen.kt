@@ -740,7 +740,7 @@ fun AboutScreen(
 
                     text = "AREAS OF INTEREST",
 
-                    color = Color(0xFF64748B),
+                    color = Color(0xFF5EC8E8),
 
                     fontSize = 11.sp,
 
@@ -1142,7 +1142,7 @@ fun AboutScreen(
 
                 icon = Icons.Default.Security,
 
-                accentColor = Color(0xFF22C55E)
+                accentColor = Color(0xFF39FF14)
 
             ) {
 
@@ -1193,7 +1193,7 @@ fun AboutScreen(
                     text =
                         "MPorT Tech promotes responsible and ethical use of technology.",
 
-                    color = Color(0xFF22C55E),
+                    color = Color(0xFF39FF14),
 
                     fontSize = 13.sp,
 
@@ -1385,7 +1385,7 @@ fun AboutScreen(
                 modifier = Modifier
                     .fillMaxWidth(),
 
-                color = Color(0xFF64748B),
+                color = Color(0xFF5EC8E8),
 
                 textAlign = TextAlign.Center,
 

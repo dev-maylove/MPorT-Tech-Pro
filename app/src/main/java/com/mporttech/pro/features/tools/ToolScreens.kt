@@ -146,7 +146,7 @@ fun NetworkMonitorScreen(nav: NavController) {
                     MetricBox(
                         "RX",
                         String.format("%.1f", rxMbps),
-                        Color(0xFF35E381),
+                        Color(0xFF39FF14),
                         Modifier.weight(1f)
                     )
                     MetricBox(
@@ -158,7 +158,7 @@ fun NetworkMonitorScreen(nav: NavController) {
                     MetricBox(
                         "GW ms",
                         gatewayMs?.toString() ?: "—",
-                        if (gatewayOk) Color(0xFF35E381) else Color(0xFFFF5E67),
+                        if (gatewayOk) Color(0xFF39FF14) else Color(0xFFFF2E63),
                         Modifier.weight(1f)
                     )
                 }
@@ -333,7 +333,7 @@ fun WifiToolsScreen(nav: NavController) {
             if (connected != null) {
                 Text(
                     "RSSI ${(connected?.rssiDbm ?: 0)} dBm • Q${(connected?.qualityScore ?: 0)}/100 • ~${(connected?.estimatedMbps ?: 0)} Mbps",
-                    color = Color(0xFF35E381),
+                    color = Color(0xFF39FF14),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -486,7 +486,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "Kualitas ${(connected?.qualityScore ?: 0)}/100  •  Estimasi link ~${(connected?.estimatedMbps ?: 0)} Mbps",
-                    color = Color(0xFF35E381),
+                    color = Color(0xFF39FF14),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -571,7 +571,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
             CardBlock("Channel Recommendation") {
                 Text(
                     "2.4 GHz → CH ${snap.recommended24 ?: "-"}    |    5 GHz → CH ${snap.recommended5 ?: "-"}",
-                    color = Color(0xFF35E381),
+                    color = Color(0xFF39FF14),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -758,7 +758,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     selected.latencyMs?.let {
-                        Text("Latency ~ ${String.format(Locale.US, "%.0f", it)} ms", fontSize = 10.sp, color = Color(0xFF35E381))
+                        Text("Latency ~ ${String.format(Locale.US, "%.0f", it)} ms", fontSize = 10.sp, color = Color(0xFF39FF14))
                     }
                 }
                 Icon(if (showServerPicker) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
@@ -821,7 +821,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                                     Text(s.name, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     Text("${s.location} • ${s.distanceKm ?: "-"} km", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                if (active) Text("●", color = Color(0xFF35E381))
+                                if (active) Text("●", color = Color(0xFF39FF14))
                             }
                         }
                     }
@@ -885,7 +885,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             MetricBox("Ping", if (pingMs > 0) String.format(Locale.US, "%.0f ms", pingMs) else "—", Color(0xFF4EDCFF), Modifier.weight(1f))
             MetricBox("Jitter", if (jitterMs > 0) String.format(Locale.US, "%.1f ms", jitterMs) else "—", Color(0xFFB680FF), Modifier.weight(1f))
-            MetricBox("Loss", if (pingMs > 0) String.format(Locale.US, "%.0f%%", lossPct) else "—", Color(0xFF35E381), Modifier.weight(1f))
+            MetricBox("Loss", if (pingMs > 0) String.format(Locale.US, "%.0f%%", lossPct) else "—", Color(0xFF39FF14), Modifier.weight(1f))
         }
         Text(status, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1186,7 +1186,7 @@ fun DeviceDetailScreen(nav: NavController? = null) {
                         Text(
                             "●  $port  ${labels[port] ?: ""}",
                             fontSize = 12.sp,
-                            color = Color(0xFF35E381)
+                            color = Color(0xFF39FF14)
                         )
                     }
                 }
@@ -1198,7 +1198,7 @@ fun DeviceDetailScreen(nav: NavController? = null) {
             }
         }
         pingResult?.let {
-            Text(it, fontSize = 12.sp, color = Color(0xFF35E381))
+            Text(it, fontSize = 12.sp, color = Color(0xFF39FF14))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             OutlinedButton(
@@ -1247,22 +1247,22 @@ fun AlertsScreen(nav: NavController) {
 
     val alerts = buildList {
         if (!link.online) {
-            add(AlertItem("Tidak ada koneksi data", "Tidak ada transport aktif (Wi‑Fi/seluler/ethernet)", "now", Color(0xFFFF5E67), "critical"))
+            add(AlertItem("Tidak ada koneksi data", "Tidak ada transport aktif (Wi‑Fi/seluler/ethernet)", "now", Color(0xFFFF2E63), "critical"))
         }
         if (link.online && gatewayOk == false) {
-            add(AlertItem("Gateway tidak merespons", "Host ${link.gateway ?: "?"} tidak reachable", "now", Color(0xFFFF5E67), "critical"))
+            add(AlertItem("Gateway tidak merespons", "Host ${link.gateway ?: "?"} tidak reachable", "now", Color(0xFFFF2E63), "critical"))
         }
         if (link.online && gatewayOk == true && (gatewayMs ?: 0) > 100) {
-            add(AlertItem("Latency gateway tinggi", "${link.gateway} · ${gatewayMs} ms", "now", Color(0xFFFFB020), "warning"))
+            add(AlertItem("Latency gateway tinggi", "${link.gateway} · ${gatewayMs} ms", "now", Color(0xFFFFD60A), "warning"))
         }
         if (link.online && link.transport == "Cellular") {
             add(AlertItem("Menggunakan seluler", "Bukan Wi‑Fi — cek SSID lapangan jika diharapkan", "now", Color(0xFF4EDCFF), "info"))
         }
         if (link.online && link.ssid == null && link.transport == "Wi‑Fi") {
-            add(AlertItem("SSID tidak terbaca", "Butuh izin lokasi / Nearby Wi‑Fi di Android 13+", "now", Color(0xFFFFB020), "warning"))
+            add(AlertItem("SSID tidak terbaca", "Butuh izin lokasi / Nearby Wi‑Fi di Android 13+", "now", Color(0xFFFFD60A), "warning"))
         }
         if (isEmpty()) {
-            add(AlertItem("Semua nominal", "Link ${link.transport} OK${gatewayMs?.let { " · GW ${it}ms" } ?: ""}", "now", Color(0xFF35E381), "info"))
+            add(AlertItem("Semua nominal", "Link ${link.transport} OK${gatewayMs?.let { " · GW ${it}ms" } ?: ""}", "now", Color(0xFF39FF14), "info"))
         }
     }
 
@@ -1333,10 +1333,10 @@ fun JobsScreen(nav: NavController) {
         )
         val jobs = listOf(
             JobItem("WO", "Buka & kelola tiket", "Buat, ubah status, catat keluhan pelanggan", Color(0xFF4EDCFF), "tickets"),
-            JobItem("SCAN", "Survey perangkat LAN", "Device Manager · scan RFC1918 berizin", Color(0xFF35E381), "devices"),
+            JobItem("SCAN", "Survey perangkat LAN", "Device Manager · scan RFC1918 berizin", Color(0xFF39FF14), "devices"),
             JobItem("WIFI", "Analisis spektrum", "WiFi Analyzer · channel & RSSI", Color(0xFFB680FF), "wifi"),
-            JobItem("SPEED", "Uji throughput", "Speed Test HTTPS operator", Color(0xFFFFB020), "speedtest"),
-            JobItem("DIAG", "Ping / reachability", "Diagnostic ke host yang diizinkan", Color(0xFFFF5E67), "diagnostic")
+            JobItem("SPEED", "Uji throughput", "Speed Test HTTPS operator", Color(0xFFFFD60A), "speedtest"),
+            JobItem("DIAG", "Ping / reachability", "Diagnostic ke host yang diizinkan", Color(0xFFFF2E63), "diagnostic")
         )
         jobs.forEach { j ->
             JobCard(j.tag, j.title, j.detail, j.color) {
@@ -1678,7 +1678,7 @@ fun ProfileScreen(nav: NavController) {
                         Text(email, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("● Online", color = Color(0xFF35E381), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("● Online", color = Color(0xFF39FF14), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Text("Field Unit", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -2284,9 +2284,9 @@ private fun WifiSignalBars(rssi: Int, modifier: Modifier = Modifier) {
         else -> 0
     }
     val color = when {
-        rssi >= -65 -> Color(0xFF35E381) // kuat hijau
-        rssi >= -78 -> Color(0xFFFFB020) // menengah kuning
-        else -> Color(0xFFFF5E67) // lemah merah
+        rssi >= -65 -> Color(0xFF39FF14) // kuat hijau
+        rssi >= -78 -> Color(0xFFFFD60A) // menengah kuning
+        else -> Color(0xFFFF2E63) // lemah merah
     }
     Row(
         modifier = modifier.height(18.dp),
@@ -2317,9 +2317,9 @@ private fun WifiRow(
     onClick: (() -> Unit)? = null
 ) {
     val color = when {
-        rssi >= -65 -> Color(0xFF35E381)
-        rssi >= -78 -> Color(0xFFFFB020)
-        else -> Color(0xFFFF5E67)
+        rssi >= -65 -> Color(0xFF39FF14)
+        rssi >= -78 -> Color(0xFFFFD60A)
+        else -> Color(0xFFFF2E63)
     }
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -2340,7 +2340,7 @@ private fun WifiRow(
 
 @Composable
 private fun DeviceRow(name: String, ip: String, online: Boolean) {
-    val color = if (online) Color(0xFF35E381) else Color(0xFFFF5E67)
+    val color = if (online) Color(0xFF39FF14) else Color(0xFFFF2E63)
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -2358,7 +2358,7 @@ private fun DeviceRow(name: String, ip: String, online: Boolean) {
 
 @Composable
 private fun DeviceCard(name: String, ip: String, online: Boolean, onClick: () -> Unit) {
-    val color = if (online) Color(0xFF35E381) else Color(0xFFFF5E67)
+    val color = if (online) Color(0xFF39FF14) else Color(0xFFFF2E63)
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

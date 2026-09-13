@@ -69,9 +69,9 @@ class CustomerViewModel @Inject constructor(
     fun consumeSyncMessage() { _syncMessage.value = null }
 }
 
-private val AccentBlue = Color(0xFF21B6FF)
-private val AccentCyan = Color(0xFF66E6FF)
-private val SuccessGreen = Color(0xFF35E381)
+private val AccentBlue = Color(0xFF00F0FF)
+private val AccentCyan = Color(0xFF00F0FF)
+private val SuccessGreen = Color(0xFF39FF14)
 private val CardBg = Color(0xFF0B1220)
 private val SurfaceElev = Color(0xFF111C2E)
 private val BorderSubtle = Color(0xFF1A2A42)
@@ -150,8 +150,8 @@ fun CustomerScreen(
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Customers", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text("Data pelanggan lokal", fontSize = 11.sp, color = Color(0xFF7BA3C9))
+                        Text("Customers", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF))
+                        Text("Data pelanggan lokal", fontSize = 11.sp, color = Color(0xFF9EE8FF))
                     }
                     TextButton(onClick = { showForm = !showForm }) {
                         Text(
@@ -210,7 +210,7 @@ fun CustomerScreen(
                             value = name,
                             onValueChange = { name = it },
                             label = { Text("Nama lengkap") },
-                            leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF7BA3C9)) },
+                            leadingIcon = { Icon(Icons.Default.Person, null, tint = Color(0xFF9EE8FF)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
@@ -220,7 +220,7 @@ fun CustomerScreen(
                             value = phone,
                             onValueChange = { phone = it },
                             label = { Text("Telepon / WhatsApp") },
-                            leadingIcon = { Icon(Icons.Default.Phone, null, tint = Color(0xFF7BA3C9)) },
+                            leadingIcon = { Icon(Icons.Default.Phone, null, tint = Color(0xFF9EE8FF)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -231,7 +231,7 @@ fun CustomerScreen(
                             value = address,
                             onValueChange = { address = it },
                             label = { Text("Alamat instalasi") },
-                            leadingIcon = { Icon(Icons.Default.Home, null, tint = Color(0xFF7BA3C9)) },
+                            leadingIcon = { Icon(Icons.Default.Home, null, tint = Color(0xFF9EE8FF)) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = fieldColors()
@@ -241,7 +241,7 @@ fun CustomerScreen(
                             "PAKET LAYANAN",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF7BA3C9),
+                            color = Color(0xFF9EE8FF),
                             letterSpacing = 1.sp
                         )
                         Row(
@@ -305,11 +305,11 @@ fun CustomerScreen(
                 value = query,
                 onValueChange = { query = it },
                 placeholder = { Text(com.mporttech.pro.ui.i18n.t("customers.search")) },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF7BA3C9)) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF9EE8FF)) },
                 trailingIcon = {
                     if (query.isNotBlank()) {
                         IconButton(onClick = { query = "" }) {
-                            Icon(Icons.Default.Clear, null, tint = Color(0xFF7BA3C9))
+                            Icon(Icons.Default.Clear, null, tint = Color(0xFF9EE8FF))
                         }
                     }
                 },
@@ -325,7 +325,7 @@ fun CustomerScreen(
                 "DAFTAR (${filtered.size})",
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp,
-                color = Color(0xFF7BA3C9),
+                color = Color(0xFF9EE8FF),
                 letterSpacing = 1.sp
             )
         }
@@ -353,12 +353,12 @@ fun CustomerScreen(
                             }
                         }
                         Spacer(Modifier.height(12.dp))
-                        Text(com.mporttech.pro.ui.i18n.t("customers.empty"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        Text(com.mporttech.pro.ui.i18n.t("customers.empty"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFE8FBFF))
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "Tekan + Tambah untuk menyimpan data pelanggan ke database lokal.",
                             fontSize = 12.sp,
-                            color = Color(0xFF8AA0B8)
+                            color = Color(0xFF5EC8E8)
                         )
                     }
                 }
@@ -377,7 +377,7 @@ private fun CustomerCard(c: CustomerEntity) {
         c.packageName.contains("Enterprise", true) -> Color(0xFFB680FF)
         c.packageName.contains("Business", true) -> SuccessGreen
         c.packageName.contains("Standard", true) -> AccentBlue
-        else -> Color(0xFF8AA0B8)
+        else -> Color(0xFF5EC8E8)
     }
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -405,9 +405,9 @@ private fun CustomerCard(c: CustomerEntity) {
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(c.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                Text(c.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFE8FBFF))
                 if (c.phone.isNotBlank()) {
-                    Text(c.phone, fontSize = 12.sp, color = Color(0xFF8AA0B8))
+                    Text(c.phone, fontSize = 12.sp, color = Color(0xFF5EC8E8))
                 }
                 if (c.address.isNotBlank()) {
                     Text(c.address, fontSize = 11.sp, color = Color(0xFF6A829E), maxLines = 1)
@@ -440,7 +440,7 @@ private fun MetricMini(label: String, value: String, color: Color, modifier: Mod
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(value, color = color, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Text(label, color = Color(0xFF8AA0B8), fontSize = 10.sp)
+        Text(label, color = Color(0xFF5EC8E8), fontSize = 10.sp)
     }
 }
 

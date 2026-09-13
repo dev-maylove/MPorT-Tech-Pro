@@ -37,10 +37,10 @@ import kotlinx.coroutines.launch
 private val Bg = Color(0xFF0B0F14)
 private val CardBg = Color(0xFF151A22)
 private val Accent = Color(0xFF3B82F6)
-private val Green = Color(0xFF22C55E)
+private val Green = Color(0xFF39FF14)
 private val Amber = Color(0xFFF59E0B)
 private val Red = Color(0xFFEF4444)
-private val Muted = Color(0xFF94A3B8)
+private val Muted = Color(0xFF5EC8E8)
 
 @Composable
 fun DiscoveryHubScreen(nav: NavController) {
@@ -139,7 +139,7 @@ fun DiscoveryHubScreen(nav: NavController) {
                         Text(
                             "Devices (${nodes.size})",
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = Color(0xFFE8FBFF)
                         )
                         IconButton(onClick = { runFullScan() }) {
                             Icon(Icons.Default.Refresh, null, tint = Muted)
@@ -314,7 +314,7 @@ fun SignalHubScreen(nav: NavController) {
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(label, color = if (sel) Color.White else Muted, fontSize = 13.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
+                        Text(label, color = if (sel) Color(0xFFE8FBFF) else Muted, fontSize = 13.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
                     }
                 }
             }
@@ -342,7 +342,7 @@ private fun SignalPanel(current: SignalSample?, samples: List<Int>) {
                 Icon(Icons.Default.Router, null, tint = Accent)
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Access Point", fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("Access Point", fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF))
                     Text(current?.bssid ?: "—", fontSize = 11.sp, color = Muted)
                 }
                 Text("$rssi dBm", color = color, fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -353,7 +353,7 @@ private fun SignalPanel(current: SignalSample?, samples: List<Int>) {
                 AssistChip(
                     onClick = {},
                     label = { Text(band, fontSize = 11.sp) },
-                    colors = AssistChipDefaults.assistChipColors(containerColor = Color(0xFF1E293B), labelColor = Color.White)
+                    colors = AssistChipDefaults.assistChipColors(containerColor = Color(0xFF1E293B), labelColor = Color(0xFFE8FBFF))
                 )
                 Spacer(Modifier.width(8.dp))
                 if (current?.ssid != null) {
@@ -369,7 +369,7 @@ private fun SignalPanel(current: SignalSample?, samples: List<Int>) {
         }
     }
     Spacer(Modifier.height(12.dp))
-    Text("Access Point Roaming", fontWeight = FontWeight.Bold, color = Color.White)
+    Text("Access Point Roaming", fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF))
     Spacer(Modifier.height(8.dp))
     Card(colors = CardDefaults.cardColors(containerColor = CardBg), shape = RoundedCornerShape(14.dp)) {
         Text(
@@ -385,7 +385,7 @@ private fun SignalPanel(current: SignalSample?, samples: List<Int>) {
 private fun ThroughputPanel(current: SignalSample?) {
     Card(colors = CardDefaults.cardColors(containerColor = CardBg), shape = RoundedCornerShape(16.dp)) {
         Column(Modifier.padding(16.dp)) {
-            Text("Link rate", fontWeight = FontWeight.Bold, color = Color.White)
+            Text("Link rate", fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF))
             Spacer(Modifier.height(8.dp))
             Text(
                 "${current?.linkMbps ?: "—"} Mbps",
@@ -459,9 +459,9 @@ fun LatencyHubScreen(nav: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { nav.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                    Icon(Icons.Default.ArrowBack, null, tint = Color(0xFFE8FBFF))
                 }
-                Text("Network Latency", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp)
+                Text("Network Latency", fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF), fontSize = 18.sp)
             }
         },
         bottomBar = { DiscoveryBottomBar(nav, "latency") }
@@ -528,9 +528,9 @@ fun DeviceDetailRichScreen(nav: NavController) {
         topBar = {
             Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { nav.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                    Icon(Icons.Default.ArrowBack, null, tint = Color(0xFFE8FBFF))
                 }
-                Text("Device Detail", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp)
+                Text("Device Detail", fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF), fontSize = 18.sp)
             }
         }
     ) { pad ->
@@ -543,7 +543,7 @@ fun DeviceDetailRichScreen(nav: NavController) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Default.Storage, null, tint = Muted, modifier = Modifier.size(56.dp))
                 Spacer(Modifier.height(8.dp))
-                Text(name, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
+                Text(name, fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF), fontSize = 20.sp)
                 Text(name, color = Muted, fontSize = 13.sp)
             }
             Spacer(Modifier.height(16.dp))
@@ -552,7 +552,7 @@ fun DeviceDetailRichScreen(nav: NavController) {
                 InfoLine("Manufacturer", vendor.replaceFirstChar { it.uppercase() })
             }
             Spacer(Modifier.height(12.dp))
-            Text("Network", fontWeight = FontWeight.Bold, color = Color.White)
+            Text("Network", fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF))
             Spacer(Modifier.height(8.dp))
             InfoGroup {
                 InfoLine(
@@ -576,7 +576,7 @@ fun DeviceDetailRichScreen(nav: NavController) {
                 InfoLine("Packet Loss", if (online) "No Packet Loss" else "Unreachable")
             }
             Spacer(Modifier.height(12.dp))
-            Text("UPNP / Web", fontWeight = FontWeight.Bold, color = Color.White)
+            Text("UPNP / Web", fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF))
             Spacer(Modifier.height(8.dp))
             InfoGroup {
                 val product = if (80 in ports || 443 in ports) {
@@ -613,7 +613,7 @@ fun DeviceDetailRichScreen(nav: NavController) {
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Text("Open Ports", fontWeight = FontWeight.Bold, color = Color.White)
+            Text("Open Ports", fontWeight = FontWeight.Bold, color = Color(0xFFE8FBFF))
             Spacer(Modifier.height(8.dp))
             InfoGroup {
                 if (ports.isEmpty()) {
@@ -662,7 +662,7 @@ private fun InfoGroup(content: @Composable ColumnScope.() -> Unit) {
 private fun InfoLine(
     label: String,
     value: String,
-    valueColor: Color = Color.White,
+    valueColor: Color = Color(0xFFE8FBFF),
     onClick: (() -> Unit)? = null
 ) {
     Row(
@@ -700,17 +700,17 @@ private fun DeviceDiscoveryRow(node: DiscoveredNode, onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(node.name, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(node.name, color = Color(0xFFE8FBFF), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 if (node.kind == "gateway") {
                     Spacer(Modifier.width(6.dp))
                     Surface(color = Accent, shape = RoundedCornerShape(6.dp)) {
-                        Text("Gateway", color = Color.White, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Text("Gateway", color = Color(0xFFE8FBFF), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
                 if (node.isMe) {
                     Spacer(Modifier.width(6.dp))
                     Surface(color = Accent, shape = RoundedCornerShape(6.dp)) {
-                        Text("Me", color = Color.White, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Text("Me", color = Color(0xFFE8FBFF), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
             }
@@ -730,7 +730,7 @@ private fun LatencyRow(icon: ImageVector, title: String, subtitle: String, ms: L
         Icon(icon, null, tint = Muted)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, color = Color.White, fontWeight = FontWeight.SemiBold)
+            Text(title, color = Color(0xFFE8FBFF), fontWeight = FontWeight.SemiBold)
             Text(subtitle, color = Muted, fontSize = 11.sp)
         }
         Text(
@@ -764,13 +764,13 @@ private fun LatencyTargetRow(s: LatencySample) {
                     else -> Icons.Default.Router
                 },
                 null,
-                tint = Color.White,
+                tint = Color(0xFFE8FBFF),
                 modifier = Modifier.size(18.dp)
             )
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(s.label, color = Color.White, fontWeight = FontWeight.SemiBold)
+            Text(s.label, color = Color(0xFFE8FBFF), fontWeight = FontWeight.SemiBold)
             Text(s.ip ?: s.target, color = Muted, fontSize = 11.sp)
         }
         Sparkline(s.history, Modifier.width(72.dp).height(28.dp), Muted)
@@ -832,7 +832,7 @@ private fun DiscoveryTopBar(title: String, onProfile: () -> Unit) {
         Spacer(Modifier.weight(1f))
         Icon(Icons.Default.Wifi, null, tint = Green, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
-        Text(title, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(title, color = Color(0xFFE8FBFF), fontWeight = FontWeight.Bold)
         Spacer(Modifier.weight(1f))
         Icon(Icons.Default.Search, null, tint = Muted)
     }

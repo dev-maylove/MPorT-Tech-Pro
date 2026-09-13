@@ -154,7 +154,7 @@ fun DiagnosticScreen(
 
 @Composable
 private fun DiagnosticRow(item: DiagnosticEntity) {
-    val color = if (item.success) Color(0xFF35E381) else Color(0xFFFF5E67)
+    val color = if (item.success) Color(0xFF39FF14) else Color(0xFFFF2E63)
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)

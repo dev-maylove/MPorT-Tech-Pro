@@ -212,7 +212,7 @@ private fun BottomItem(
     label: String,
     modifier: Modifier
 ) {
-    val tint = if (selected) Color(0xFF24B8FF) else Color(0xFF93A6BE)
+    val tint = if (selected) Color(0xFF00F0FF) else Color(0xFF5EC8E8)
     Column(
         modifier = modifier
             .fillMaxHeight()

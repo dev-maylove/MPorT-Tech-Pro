@@ -82,7 +82,7 @@ fun LoginScreen(
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = Color(0xFFE8FBFF)
                 )
             }
         }
@@ -101,10 +101,10 @@ fun LoginScreen(
                 modifier = Modifier.size(120.dp)
             )
             Spacer(Modifier.height(12.dp))
-            Text("MPorT Tech", color = Color.White, fontWeight = FontWeight.Black, fontSize = 22.sp)
+            Text("MPorT Tech", color = Color(0xFFE8FBFF), fontWeight = FontWeight.Black, fontSize = 22.sp)
             Text(
                 t("login.subtitle"),
-                color = Color(0xFF8EC8F0),
+                color = Color(0xFF9EE8FF),
                 fontSize = 13.sp
             )
             Spacer(Modifier.height(32.dp))

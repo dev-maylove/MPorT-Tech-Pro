@@ -3,8 +3,8 @@
     <style name="Theme.MPorTTechPro" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">#050A14</item>
-        <item name="android:navigationBarColor">#050A14</item>
+        <item name="android:statusBarColor">#03060F</item>
+        <item name="android:navigationBarColor">#03060F</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
 
