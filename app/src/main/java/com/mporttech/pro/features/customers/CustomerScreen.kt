@@ -90,13 +90,13 @@ fun CustomerScreen(
     var showForm by remember { mutableStateOf(true) }
     var query by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-    val syncing by vm.syncing.collectAsStateWithLifecycle()
-    val syncMessage by vm.syncMessage.collectAsStateWithLifecycle()
+    val syncing by vm.syncing.collectAsStateWithLifecycle(initialValue = false)
+    val syncMessage by vm.syncMessage.collectAsStateWithLifecycle(initialValue = null)
 
     LaunchedEffect(Unit) { vm.sync() }
     LaunchedEffect(syncMessage) {
         val msg = syncMessage ?: return@LaunchedEffect
-        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         vm.consumeSyncMessage()
     }
 
