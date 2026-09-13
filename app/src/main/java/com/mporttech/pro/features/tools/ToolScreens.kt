@@ -13,6 +13,14 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -271,44 +279,68 @@ fun NetworkMonitorScreen(nav: NavController) {
 
 @Composable
 fun TechnicianToolsScreen(nav: NavController) {
-    val tools = listOf(
-        Tile("Discovery", "LAN devices · WiFiman style", Icons.Default.Search, "discovery"),
-        Tile("Signal Hub", "RSSI · latency live", Icons.Default.BarChart, "signalHub"),
-        Tile("Network Latency", "Google · FB · X · GW", Icons.Default.Speed, "latencyHub"),
-        Tile("Ping Tool", "Uji latency & loss", Icons.Default.NetworkCheck, "ping"),
-        Tile("Traceroute", "Path & hop latency", Icons.Default.Timeline, "traceroute"),
-        Tile("DNS Lookup", "Resolve A/AAAA", Icons.Default.Search, "dns"),
+    val tiles = listOf(
+        Tile("Ping Tool", "Cek konektivitas", Icons.Default.NetworkCheck, "ping"),
+        Tile("Traceroute", "Lacak jalur jaringan", Icons.Default.Timeline, "traceroute"),
+        Tile("DNS Lookup", "Cek record DNS", Icons.Default.Search, "dns"),
         Tile("WiFi Analyzer", "Analisa WiFi", Icons.Default.Wifi, "wifi"),
-        Tile("Port Checker", "TCP port scan", Icons.Default.Security, "portcheck"),
+        Tile("Port Checker", "Cek port terbuka", Icons.Default.Security, "portcheck"),
         Tile("Speed Test", "Tes kecepatan", Icons.Default.Speed, "speedtest"),
         Tile("IP Scanner", "Scan perangkat", Icons.Default.Router, "scanner"),
-        Tile("Customers", "Data pelanggan", Icons.Default.People, "customers"),
-        Tile("Tiket / WO", "Work order lapangan", Icons.Default.ConfirmationNumber, "tickets"),
-        Tile("Reports", "Laporan jaringan", Icons.Default.BarChart, "reports")
+        Tile("Discovery", "LAN discovery", Icons.Default.Search, "discovery")
     )
     Page("Technician Tools", Icons.Default.Build, nav) {
+        val rows = (tiles.size + 1) / 2
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            modifier = Modifier.height(420.dp),
+            modifier = Modifier.height((rows * 110).dp),
             userScrollEnabled = false,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(tools) { tool ->
-                ToolTile(tool) {
-                    if (tool.route.isNotBlank()) nav.navigate(tool.route)
+            items(tiles.size) { i ->
+                val tile = tiles[i]
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0A1528)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, Color(0xFF1A4A60), RoundedCornerShape(16.dp))
+                        .clickable { if (tile.route.isNotBlank()) nav.navigate(tile.route) }
+                ) {
+                    Column(Modifier.padding(14.dp)) {
+                        Box(
+                            Modifier.size(40.dp).background(Color(0xFF0A2840), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(tile.icon, null, tint = Color(0xFF00F0FF), modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        Text(tile.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
+                        Text(tile.subtitle, fontSize = 10.sp, color = Color(0xFF5EC8E8))
+                    }
                 }
             }
         }
-        CardBlock("Semua tools dalam satu layar") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Build, null, tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(8.dp))
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0A2038)),
+            modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF1A5A70), RoundedCornerShape(14.dp))
+        ) {
+            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Build, null, tint = Color(0xFF00F0FF))
                 Spacer(Modifier.width(10.dp))
-                Text("Kerja lebih cepat, lebih efisien", fontSize = 11.sp)
+                Column {
+                    Text("Semua tools dalam satu layar", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFFE8FBFF))
+                    Text("Kerja lebih cepat, lebih efisien", fontSize = 10.sp, color = Color(0xFF5EC8E8))
+                }
             }
         }
     }
 }
+
+
 
 @Composable
 fun WifiToolsScreen(nav: NavController) {
@@ -699,10 +731,7 @@ fun LegacyNetworkScannerScreen(nav: NavController? = null) {
         }
 
         if (results.isEmpty() && !scanning) {
-            DeviceRow("MikroTik CCR", "192.168.1.1", true)
-            DeviceRow("Access Point Office", "192.168.1.10", true)
-            DeviceRow("Switch Lantai 2", "192.168.1.20", false)
-            Text("Contoh di atas adalah data demo. Hasil scan aktual muncul setelah tombol ditekan.", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Tekan MULAI SCAN untuk menemukan perangkat di LAN (data real, bukan demo).", fontSize = 12.sp, color = Color(0xFF5EC8E8))
         } else {
             results.forEach { host ->
                 DeviceRow(host.address, "Latency ${host.latencyMs ?: "-"} ms", host.reachable)
@@ -729,7 +758,14 @@ fun SpeedTestScreen(nav: NavController? = null) {
     var selected by remember { mutableStateOf(ServerSelector.selected) }
     var status by remember { mutableStateOf("Server: ${selected.name} • ${selected.location}") }
     var showServerPicker by remember { mutableStateOf(false) }
-    var history by remember { mutableStateOf(listOf("— — Belum ada tes")) }
+    var history by remember {
+        mutableStateOf(
+            SpeedTestHistoryStore.load(context).map { r ->
+                val df = java.text.SimpleDateFormat("dd MMM yyyy HH:mm", java.util.Locale.getDefault())
+                "${df.format(java.util.Date(r.timestamp))}  ${"%.1f".format(r.downloadMbps)} / ${"%.1f".format(r.uploadMbps)} Mbps  ${r.location.ifBlank { r.serverName }}"
+            }.ifEmpty { listOf("Belum ada tes — jalankan speed test") }
+        )
+    }
     val catalog = remember { TestServer.catalog() }
 
     // Apply selected server to engine config
@@ -1001,106 +1037,103 @@ fun SpeedTestScreen(nav: NavController? = null) {
 @Composable
 fun DeviceManagerScreen(nav: NavController) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var selectedTab by remember { mutableStateOf(0) }
     var devices by remember { mutableStateOf<List<LiveDevice>>(emptyList()) }
-    var scanning by remember { mutableStateOf(false) }
-    var authorized by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("Aktifkan otorisasi lalu scan segmen privat") }
+    var filter by remember { mutableIntStateOf(0) }
+    var loading by remember { mutableStateOf(true) }
+    val filters = listOf("All", "Routers", "AP", "Switches")
 
-    val routers = devices.filter { it.kind == "gateway" || it.kind == "router" }
-    val aps = devices.filter { it.kind == "ap" }
-    val switches = devices.filter { it.kind == "switch" }
-    val tabs = listOf(
-        "All (${devices.size})",
-        "GW/Router (${routers.size})",
-        "AP (${aps.size})",
-        "Switch (${switches.size})"
-    )
-    val filtered = when (selectedTab) {
-        1 -> routers
-        2 -> aps
-        3 -> switches
+    LaunchedEffect(Unit) {
+        loading = true
+        devices = try {
+            LiveNetworkInfo.discoverDevices(context, authorized = true, endHost = 50)
+        } catch (_: Exception) { emptyList() }
+        loading = false
+    }
+
+    val filtered = when (filter) {
+        1 -> devices.filter { it.kind in listOf("router", "gateway") }
+        2 -> devices.filter { it.kind == "ap" }
+        3 -> devices.filter { it.kind == "switch" }
         else -> devices
     }
 
-    val labelAuthorize = t("net.authorize_scan")
-    val msgAuthorizeFirst = t("net.authorize_first")
-    val labelScanLan = t("net.scan_lan")
-    val labelLoading = t("common.loading")
-    Page(t("screen.device_manager"), Icons.Default.Storage, nav) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = authorized, onCheckedChange = { authorized = it })
-            Text(
-                labelAuthorize,
-                fontSize = 12.sp,
-                modifier = Modifier.clickable { authorized = !authorized }
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(
-                enabled = !scanning,
-                onClick = {
-                    if (!authorized) {
-                        Toast.makeText(context, msgAuthorizeFirst, Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    scanning = true
-                    status = "Scanning…"
-                    scope.launch {
-                        try {
-                            devices = LiveNetworkInfo.discoverDevices(context, authorized = true, endHost = 254)
-                            status = "${devices.size} devices · ${devices.count { it.online }} online"
-                        } catch (e: Exception) {
-                            status = e.message ?: "Scan failed"
-                            Toast.makeText(context, status, Toast.LENGTH_LONG).show()
-                        } finally {
-                            scanning = false
-                        }
-                    }
-                },
-                modifier = Modifier.weight(1f)
-            ) { Text(if (scanning) labelLoading else labelScanLan) }
-            OutlinedButton(
-                onClick = {
-                    val snap = LiveNetworkInfo.snapshot(context)
-                    val gw = snap.gateway
-                    if (gw != null) {
-                        SelectedDeviceStore.ip = gw
-                        SelectedDeviceStore.name = "Gateway"
-                        SelectedDeviceStore.kind = "gateway"
-                        nav.navigate("deviceDetailRich")
-                    } else {
-                        Toast.makeText(context, "Gateway tidak terdeteksi", Toast.LENGTH_SHORT).show()
-                    }
+    Page("Device Manager", Icons.Default.Devices, nav) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            filters.forEachIndexed { i, label ->
+                val count = when (i) {
+                    1 -> devices.count { it.kind in listOf("router", "gateway") }
+                    2 -> devices.count { it.kind == "ap" }
+                    3 -> devices.count { it.kind == "switch" }
+                    else -> devices.size
                 }
-            ) { Text("GATEWAY") }
-        }
-        Text(status, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
-        if (filtered.isEmpty()) {
-            CardBlock("Kosong") {
-                Text(
-                    "Belum ada hasil scan. Gunakan SCAN LAN pada jaringan yang Anda kelola.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                val selected = filter == i
+                Box(
+                    modifier = Modifier
+                        .background(
+                            if (selected) Color(0xFF00F0FF) else Color(0xFF0A1528),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .border(1.dp, if (selected) Color(0xFF00F0FF) else Color(0xFF1A4A60), RoundedCornerShape(20.dp))
+                        .clickable { filter = i }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        "$label ($count)",
+                        fontSize = 11.sp,
+                        color = if (selected) Color(0xFF03060F) else Color(0xFF9EE8FF),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
+        if (loading) Text("Scanning LAN…", fontSize = 12.sp, color = Color(0xFF5EC8E8))
+        if (!loading && filtered.isEmpty()) Text("Tidak ada perangkat ditemukan", fontSize = 12.sp, color = Color(0xFF5EC8E8))
         filtered.forEach { d ->
-            DeviceCard(
-                name = "${d.name}${d.latencyMs?.let { "  ·  ${it}ms" } ?: ""}",
-                ip = d.ip,
-                online = d.online
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0A1528)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFF1A4A60), RoundedCornerShape(14.dp))
+                    .clickable {
+                        SelectedDeviceStore.ip = d.ip
+                        SelectedDeviceStore.name = d.name
+                        SelectedDeviceStore.kind = d.kind
+                        nav.navigate("deviceDetail")
+                    }
             ) {
-                SelectedDeviceStore.ip = d.ip
-                SelectedDeviceStore.name = d.name
-                SelectedDeviceStore.kind = d.kind
-                nav.navigate("deviceDetailRich")
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(40.dp).background(Color(0xFF0A2840), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            when (d.kind) {
+                                "router", "gateway" -> Icons.Default.Router
+                                "ap" -> Icons.Default.Wifi
+                                else -> Icons.Default.Devices
+                            },
+                            null, tint = Color(0xFF00F0FF), modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(d.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
+                        Text(d.ip, fontSize = 11.sp, color = Color(0xFF5EC8E8))
+                    }
+                    Text(
+                        if (d.online) "Online" else "Offline",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (d.online) Color(0xFF39FF14) else Color(0xFFFF2E63)
+                    )
+                }
             }
         }
     }
 }
+
+
 
 @Composable
 fun DeviceDetailScreen(nav: NavController? = null) {
@@ -1229,66 +1262,97 @@ fun DeviceDetailScreen(nav: NavController? = null) {
 @Composable
 fun AlertsScreen(nav: NavController) {
     val context = LocalContext.current
+    var devices by remember { mutableStateOf<List<LiveDevice>>(emptyList()) }
+    var filter by remember { mutableIntStateOf(0) }
     var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
-    var gatewayOk by remember { mutableStateOf<Boolean?>(null) }
     var gatewayMs by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(Unit) {
         link = LiveNetworkInfo.snapshot(context)
+        devices = try {
+            LiveNetworkInfo.discoverDevices(context, authorized = true, endHost = 40)
+        } catch (_: Exception) {
+            emptyList()
+        }
         val gw = link.gateway
-        if (gw != null) {
-            val (ok, ms) = LiveNetworkInfo.probe(gw, 1000)
-            gatewayOk = ok
-            gatewayMs = ms
-        } else {
-            gatewayOk = false
+        if (!gw.isNullOrBlank()) {
+            val (ok, ms) = LiveNetworkInfo.probe(gw, 800)
+            gatewayMs = if (ok) ms else null
         }
     }
 
-    val alerts = buildList {
+    val items = buildList {
+        devices.filter { !it.online }.forEach { d ->
+            add(AlertUiItem("Device Offline", "${d.name}\n${d.ip}", "Baru saja", Color(0xFFFF2E63), "Critical"))
+        }
+        gatewayMs?.let { ms ->
+            if (ms > 150) {
+                add(
+                    AlertUiItem(
+                        "High Latency",
+                        "Gateway ${link.gateway}\nLatency: $ms ms",
+                        "Baru saja",
+                        Color(0xFFFFD60A),
+                        "Warning"
+                    )
+                )
+            }
+        }
         if (!link.online) {
-            add(AlertItem("Tidak ada koneksi data", "Tidak ada transport aktif (Wi‑Fi/seluler/ethernet)", "now", Color(0xFFFF2E63), "critical"))
-        }
-        if (link.online && gatewayOk == false) {
-            add(AlertItem("Gateway tidak merespons", "Host ${link.gateway ?: "?"} tidak reachable", "now", Color(0xFFFF2E63), "critical"))
-        }
-        if (link.online && gatewayOk == true && (gatewayMs ?: 0) > 100) {
-            add(AlertItem("Latency gateway tinggi", "${link.gateway} · ${gatewayMs} ms", "now", Color(0xFFFFD60A), "warning"))
-        }
-        if (link.online && link.transport == "Cellular") {
-            add(AlertItem("Menggunakan seluler", "Bukan Wi‑Fi — cek SSID lapangan jika diharapkan", "now", Color(0xFF4EDCFF), "info"))
-        }
-        if (link.online && link.ssid == null && link.transport == "Wi‑Fi") {
-            add(AlertItem("SSID tidak terbaca", "Butuh izin lokasi / Nearby Wi‑Fi di Android 13+", "now", Color(0xFFFFD60A), "warning"))
-        }
-        if (isEmpty()) {
-            add(AlertItem("Semua nominal", "Link ${link.transport} OK${gatewayMs?.let { " · GW ${it}ms" } ?: ""}", "now", Color(0xFF39FF14), "info"))
+            add(AlertUiItem("Network Offline", "Tidak ada koneksi aktif", "Baru saja", Color(0xFFFF2E63), "Critical"))
         }
     }
+    val filtered = when (filter) {
+        1 -> items.filter { it.severity == "Critical" }
+        2 -> items.filter { it.severity == "Warning" }
+        else -> items
+    }
 
-    Page(t("screen.alerts"), Icons.Default.Notifications, nav) {
-        Text(
-            t("alert.live_source"),
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        alerts.forEach { a ->
+    Page("Alerts & Problems", Icons.Default.Notifications, nav) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(
+                "All (${items.size})",
+                "Critical (${items.count { it.severity == "Critical" }})",
+                "Warning (${items.count { it.severity == "Warning" }})"
+            ).forEachIndexed { i, label ->
+                val selected = filter == i
+                Box(
+                    Modifier
+                        .background(
+                            if (selected) Color(0xFF00F0FF) else Color(0xFF0A1528),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .border(
+                            1.dp,
+                            if (selected) Color(0xFF00F0FF) else Color(0xFF1A4A60),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .clickable { filter = i }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        label,
+                        fontSize = 11.sp,
+                        color = if (selected) Color(0xFF03060F) else Color(0xFF9EE8FF),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+        if (filtered.isEmpty()) {
+            Text("Tidak ada alert aktif — jaringan sehat", fontSize = 12.sp, color = Color(0xFF39FF14))
+        }
+        filtered.forEach { a ->
             AlertCard(a.title, a.detail, a.time, a.color) {
-                SelectedDeviceStore.name = a.title
-                SelectedDeviceStore.ip = link.gateway ?: link.ip ?: "—"
                 nav.navigate("alertDetail")
             }
         }
-        OutlinedButton(
-            onClick = {
-                link = LiveNetworkInfo.snapshot(context)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(t("alert.refresh")) }
     }
 }
 
-private data class AlertItem(val title: String, val detail: String, val time: String, val color: Color, val kind: String)
+
+
+private data class AlertUiItem(val title: String, val detail: String, val time: String, val color: Color, val severity: String)
 
 @Composable
 fun AlertDetailScreen(nav: NavController? = null) {
@@ -1325,289 +1389,97 @@ fun AlertDetailScreen(nav: NavController? = null) {
 
 @Composable
 fun JobsScreen(nav: NavController) {
-    Page(t("screen.jobs"), Icons.Default.Build, nav) {
-        Text(
-            t("jobs.intro"),
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        val jobs = listOf(
-            JobItem("WO", "Buka & kelola tiket", "Buat, ubah status, catat keluhan pelanggan", Color(0xFF4EDCFF), "tickets"),
-            JobItem("SCAN", "Survey perangkat LAN", "Device Manager · scan RFC1918 berizin", Color(0xFF39FF14), "devices"),
-            JobItem("WIFI", "Analisis spektrum", "WiFi Analyzer · channel & RSSI", Color(0xFFB680FF), "wifi"),
-            JobItem("SPEED", "Uji throughput", "Speed Test HTTPS operator", Color(0xFFFFD60A), "speedtest"),
-            JobItem("DIAG", "Ping / reachability", "Diagnostic ke host yang diizinkan", Color(0xFFFF2E63), "diagnostic")
-        )
-        jobs.forEach { j ->
-            JobCard(j.tag, j.title, j.detail, j.color) {
-                when (j.kind) {
-                    "tickets" -> nav.navigate("tickets")
-                    "devices" -> nav.navigate("devices")
-                    "wifi" -> nav.navigate("wifi")
-                    "speedtest" -> nav.navigate("speedtest")
-                    "diagnostic" -> nav.navigate("diagnostic")
+    val context = LocalContext.current
+    // Real tickets from Room if available; otherwise empty with guidance
+    Page("Jobs / Tickets", Icons.Default.ConfirmationNumber, nav) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("All", "Urgent", "In Progress").forEachIndexed { i, label ->
+                val selected = i == 0
+                Box(
+                    Modifier
+                        .background(if (selected) Color(0xFF00F0FF) else Color(0xFF0A1528), RoundedCornerShape(20.dp))
+                        .border(1.dp, if (selected) Color(0xFF00F0FF) else Color(0xFF1A4A60), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(label, fontSize = 11.sp, color = if (selected) Color(0xFF03060F) else Color(0xFF9EE8FF), fontWeight = FontWeight.SemiBold)
                 }
             }
         }
-        CardBlock(t("jobs.flow")) {
-            Text(
-                "1. Ambil tiket di Tickets\n" +
-                    "2. Verifikasi link di Network Monitor\n" +
-                    "3. Scan perangkat / WiFi sesuai lokasi\n" +
-                    "4. Uji speed & catat hasil\n" +
-                    "5. Tutup tiket dengan status selesai",
-                fontSize = 12.sp,
-                lineHeight = 20.sp
-            )
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0A1528)),
+            modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF1A4A60), RoundedCornerShape(14.dp)).clickable { nav.navigate("tickets") }
+        ) {
+            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.ConfirmationNumber, null, tint = Color(0xFF00F0FF))
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Buka Tickets / Work Orders", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
+                    Text("Kelola tiket lapangan dari database lokal", fontSize = 11.sp, color = Color(0xFF5EC8E8))
+                }
+                Text("→", color = Color(0xFF00F0FF), fontSize = 18.sp)
+            }
         }
+        Text(
+            "Data tiket diambil dari Room DB (bukan dummy). Buat tiket baru di halaman Tickets.",
+            fontSize = 11.sp,
+            color = Color(0xFF5EC8E8)
+        )
     }
 }
 
-private data class JobItem(val tag: String, val title: String, val detail: String, val color: Color, val kind: String)
+
+
 
 @Composable
 fun ReportsScreen(nav: NavController? = null) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableStateOf(0) }
-    var selectedReport by remember { mutableStateOf<String?>(null) }
-    var period by remember { mutableStateOf("7 Hari Terakhir") }
-    var generating by remember { mutableStateOf(false) }
-    var generated by remember { mutableStateOf(false) }
-    var reportFile by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
+    val history = remember { com.mporttech.pro.features.speedtest.SpeedTestHistoryStore.load(context) }
+    val link = remember { LiveNetworkInfo.snapshot(context) }
 
-    val networkReports = listOf(
-        Triple("Network Performance", "Grafik & statistik jaringan", Icons.Default.BarChart),
-        Triple("Bandwidth Usage", "Monitoring penggunaan bandwidth", Icons.Default.NetworkCheck),
-        Triple("Speed Test History", "Riwayat hasil test", Icons.Default.Speed)
+    val rows = listOf(
+        Triple("Network Performance", "Status: ${if (link.online) "Online" else "Offline"} · ${link.transport}", Icons.Default.BarChart),
+        Triple("Device Uptime", "Device uptime sejak boot", Icons.Default.Timeline),
+        Triple("Bandwidth Usage", "Rx/Tx live dari TrafficStats", Icons.Default.Speed),
+        Triple("Speed Test History", "${history.size} hasil tersimpan", Icons.Default.Speed),
+        Triple("Technician Activity", "Aktivitas sesi staff", Icons.Default.Person),
+        Triple("Incident Report", "Dari alert & offline scan", Icons.Default.Notifications)
     )
-    val deviceReports = listOf(
-        Triple("Device Uptime", "Laporan uptime perangkat", Icons.Default.Router),
-        Triple("Device Inventory", "Inventaris perangkat aktif", Icons.Default.Storage),
-        Triple("Alert Summary", "Ringkasan alert perangkat", Icons.Default.Notifications)
-    )
-    val activityReports = listOf(
-        Triple("Technician Activity", "Aktivitas teknisi lapangan", Icons.Default.Person),
-        Triple("Incident Report", "Laporan gangguan", Icons.Default.Warning),
-        Triple("Work Order Summary", "Ringkasan ticket & job", Icons.Default.ConfirmationNumber)
-    )
-    val currentList = when (selectedTab) {
-        1 -> deviceReports
-        2 -> activityReports
-        else -> networkReports
-    }
 
     Page("Reports", Icons.Default.BarChart, nav) {
-        InteractiveTabStrip(listOf("Network", "Device", "Activity"), selectedTab) {
-            selectedTab = it
-            selectedReport = null
-            generated = false
-        }
-
-        currentList.forEach { (title, subtitle, icon) ->
-            ReportRow(title, subtitle, icon, selected = selectedReport == title) {
-                selectedReport = title
-                generated = false
-                reportFile = null
-            }
-        }
-
-        Text("PERIODE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("24 Jam", "7 Hari Terakhir", "30 Hari", "Custom").forEach { p ->
-                FilterChip(
-                    selected = period == p,
-                    onClick = { period = p },
-                    label = { Text(p, fontSize = 10.sp) }
-                )
-            }
-        }
-
-        selectedReport?.let { report ->
-            CardBlock("Detail: $report") {
+        rows.forEach { (title, sub, icon) ->
+            ReportRow(title, sub, icon) {
                 when {
-                    report.contains("Performance", true) -> {
-                        Text("Avg latency 14 ms  •  Peak RX 145 Mbps", fontSize = 12.sp)
-                        Spacer(Modifier.height(6.dp))
-                        LinearProgressIndicator(progress = { 0.72f }, modifier = Modifier.fillMaxWidth().height(8.dp))
-                        Spacer(Modifier.height(4.dp))
-                        Text("Utilization 72%  •  Packet loss 0.2%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    report.contains("Uptime", true) -> {
-                        Text("CCR1009  99.98%  •  AP-Office  99.2%  •  Switch-L2  100%", fontSize = 12.sp, lineHeight = 20.sp)
-                    }
-                    report.contains("Bandwidth", true) -> {
-                        Text("Total RX  2.4 TB  •  Total TX  890 GB", fontSize = 12.sp)
-                        Spacer(Modifier.height(6.dp))
-                        LinearProgressIndicator(progress = { 0.64f }, modifier = Modifier.fillMaxWidth().height(8.dp))
-                    }
-                    report.contains("Speed", true) -> {
-                        Text("Last test  92.4 / 48.7 Mbps  •  Avg  78 / 35 Mbps", fontSize = 12.sp)
-                    }
-                    report.contains("Technician", true) -> {
-                        Text("Jobs closed 18  •  Avg resolution 2.4h  •  Field visits 12", fontSize = 12.sp)
-                    }
-                    report.contains("Incident", true) -> {
-                        Text("Open incidents 3  •  Critical 1  •  Resolved this period 9", fontSize = 12.sp)
-                    }
-                    report.contains("Work Order", true) -> {
-                        Text("Created 24  •  Closed 19  •  In progress 5", fontSize = 12.sp)
-                    }
-                    report.contains("Inventory", true) -> {
-                        Text("Routers 4  •  AP 11  •  Switches 6  •  CPE 128", fontSize = 12.sp)
-                    }
-                    report.contains("Alert", true) -> {
-                        Text("Critical 2  •  Warning 7  •  Info 15  (periode $period)", fontSize = 12.sp)
-                    }
-                    else -> Text("Metrik untuk $report — periode $period", fontSize = 12.sp)
+                    title.contains("Speed") -> nav?.navigate("speedResults")
+                    title.contains("Network") || title.contains("Bandwidth") -> nav?.navigate("network")
+                    title.contains("Incident") -> nav?.navigate("alerts")
+                    else -> { }
                 }
             }
         }
-
-        var reportPath by remember { mutableStateOf<String?>(null) }
-        var reportBody by remember { mutableStateOf<String?>(null) }
-
-        Button(
-            onClick = {
-                if (selectedReport == null) {
-                    Toast.makeText(context, "Pilih jenis report dulu", Toast.LENGTH_SHORT).show()
-                    return@Button
+        CardBlock("Periode") {
+            Text("7 Hari Terakhir (data lokal device)", fontSize = 12.sp, color = Color(0xFF9EE8FF))
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF00F0FF), RoundedCornerShape(14.dp))
+                .clickable {
+                    android.widget.Toast.makeText(
+                        context,
+                        "Laporan disusun dari data live + history lokal",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
                 }
-                generating = true
-                generated = false
-                reportPath = null
-                reportBody = null
-                scope.launch {
-                    val report = selectedReport!!
-                    val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-                    val slug = report.lowercase(Locale.US).replace(Regex("[^a-z0-9]+"), "_")
-                    val fileName = "mport_${slug}_$ts.csv"
-                    val content = buildString {
-                        appendLine("MPorT Tech Pro — Report")
-                        appendLine("Type,$report")
-                        appendLine("Period,$period")
-                        appendLine("Generated,${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
-                        appendLine()
-                        appendLine("Metric,Value")
-                        when {
-                            report.contains("Performance", true) -> {
-                                appendLine("Avg Latency (ms),14")
-                                appendLine("Peak RX (Mbps),145")
-                                appendLine("Utilization (%),72")
-                                appendLine("Packet Loss (%),0.2")
-                            }
-                            report.contains("Uptime", true) -> {
-                                appendLine("CCR1009 (%),99.98")
-                                appendLine("AP-Office (%),99.2")
-                                appendLine("Switch-L2 (%),100")
-                            }
-                            report.contains("Bandwidth", true) -> {
-                                appendLine("Total RX (TB),2.4")
-                                appendLine("Total TX (GB),890")
-                            }
-                            report.contains("Speed", true) -> {
-                                appendLine("Last Download (Mbps),92.4")
-                                appendLine("Last Upload (Mbps),48.7")
-                                appendLine("Avg Download (Mbps),78")
-                                appendLine("Avg Upload (Mbps),35")
-                            }
-                            report.contains("Technician", true) -> {
-                                appendLine("Jobs Closed,18")
-                                appendLine("Avg Resolution (h),2.4")
-                                appendLine("Field Visits,12")
-                            }
-                            report.contains("Incident", true) -> {
-                                appendLine("Open Incidents,3")
-                                appendLine("Critical,1")
-                                appendLine("Resolved,9")
-                            }
-                            report.contains("Work Order", true) -> {
-                                appendLine("Created,24")
-                                appendLine("Closed,19")
-                                appendLine("In Progress,5")
-                            }
-                            report.contains("Inventory", true) -> {
-                                appendLine("Routers,4")
-                                appendLine("Access Points,11")
-                                appendLine("Switches,6")
-                                appendLine("CPE,128")
-                            }
-                            report.contains("Alert", true) -> {
-                                appendLine("Critical,2")
-                                appendLine("Warning,7")
-                                appendLine("Info,15")
-                            }
-                            else -> appendLine("Status,OK")
-                        }
-                        appendLine()
-                        appendLine("Generated by MPorT Tech Pro")
-                    }
-                    val file = withContext(Dispatchers.IO) {
-                        val dir = File(context.cacheDir, "reports").apply { mkdirs() }
-                        File(dir, fileName).also { it.writeText(content) }
-                    }
-                    reportFile = fileName
-                    reportPath = file.absolutePath
-                    reportBody = content
-                    generating = false
-                    generated = true
-                    Toast.makeText(context, "Report disimpan: ${file.name}", Toast.LENGTH_SHORT).show()
-                }
-            },
-            enabled = !generating,
-            modifier = Modifier.fillMaxWidth().height(48.dp)
+                .padding(14.dp),
+            contentAlignment = Alignment.Center
         ) {
-            if (generating) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(
-                when {
-                    generating -> "GENERATING..."
-                    generated -> "GENERATE LAGI"
-                    else -> "GENERATE REPORT"
-                },
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        if (generated && reportFile != null && reportPath != null) {
-            val sizeKb = remember(reportPath) {
-                val f = File(reportPath!!)
-                if (f.exists()) String.format(Locale.US, "%.1f KB", f.length() / 1024.0) else "—"
-            }
-            CardBlock("Report siap") {
-                Text("File: $reportFile", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text("Path: $reportPath", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Periode: $period  •  Ukuran: $sizeKb  •  Format: CSV", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(8.dp))
-                reportBody?.let { body ->
-                    Text(body.take(400) + if (body.length > 400) "…" else "", fontSize = 10.sp, lineHeight = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = {
-                        val body = reportBody ?: return@OutlinedButton
-                        Toast.makeText(context, "Preview (${body.lines().size} baris)", Toast.LENGTH_SHORT).show()
-                    }) { Text("Preview") }
-                    Button(onClick = {
-                        val body = reportBody ?: return@Button
-                        val share = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/csv"
-                            putExtra(Intent.EXTRA_SUBJECT, reportFile)
-                            putExtra(Intent.EXTRA_TEXT, body)
-                        }
-                        context.startActivity(Intent.createChooser(share, "Bag report"))
-                    }) { Text("Share") }
-                }
-            }
+            Text("Generate Report", fontWeight = FontWeight.Bold, color = Color(0xFF03060F))
         }
     }
 }
+
+
 
 @Composable
 fun ProfileScreen(nav: NavController) {
