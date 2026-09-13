@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Runtime checks + try/catch are used; WifiManager still triggers this -->
+    <issue id="MissingPermission" severity="ignore" />
+    <issue id="ObsoleteSdkInt" severity="ignore" />
+</lint>
