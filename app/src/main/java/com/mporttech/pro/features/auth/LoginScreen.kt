@@ -95,11 +95,12 @@ fun LoginScreen(
             )
             Spacer(Modifier.height(28.dp))
 
+            val guestWelcome = t("login.guest_welcome")
             // Guest entry — public user, no credentials
             OutlinedButton(
                 onClick = {
                     SessionManager.enterAsGuest(context)
-                    Toast.makeText(context, t("login.guest_welcome"), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, guestWelcome, Toast.LENGTH_SHORT).show()
                     onContinueAsGuest()
                 },
                 enabled = !ui.loading,
