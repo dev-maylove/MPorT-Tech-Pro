@@ -65,6 +65,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.mporttech.pro.core.auth.SessionManager
 import com.mporttech.pro.features.tools.LiveNetworkInfo
+import com.mporttech.pro.features.tools.AlertBadgeStore
 import com.mporttech.pro.ui.i18n.t
 import kotlinx.coroutines.delay
 
@@ -93,6 +94,7 @@ fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()
                 onlineCount = devices.count { it.online }
                 offlineCount = devices.count { !it.online }
                 alertCount = offlineCount + if (!dash.gatewayReachable && dash.online) 1 else 0
+                AlertBadgeStore.count = alertCount
             } catch (_: Exception) { }
             delay(15_000)
         }

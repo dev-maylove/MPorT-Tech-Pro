@@ -46,6 +46,28 @@ object SelectedDeviceStore {
     @Volatile var kind: String = "gateway"
 }
 
+/** Last alert tapped for AlertDetailScreen (real payload, not dummy). */
+object SelectedAlertStore {
+    @Volatile var title: String = ""
+    @Volatile var detail: String = ""
+    @Volatile var time: String = ""
+    @Volatile var severity: String = ""
+    @Volatile var colorArgb: Int = 0xFFFF2E63.toInt()
+
+    fun set(title: String, detail: String, time: String, severity: String, colorArgb: Int) {
+        this.title = title
+        this.detail = detail
+        this.time = time
+        this.severity = severity
+        this.colorArgb = colorArgb
+    }
+}
+
+/** Bottom-nav badge count for Alerts tab (updated by AlertsScreen / Dashboard). */
+object AlertBadgeStore {
+    @Volatile var count: Int = 0
+}
+
 object LiveNetworkInfo {
 
     @SuppressLint("MissingPermission")

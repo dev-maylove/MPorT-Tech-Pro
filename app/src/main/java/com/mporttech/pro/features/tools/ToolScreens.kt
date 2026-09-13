@@ -1,7 +1,6 @@
 package com.mporttech.pro.features.tools
 
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.MainScope
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.Manifest
@@ -35,7 +34,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -73,7 +74,7 @@ import java.util.Date
 import java.util.Locale
 import java.io.File
 
-private data class Tile(val title: String, val subtitle: String, val icon: ImageVector, val route: String = "")
+internal data class Tile(val title: String, val subtitle: String, val icon: ImageVector, val route: String = "")
 
 @Composable
 fun NetworkMonitorScreen(nav: NavController) {
@@ -238,28 +239,41 @@ fun NetworkMonitorScreen(nav: NavController) {
                 }
             }
             else -> {
-                CardBlock("Throughput live") {
+                CardBlock("Live throughput chart") {
+                    val maxY = maxOf((rxHistory + txHistory).maxOrNull() ?: 1.0, 1.0)
                     Text(
-                        "RX ${String.format("%.2f", rxMbps)} Mbps  •  TX ${String.format("%.2f", txMbps)} Mbps",
+                        "RX ${String.format("%.2f", rxMbps)}  ·  TX ${String.format("%.2f", txMbps)} Mbps",
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Peak RX ${String.format("%.2f", (rxHistory.maxOrNull() ?: 0.0))}  ·  Peak TX ${String.format("%.2f", (txHistory.maxOrNull() ?: 0.0))} Mbps",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF9EE8FF)
                     )
                     Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        progress = { ((rxMbps + txMbps) / 100.0).toFloat().coerceIn(0.02f, 1f) },
-                        modifier = Modifier.fillMaxWidth().height(8.dp)
-                    )
+                    androidx.compose.foundation.Canvas(
+                        modifier = Modifier.fillMaxWidth().height(120.dp)
+                    ) {
+                        val w = size.width
+                        val h = size.height
+                        fun plot(data: List<Double>, color: Color) {
+                            if (data.size < 2) return
+                            val step = w / (data.size - 1).coerceAtLeast(1)
+                            var prev = Offset(0f, h)
+                            data.forEachIndexed { i, v ->
+                                val x = i * step
+                                val y = h - ((v / maxY).toFloat().coerceIn(0f, 1f) * h * 0.92f)
+                                if (i > 0) {
+                                    drawLine(color, prev, Offset(x, y), strokeWidth = 3f, cap = StrokeCap.Round)
+                                }
+                                prev = Offset(x, y)
+                            }
+                        }
+                        plot(rxHistory, Color(0xFF39FF14))
+                        plot(txHistory, Color(0xFF00F0FF))
+                    }
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Avg RX ${String.format("%.2f", if (rxHistory.isEmpty()) 0.0 else rxHistory.average())}  ·  samples ${rxHistory.size}",
+                        "Peak RX ${String.format("%.2f", (rxHistory.maxOrNull() ?: 0.0))}  ·  Peak TX ${String.format("%.2f", (txHistory.maxOrNull() ?: 0.0))}  ·  n=${rxHistory.size}",
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color(0xFF5EC8E8)
                     )
                 }
                 CardBlock("Gateway latency") {
@@ -617,6 +631,51 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                     )
                 }
             }
+            // Visual channel occupancy (real scan stats)
+            if (snap.channels24.isNotEmpty() || snap.channels5.isNotEmpty()) {
+                CardBlock("Channel occupancy") {
+                    val bars = (snap.channels24 + snap.channels5)
+                        .sortedByDescending { it.networkCount }
+                        .take(10)
+                    val maxCnt = (bars.maxOfOrNull { it.networkCount } ?: 1).coerceAtLeast(1)
+                    bars.forEach { ch ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "CH ${ch.channel}",
+                                modifier = Modifier.width(52.dp),
+                                fontSize = 11.sp,
+                                color = Color(0xFF9EE8FF)
+                            )
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .height(10.dp)
+                                    .background(Color(0xFF0A2840), RoundedCornerShape(4.dp))
+                            ) {
+                                Box(
+                                    Modifier
+                                        .fillMaxHeight()
+                                        .fillMaxWidth((ch.networkCount.toFloat() / maxCnt).coerceIn(0.05f, 1f))
+                                        .background(
+                                            if (ch.band.name.contains("24")) Color(0xFF00F0FF) else Color(0xFFB680FF),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                )
+                            }
+                            Text(
+                                "${ch.networkCount}",
+                                modifier = Modifier.width(28.dp),
+                                fontSize = 11.sp,
+                                color = Color(0xFF39FF14),
+                                textAlign = TextAlign.End
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         val filtered = when (selectedTab) {
@@ -886,7 +945,9 @@ fun SpeedTestScreen(nav: NavController? = null) {
                             }
                         },
                         modifier = Modifier.fillMaxSize(),
-                        strokeWidth = 12.dp
+                        strokeWidth = 12.dp,
+                        color = Color(0xFF00F0FF),
+                        trackColor = Color(0xFF0A2840)
                     )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         val main = when {
@@ -1344,9 +1405,20 @@ fun AlertsScreen(nav: NavController) {
         }
         filtered.forEach { a ->
             AlertCard(a.title, a.detail, a.time, a.color) {
+                SelectedAlertStore.set(
+                    title = a.title,
+                    detail = a.detail,
+                    time = a.time,
+                    severity = a.severity,
+                    colorArgb = a.color.value.toInt()
+                )
                 nav.navigate("alertDetail")
             }
         }
+    }
+    // Sync bottom-nav badge
+    LaunchedEffect(items.size) {
+        AlertBadgeStore.count = items.size
     }
 }
 
@@ -1358,11 +1430,26 @@ private data class AlertUiItem(val title: String, val detail: String, val time: 
 fun AlertDetailScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val link = remember { LiveNetworkInfo.snapshot(context) }
+    val title = SelectedAlertStore.title.ifBlank { "Detail Peringatan" }
+    val detail = SelectedAlertStore.detail.ifBlank {
+        "Tidak ada alert terpilih. Kembali ke Alerts dan pilih item."
+    }
+    val severity = SelectedAlertStore.severity.ifBlank { "Info" }
+    val time = SelectedAlertStore.time.ifBlank { "—" }
     Page(t("screen.alert_detail"), Icons.Default.Notifications, nav) {
-        CardBlock(SelectedDeviceStore.name) {
+        CardBlock(title) {
             Text(
-                "Sumber  status lokal perangkat\n" +
-                    "Transport  ${link.transport}\n" +
+                "Severity  $severity\n" +
+                    "Waktu  $time\n\n" +
+                    detail,
+                fontSize = 12.sp,
+                lineHeight = 20.sp,
+                color = Color(0xFFE8FBFF)
+            )
+        }
+        CardBlock("Konteks jaringan saat ini") {
+            Text(
+                "Transport  ${link.transport}\n" +
                     "IP lokal  ${link.ip ?: "—"}\n" +
                     "Gateway  ${link.gateway ?: "—"}\n" +
                     "SSID  ${link.ssid ?: "—"}",
@@ -1390,41 +1477,101 @@ fun AlertDetailScreen(nav: NavController? = null) {
 @Composable
 fun JobsScreen(nav: NavController) {
     val context = LocalContext.current
-    // Real tickets from Room if available; otherwise empty with guidance
+    var tickets by remember { mutableStateOf<List<com.mporttech.pro.core.database.TicketEntity>>(emptyList()) }
+    var filter by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        try {
+            val entry = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                com.mporttech.pro.di.AuthEntryPoint::class.java
+            )
+            entry.ticketRepository().observe().collect { list ->
+                tickets = list
+            }
+        } catch (_: Exception) {
+            tickets = emptyList()
+        }
+    }
+    val filtered = when (filter) {
+        1 -> tickets.filter {
+            it.priority.equals("high", true) || it.priority.equals("urgent", true) ||
+                it.status.equals("OPEN", true)
+        }
+        2 -> tickets.filter {
+            it.status.equals("IN_PROGRESS", true) || it.status.equals("ASSIGNED", true)
+        }
+        else -> tickets
+    }
     Page("Jobs / Tickets", Icons.Default.ConfirmationNumber, nav) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("All", "Urgent", "In Progress").forEachIndexed { i, label ->
-                val selected = i == 0
+            listOf(
+                "All (${tickets.size})",
+                "Urgent (${tickets.count { it.priority.equals("high", true) || it.priority.equals("urgent", true) }})",
+                "Open (${tickets.count { it.status.equals("OPEN", true) }})"
+            ).forEachIndexed { i, label ->
+                val selected = filter == i
                 Box(
                     Modifier
                         .background(if (selected) Color(0xFF00F0FF) else Color(0xFF0A1528), RoundedCornerShape(20.dp))
                         .border(1.dp, if (selected) Color(0xFF00F0FF) else Color(0xFF1A4A60), RoundedCornerShape(20.dp))
+                        .clickable { filter = i }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Text(label, fontSize = 11.sp, color = if (selected) Color(0xFF03060F) else Color(0xFF9EE8FF), fontWeight = FontWeight.SemiBold)
+                    Text(
+                        label,
+                        fontSize = 11.sp,
+                        color = if (selected) Color(0xFF03060F) else Color(0xFF9EE8FF),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+        if (filtered.isEmpty()) {
+            Text(
+                "Belum ada tiket di database lokal. Buat tiket di halaman Tickets atau sinkron dari server.",
+                fontSize = 12.sp,
+                color = Color(0xFF5EC8E8)
+            )
+        } else {
+            filtered.forEach { tkt ->
+                val color = when {
+                    tkt.priority.equals("high", true) || tkt.priority.equals("urgent", true) -> Color(0xFFFF2E63)
+                    tkt.status.equals("OPEN", true) -> Color(0xFFFFD60A)
+                    else -> Color(0xFF39FF14)
+                }
+                JobCard(
+                    tag = tkt.status.ifBlank { "TICKET" },
+                    title = tkt.title.ifBlank { tkt.ticketNumber.ifBlank { "Tiket #${tkt.id}" } },
+                    detail = buildString {
+                        append(tkt.customerName.ifBlank { "Customer —" })
+                        append(" · ")
+                        append(tkt.priority)
+                        if (tkt.description.isNotBlank()) append("\n").append(tkt.description.take(80))
+                    },
+                    color = color
+                ) {
+                    nav.navigate("tickets")
                 }
             }
         }
         Card(
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0A1528)),
-            modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF1A4A60), RoundedCornerShape(14.dp)).clickable { nav.navigate("tickets") }
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color(0xFF1A4A60), RoundedCornerShape(14.dp))
+                .clickable { nav.navigate("tickets") }
         ) {
             Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.ConfirmationNumber, null, tint = Color(0xFF00F0FF))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Buka Tickets / Work Orders", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
-                    Text("Kelola tiket lapangan dari database lokal", fontSize = 11.sp, color = Color(0xFF5EC8E8))
+                    Text("Kelola Tickets", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
+                    Text("Buat / sinkron tiket dari Room + API", fontSize = 11.sp, color = Color(0xFF5EC8E8))
                 }
                 Text("→", color = Color(0xFF00F0FF), fontSize = 18.sp)
             }
         }
-        Text(
-            "Data tiket diambil dari Room DB (bukan dummy). Buat tiket baru di halaman Tickets.",
-            fontSize = 11.sp,
-            color = Color(0xFF5EC8E8)
-        )
     }
 }
 
@@ -1483,6 +1630,7 @@ fun ReportsScreen(nav: NavController? = null) {
 
 @Composable
 fun ProfileScreen(nav: NavController) {
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val themeModeState = LocalThemeMode.current
     // Keep switch in sync with app-wide theme without stale local state
@@ -1685,7 +1833,7 @@ fun ProfileScreen(nav: NavController) {
                         context.applicationContext,
                         com.mporttech.pro.di.AuthEntryPoint::class.java
                     )
-                    kotlinx.coroutines.MainScope().launch {
+                    scope.launch {
                         entryPoint.authRepository().logout()
                         (context as? android.app.Activity)?.recreate()
                     }
@@ -1941,471 +2089,3 @@ fun SettingsScreen(nav: NavController? = null) {
         }
     }
 }
-
-@Composable
-private fun Page(
-    title: String,
-    icon: ImageVector,
-    nav: NavController?,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val pageContext = LocalContext.current
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (nav != null) {
-                    IconButton(onClick = {
-                        if (nav.previousBackStackEntry != null) nav.popBackStack()
-                        else nav.navigate("dashboard") {
-                            launchSingleTop = true
-                            popUpTo("dashboard") { inclusive = false }
-                        }
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(8.dp))
-                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.weight(1f))
-                var menuOpen by remember { mutableStateOf(false) }
-                Box {
-                    IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        DropdownMenuItem(
-                            text = { Text(t("common.refresh")) },
-                            onClick = {
-                                menuOpen = false
-                            },
-                            leadingIcon = { Icon(Icons.Default.Refresh, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(t("net.location_settings")) },
-                            onClick = {
-                                menuOpen = false
-                                try {
-                                    pageContext.startActivity(
-                                        Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                                    )
-                                } catch (_: Exception) {
-                                    Toast.makeText(pageContext, "Buka Settings → Location", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            leadingIcon = { Icon(Icons.Default.LocationOn, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(t("net.share_page")) },
-                            onClick = {
-                                menuOpen = false
-                                val share = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, "MPorT Tech — $title")
-                                }
-                                pageContext.startActivity(Intent.createChooser(share, "Share"))
-                            },
-                            leadingIcon = { Icon(Icons.Default.Share, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Go to Tools") },
-                            onClick = {
-                                menuOpen = false
-                                nav?.navigate("tools") { launchSingleTop = true }
-                            },
-                            leadingIcon = { Icon(Icons.Default.Build, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Go to Home") },
-                            onClick = {
-                                menuOpen = false
-                                nav?.navigate("dashboard") {
-                                    launchSingleTop = true
-                                    popUpTo("dashboard") { inclusive = false }
-                                }
-                            },
-                            leadingIcon = { Icon(Icons.Default.Home, null) }
-                        )
-                    }
-                }
-            }
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
-        }
-    }
-}
-
-@Composable
-private fun InteractiveTabStrip(items: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        items.forEachIndexed { index, label ->
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = if (index == selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.primaryContainer
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onSelect(index) }
-            ) {
-                Text(
-                    text = label,
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    textAlign = TextAlign.Center,
-                    fontSize = 9.sp,
-                    color = if (index == selected) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RouterHero() {
-    val context = LocalContext.current
-    val link = remember { LiveNetworkInfo.snapshot(context) }
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Router, null, tint = Color(0xFF4EDCFF), modifier = Modifier.size(36.dp))
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(
-                    if (link.online) "Uplink · ${link.transport}" else "Uplink offline",
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    listOfNotNull(link.ssid, link.ip, link.gateway?.let { "GW $it" }).joinToString(" · ").ifBlank { "—" },
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CardBlock(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Spacer(Modifier.height(9.dp))
-            content()
-        }
-    }
-}
-
-@Composable
-private fun MetricBox(label: String, value: String, color: Color, modifier: Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(Modifier.padding(10.dp)) {
-            Text(value, color = color, fontWeight = FontWeight.Black, fontSize = 15.sp)
-            Text(label, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun ToolTile(tile: Tile, onClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxSize().clickable(onClick = onClick)
-    ) {
-        Column(Modifier.padding(12.dp)) {
-            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                Icon(tile.icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(10.dp))
-            }
-            Spacer(Modifier.weight(1f))
-            Text(tile.title, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-            Text(tile.subtitle, fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
-        }
-    }
-}
-
-@Composable
-private fun WifiSignalBars(rssi: Int, modifier: Modifier = Modifier) {
-    val bars = when {
-        rssi >= -55 -> 4
-        rssi >= -67 -> 3
-        rssi >= -78 -> 2
-        rssi >= -88 -> 1
-        else -> 0
-    }
-    val color = when {
-        rssi >= -65 -> Color(0xFF39FF14) // kuat hijau
-        rssi >= -78 -> Color(0xFFFFD60A) // menengah kuning
-        else -> Color(0xFFFF2E63) // lemah merah
-    }
-    Row(
-        modifier = modifier.height(18.dp),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        val heights = listOf(6.dp, 10.dp, 14.dp, 18.dp)
-        heights.forEachIndexed { i, h ->
-            Box(
-                Modifier
-                    .width(4.dp)
-                    .height(h)
-                    .background(
-                        if (i < bars) color else color.copy(alpha = 0.2f),
-                        RoundedCornerShape(1.dp)
-                    )
-            )
-        }
-    }
-}
-
-@Composable
-private fun WifiRow(
-    name: String,
-    detail: String,
-    signal: String,
-    rssi: Int = -80,
-    onClick: (() -> Unit)? = null
-) {
-    val color = when {
-        rssi >= -65 -> Color(0xFF39FF14)
-        rssi >= -78 -> Color(0xFFFFD60A)
-        else -> Color(0xFFFF2E63)
-    }
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
-    ) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            WifiSignalBars(rssi)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(name.removePrefix("★ ").trim(), fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                Text(detail, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(signal, fontSize = 10.sp, color = color, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-private fun DeviceRow(name: String, ip: String, online: Boolean) {
-    val color = if (online) Color(0xFF39FF14) else Color(0xFFFF2E63)
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Row(Modifier.fillMaxWidth().padding(12.dp)) {
-            Text("●", color = color)
-            Spacer(Modifier.width(8.dp))
-            Column {
-                Text(name, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                Text(ip, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
-@Composable
-private fun DeviceCard(name: String, ip: String, online: Boolean, onClick: () -> Unit) {
-    val color = if (online) Color(0xFF39FF14) else Color(0xFFFF2E63)
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-    ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Router, null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(name, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                Text(ip, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(if (online) "Online" else "Offline", color = color, fontSize = 9.sp)
-            Spacer(Modifier.width(6.dp))
-            Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun InterfaceList() {
-    val context = LocalContext.current
-    val ifaces = remember { LiveNetworkInfo.interfaceNames() }
-    CardBlock("Interfaces") {
-        if (ifaces.isEmpty()) {
-            Text("Tidak ada interface aktif", fontSize = 12.sp)
-        } else {
-            ifaces.take(10).forEach {
-                Text(it, fontSize = 11.sp, lineHeight = 18.sp)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AlertCard(title: String, detail: String, time: String, color: Color, onClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-    ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(10.dp), color = color.copy(alpha = 0.15f)) {
-                Icon(Icons.Default.Warning, null, tint = color, modifier = Modifier.padding(9.dp))
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, color = color, fontSize = 11.sp)
-                Text(detail, fontSize = 9.sp)
-                Text(time, fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun JobCard(tag: String, title: String, detail: String, color: Color, onClick: () -> Unit = {}) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-    ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(20.dp), color = color.copy(alpha = 0.16f)) {
-                Icon(Icons.Default.Build, null, tint = color, modifier = Modifier.padding(9.dp))
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(tag, fontSize = 9.sp, color = color)
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                Text(detail, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun ReportRow(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    selected: Boolean = false,
-    onClick: () -> Unit = {}
-) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        ),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-    ) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp))
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text(subtitle, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (selected) {
-                Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-            } else {
-                Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun HistoryRow(title: String, detail: String) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Row(Modifier.fillMaxWidth().padding(12.dp)) {
-            Icon(Icons.Default.History, null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(10.dp))
-            Column {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                Text(detail, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsRow(title: String, icon: ImageVector, onClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-    ) {
-        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.width(12.dp))
-            Text(title, modifier = Modifier.weight(1f), fontSize = 11.sp)
-            Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun SwitchRow(title: String, icon: ImageVector, checked: Boolean, onCheckedChange: (Boolean) -> Unit = {}) {
-    var state by remember(checked) { mutableStateOf(checked) }
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.width(12.dp))
-            Text(title, modifier = Modifier.weight(1f), fontSize = 11.sp)
-            Switch(checked = state, onCheckedChange = {
-                state = it
-                onCheckedChange(it)
-            })
-        }
-    }
-}
-
-private fun formatIp(ip: Int): String {
-    return "${ip and 0xff}.${ip shr 8 and 0xff}.${ip shr 16 and 0xff}.${ip shr 24 and 0xff}"
-}
-
-private fun openWifiConnectDialog(context: android.content.Context, ssid: String, security: String = "") {
-    val isOpen = security.equals("Open", ignoreCase = true)
-    // Native system sheet: Password + Advanced options + CANCEL / CONNECT
-    com.mporttech.pro.features.wifi.WifiConnector.connect(context, ssid, isOpen = isOpen)
-}
-
-

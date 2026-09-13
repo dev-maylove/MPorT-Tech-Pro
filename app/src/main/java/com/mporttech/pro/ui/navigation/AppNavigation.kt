@@ -1,8 +1,11 @@
 package com.mporttech.pro.ui.navigation
 
+import kotlinx.coroutines.delay
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
@@ -36,6 +39,14 @@ import com.mporttech.pro.features.diagnostic.DiagnosticScreen
 import com.mporttech.pro.features.networktools.PortCheckerScreen
 import com.mporttech.pro.features.tickets.TicketScreen
 import com.mporttech.pro.features.tools.*
+import com.mporttech.pro.features.tools.AlertBadgeStore
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.mporttech.pro.features.auth.TechnicianAdminScreen
 import com.mporttech.pro.features.auth.LoginScreen
 import com.mporttech.pro.core.auth.SessionManager
@@ -53,6 +64,14 @@ fun AppNavigation() {
     val isGuest = SessionManager.isGuest(context)
     val route = nav.currentBackStackEntryAsState().value?.destination?.route ?: "dashboard"
     val topLevel = setOf("dashboard", "network", "tools", "alerts", "profile")
+    var alertBadge by remember { mutableIntStateOf(AlertBadgeStore.count) }
+    LaunchedEffect(route) {
+        alertBadge = AlertBadgeStore.count
+        while (true) {
+            kotlinx.coroutines.delay(3000)
+            alertBadge = AlertBadgeStore.count
+        }
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -107,7 +126,8 @@ fun AppNavigation() {
                             onClick = { nav.navigate("alerts") { launchSingleTop = true } },
                             icon = Icons.Default.Notifications,
                             label = t("nav.alerts"),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            badgeCount = alertBadge
                         )
                         BottomItem(
                             selected = route == "profile",
@@ -210,7 +230,8 @@ private fun BottomItem(
     onClick: () -> Unit,
     icon: ImageVector,
     label: String,
-    modifier: Modifier
+    modifier: Modifier,
+    badgeCount: Int = 0
 ) {
     val tint = if (selected) Color(0xFF00F0FF) else Color(0xFF5EC8E8)
     Column(
@@ -221,7 +242,25 @@ private fun BottomItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(imageVector = icon, contentDescription = label, tint = tint, modifier = Modifier.size(19.dp))
+        Box {
+            Icon(imageVector = icon, contentDescription = label, tint = tint, modifier = Modifier.size(19.dp))
+            if (badgeCount > 0) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = (-4).dp)
+                        .size(14.dp)
+                        .background(Color(0xFFFF2E63), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (badgeCount > 9) "9+" else badgeCount.toString(),
+                        color = Color.White,
+                        fontSize = 7.sp
+                    )
+                }
+            }
+        }
         Spacer(Modifier.height(3.dp))
         Text(text = label, color = tint, fontSize = 8.sp)
     }

@@ -12,6 +12,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.CertificatePinner
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -49,16 +50,29 @@ object NetworkModule {
         val log = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         }
-        // When ENABLE_CERT_PINNING is true, add:
-        // .certificatePinner(CertificatePinner.Builder().add("api.mport.tech", "sha256/PIN").build())
-        return OkHttpClient.Builder()
+        // Optional cert pinning — enable via BuildConfig.ENABLE_CERT_PINNING=true
+        // Replace pin hashes with real production pins before enabling.
+        val builder = OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(authInterceptor)
             .authenticator(authenticator)
             .addInterceptor(log)
-            .build()
+        if (Constants.ENABLE_CERT_PINNING) {
+            val host = try {
+                java.net.URI(Constants.API_BASE_URL).host ?: "api.mandalanet.id"
+            } catch (_: Exception) {
+                "api.mandalanet.id"
+            }
+            // Placeholder pins — set real sha256/... pins when enabling in production
+            builder.certificatePinner(
+                CertificatePinner.Builder()
+                    .add(host, "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+                    .build()
+            )
+        }
+        return builder.build()
     }
 
     @Provides

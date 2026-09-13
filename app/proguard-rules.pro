@@ -94,3 +94,11 @@
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
 -keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
+
+# Tools / live network / speed test / wifi (reflection-safe)
+-keep class com.mporttech.pro.features.tools.** { *; }
+-keep class com.mporttech.pro.features.speedtest.** { *; }
+-keep class com.mporttech.pro.features.wifi.** { *; }
+-keep class com.mporttech.pro.features.scanner.** { *; }
+-keep class com.mporttech.pro.core.database.** { *; }
+-keep class com.mporttech.pro.data.repository.** { *; }

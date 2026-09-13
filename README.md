@@ -89,3 +89,41 @@ In-app bilingual UI: **Indonesia** and **English**.
 - Open **Profile** → **App language / Bahasa aplikasi**
 - Choice is saved on device (SharedPreferences)
 - Bottom navigation and main screens follow the selected language
+
+
+## API Base URL (single source of truth)
+
+| Build | Default URL | Override |
+|-------|-------------|----------|
+| **release** | `https://api.mandalanet.id/` | Gradle `-PapiBaseUrl=...` or CI input `api_base_url` |
+| **debug** | `http://192.168.1.102:8000/` | Same `-PapiBaseUrl=...` if set |
+
+Runtime code always reads **`BuildConfig.API_BASE_URL`** via `Constants.API_BASE_URL` (Retrofit in `NetworkModule`).  
+Do not hardcode alternate bases in feature code.
+
+### GitHub Actions release
+Workflow: `.github/workflows/release.yml`  
+Inputs: **Version label** (`version_name`), **Production API base URL** (`api_base_url`).
+
+Required secrets (never commit keystores):
+- `KEYSTORE_BASE64` or equivalent
+- `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`
+
+## Certificate pinning (optional)
+
+`BuildConfig.ENABLE_CERT_PINNING` (default **false**).  
+When `true`, `NetworkModule` applies OkHttp `CertificatePinner` for the API host.  
+**Before enabling in production**, replace the placeholder SHA-256 pins with real pins from your certificate chain.
+
+## R8 / ProGuard (release)
+
+- `minifyEnabled` on release uses `app/proguard-rules.pro`
+- Keep rules cover Room, Retrofit/Gson DTOs, Hilt, Compose, speedtest, tools, wifi
+- Smoke-test after each release APK: login, speed test, WiFi scan, tickets Room, navigation
+
+## Signing — never commit secrets
+
+`.gitignore` excludes: `keystore.properties`, `*.jks`, `*.keystore`, `*.p12`, `keystore/`  
+Use `keystore.properties.example` as template only.
+
+See also: `docs/RELEASE_CHECKLIST.md`
