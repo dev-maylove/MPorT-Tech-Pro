@@ -4,28 +4,32 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
-enum class UserRole { ADMIN, TECHNICIAN }
+enum class UserRole { GUEST, TECHNICIAN, ADMIN }
 
 data class AppUser(
     val id: String,
     val name: String,
     val username: String,
     val role: UserRole,
-    val password: String = "" // empty for remote sessions
+    val password: String = ""
 )
 
 /**
- * Session + optional local technician roster.
- * Remote login is preferred (AuthRepository); offline demo remains as fallback.
+ * Session manager.
+ * - GUEST: no login required — limited tools (network diagnostics only)
+ * - TECHNICIAN / ADMIN: require login (server or offline demo)
  */
 object SessionManager {
     private const val PREFS = "mport_session"
     private const val KEY_USER = "user_json"
     private const val KEY_TECHS = "technicians_json"
-    private const val KEY_SOURCE = "auth_source" // "remote" | "local"
+    private const val KEY_SOURCE = "auth_source" // remote | local | guest
 
     fun isLoggedIn(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).contains(KEY_USER)
+
+    /** App may be used (guest session or staff login). */
+    fun hasSession(context: Context): Boolean = isLoggedIn(context)
 
     fun currentUser(context: Context): AppUser? {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_USER, null)
@@ -36,22 +40,50 @@ object SessionManager {
     fun isAdmin(context: Context): Boolean =
         currentUser(context)?.role == UserRole.ADMIN
 
+    fun isTechnician(context: Context): Boolean =
+        currentUser(context)?.role == UserRole.TECHNICIAN
+
+    fun isGuest(context: Context): Boolean =
+        currentUser(context)?.role == UserRole.GUEST
+
+    /** Staff = technician or admin (not guest). */
+    fun isStaff(context: Context): Boolean {
+        val r = currentUser(context)?.role ?: return false
+        return r == UserRole.ADMIN || r == UserRole.TECHNICIAN
+    }
+
     fun isRemoteSession(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_SOURCE, "local") == "remote"
 
-    /** Persist user coming from API login. */
-    fun saveRemoteSession(context: Context, user: AppUser) {
+    /** Enter app as public guest — no credentials. */
+    fun enterAsGuest(context: Context) {
+        val guest = AppUser(
+            id = "guest",
+            name = "Pengguna Umum",
+            username = "guest",
+            role = UserRole.GUEST
+        )
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(KEY_USER, toJson(user).toString())
+            .putString(KEY_USER, toJson(guest).toString())
+            .putString(KEY_SOURCE, "guest")
+            .apply()
+    }
+
+    fun saveRemoteSession(context: Context, user: AppUser) {
+        // Never accept guest from remote
+        val role = when (user.role) {
+            UserRole.ADMIN -> UserRole.ADMIN
+            UserRole.TECHNICIAN -> UserRole.TECHNICIAN
+            UserRole.GUEST -> UserRole.TECHNICIAN
+        }
+        val safe = user.copy(role = role)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_USER, toJson(safe).toString())
             .putString(KEY_SOURCE, "remote")
             .apply()
     }
 
-    /**
-     * Offline demo login (admin/admin123, seeded techs).
-     * Kept for field use when server is unreachable.
-     */
     fun loginOffline(context: Context, username: String, password: String): AppUser? {
         val u = username.trim()
         val p = password
@@ -67,7 +99,6 @@ object SessionManager {
         return tech
     }
 
-    /** @deprecated Prefer AuthRepository.login — kept for compatibility */
     fun login(context: Context, username: String, password: String): AppUser? =
         loginOffline(context, username, password)
 
@@ -157,11 +188,17 @@ object SessionManager {
     }
 
     private fun parseUserObj(o: JSONObject): AppUser? = try {
+        val roleStr = o.optString("role", "GUEST")
+        val role = try {
+            UserRole.valueOf(roleStr)
+        } catch (_: Exception) {
+            UserRole.GUEST
+        }
         AppUser(
             id = o.getString("id"),
             name = o.getString("name"),
             username = o.getString("username"),
-            role = UserRole.valueOf(o.optString("role", "TECHNICIAN")),
+            role = role,
             password = o.optString("password", "")
         )
     } catch (_: Exception) {

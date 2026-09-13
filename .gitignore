@@ -26,6 +26,5 @@ keystore.properties
 *.p12
 release.keystore
 keystore/
-!keystore/.gitkeep
 app/release/
 app/build/

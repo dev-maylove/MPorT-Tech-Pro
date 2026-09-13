@@ -125,6 +125,12 @@ object Str {
         "login.hint" to "Gunakan akun teknisi / admin dari server MPorT",
         "login.failed" to "Username atau password salah",
         "login.welcome" to "Selamat datang",
+        "login.continue_guest" to "Lanjutkan sebagai Pengguna Umum",
+        "login.guest_welcome" to "Mode pengguna umum — fitur terbatas",
+        "login.staff_only" to "Login Teknisi / Admin",
+        "login.staff_button" to "Masuk sebagai Staf",
+        "login.staff_hint" to "Hanya untuk teknisi dan administrator",
+        "profile.role_guest" to "Pengguna Umum",
 
         // Network / WiFi
         "net.local_devices" to "Perangkat segmen lokal & terdeteksi",
@@ -305,6 +311,12 @@ object Str {
         "login.hint" to "Use technician / admin account from MPorT server",
         "login.failed" to "Invalid username or password",
         "login.welcome" to "Welcome",
+        "login.continue_guest" to "Continue as Guest",
+        "login.guest_welcome" to "Guest mode — limited features",
+        "login.staff_only" to "Technician / Admin login",
+        "login.staff_button" to "Sign in as Staff",
+        "login.staff_hint" to "For technicians and administrators only",
+        "profile.role_guest" to "Guest User",
 
         "net.local_devices" to "Local & discovered devices",
         "net.location_settings" to "Location settings",

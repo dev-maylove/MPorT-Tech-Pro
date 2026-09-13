@@ -9,6 +9,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.ui.platform.LocalContext
@@ -113,7 +115,7 @@ fun AppNavigation() {
         ) {
             composable("dashboard") { DashboardScreen(nav) }
             composable("network") { NetworkMonitorScreen(nav) }
-            composable("tools") { TechnicianToolsScreen(nav) }
+            composable("tools") { StaffOnly(nav) { TechnicianToolsScreen(nav) } }
             composable("alerts") { AlertsScreen(nav) }
             composable("profile") { ProfileScreen(nav) }
             composable("wifiTools") { WifiToolsScreen(nav) }
@@ -121,11 +123,11 @@ fun AppNavigation() {
             composable("scanner") { NetworkScannerScreen(nav) }
             composable("networkScanner") { NetworkScannerScreen(nav) }
             composable("speedtest") { SpeedTestScreen(nav) }
-            composable("mikrotik") { MikroTikScreen(nav) }
+            composable("mikrotik") { StaffOnly(nav) { MikroTikScreen(nav) } }
             composable("activity") { ActivityScreen(nav) }
-            composable("customers") { CustomerScreen(nav) }
-            composable("tickets") { TicketScreen(nav) }
-            composable("jobs") { JobsScreen(nav) }
+            composable("customers") { AdminOnly(nav) { CustomerScreen(nav) } }
+            composable("tickets") { StaffOnly(nav) { TicketScreen(nav) } }
+            composable("jobs") { StaffOnly(nav) { JobsScreen(nav) } }
             composable("diagnostic") { DiagnosticScreen(nav) }
             composable("ping") { PingScreen(nav) }
             composable("traceroute") { DiagnosticsTracerouteScreen(nav) }
@@ -134,7 +136,7 @@ fun AppNavigation() {
             composable("devices") { DeviceManagerScreen(nav) }
             composable("deviceDetail") { DeviceDetailScreen(nav) }
             composable("alertDetail") { AlertDetailScreen(nav) }
-            composable("reports") { ReportsScreen(nav) }
+            composable("reports") { AdminOnly(nav) { ReportsScreen(nav) } }
             composable("settings") { SettingsScreen(nav) }
             composable("about") { AboutScreen(nav) }
             composable("techAdmin") {
@@ -156,6 +158,31 @@ fun AppNavigation() {
             composable("latencyHub") { LatencyHubScreen(nav) }
             composable("deviceDetailRich") { DeviceDetailRichScreen(nav) }
             composable("speedResults") { SpeedTestResultsScreen(nav) }
+        }
+    }
+}
+
+
+@Composable
+private fun StaffOnly(nav: NavController, content: @Composable () -> Unit) {
+    val ctx = LocalContext.current
+    if (SessionManager.isStaff(ctx)) {
+        content()
+    } else {
+        LaunchedEffect(Unit) {
+            nav.popBackStack()
+        }
+    }
+}
+
+@Composable
+private fun AdminOnly(nav: NavController, content: @Composable () -> Unit) {
+    val ctx = LocalContext.current
+    if (SessionManager.isAdmin(ctx)) {
+        content()
+    } else {
+        LaunchedEffect(Unit) {
+            nav.popBackStack()
         }
     }
 }

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mporttech.pro.R
+import com.mporttech.pro.core.auth.SessionManager
 import com.mporttech.pro.core.auth.UserRole
 import com.mporttech.pro.core.common.Constants
 import com.mporttech.pro.ui.i18n.t
@@ -36,6 +37,7 @@ import com.mporttech.pro.ui.i18n.t
 @Composable
 fun LoginScreen(
     onLoggedIn: () -> Unit,
+    onContinueAsGuest: () -> Unit = onLoggedIn,
     vm: LoginViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -47,6 +49,12 @@ fun LoginScreen(
 
     LaunchedEffect(ui.successUser) {
         val user = ui.successUser ?: return@LaunchedEffect
+        // Only staff may complete staff login
+        if (user.role == UserRole.GUEST) {
+            Toast.makeText(context, "Akun ini tidak memiliki akses staf", Toast.LENGTH_SHORT).show()
+            vm.consumeSuccess()
+            return@LaunchedEffect
+        }
         val role = if (user.role == UserRole.ADMIN) "Admin" else "Teknisi"
         Toast.makeText(context, "Selamat datang, ${user.name} ($role)", Toast.LENGTH_SHORT).show()
         vm.consumeSuccess()
@@ -81,11 +89,38 @@ fun LoginScreen(
             Spacer(Modifier.height(12.dp))
             Text("MPorT Tech", color = Color.White, fontWeight = FontWeight.Black, fontSize = 22.sp)
             Text(
-                "Masuk untuk melanjutkan",
+                t("login.subtitle"),
                 color = Color(0xFF8EC8F0),
                 fontSize = 13.sp
             )
             Spacer(Modifier.height(28.dp))
+
+            // Guest entry — public user, no credentials
+            OutlinedButton(
+                onClick = {
+                    SessionManager.enterAsGuest(context)
+                    Toast.makeText(context, t("login.guest_welcome"), Toast.LENGTH_SHORT).show()
+                    onContinueAsGuest()
+                },
+                enabled = !ui.loading,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(t("login.continue_guest"), fontWeight = FontWeight.SemiBold)
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFF2A3A50))
+                Text(
+                    "  ${t("login.staff_only")}  ",
+                    color = Color(0xFF6A829E),
+                    fontSize = 11.sp
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFF2A3A50))
+            }
+            Spacer(Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
@@ -131,25 +166,15 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text(t("login.button"), fontWeight = FontWeight.Bold)
+                    Text(t("login.staff_button"), fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(Modifier.height(16.dp))
             Text(
-                if (Constants.ALLOW_OFFLINE_DEMO_LOGIN) {
-                    t("login.hint")
-                } else {
-                    "Gunakan akun teknisi / admin dari server MPorT"
-                },
+                t("login.staff_hint"),
                 color = Color(0xFF6A829E),
                 fontSize = 11.sp,
                 lineHeight = 16.sp
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Server: ${Constants.API_BASE_URL}",
-                color = Color(0xFF4A6070),
-                fontSize = 10.sp
             )
         }
     }

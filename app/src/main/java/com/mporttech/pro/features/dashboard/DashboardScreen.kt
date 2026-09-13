@@ -76,17 +76,21 @@ fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()
     val context = LocalContext.current
     val dash by vm.uiState.collectAsStateWithLifecycle()
     val isAdmin = SessionManager.isAdmin(context)
+    val isStaff = SessionManager.isStaff(context)
+    val isGuest = SessionManager.isGuest(context)
+    // Guest: public network tools only. Staff: field tools. Admin: full modules.
     val actions = buildList {
         add(DashboardAction(t("dash.network_monitor"), t("dash.network_monitor_sub"), Icons.Default.NetworkCheck, "network"))
         add(DashboardAction(t("dash.wifi_tools"), t("dash.wifi_tools_sub"), Icons.Default.Wifi, "wifiTools"))
         add(DashboardAction(t("dash.speedtest"), t("dash.speedtest_sub"), Icons.Default.Speed, "speedtest"))
-        add(DashboardAction(t("dash.tech_tools"), t("dash.tech_tools_sub"), Icons.Default.Build, "tools"))
         add(DashboardAction(t("dash.discovery"), t("dash.discovery_sub"), Icons.Default.Search, "discovery"))
         add(DashboardAction(t("dash.signal"), t("dash.signal_sub"), Icons.Default.BarChart, "signalHub"))
-        add(DashboardAction(t("dash.jobs"), t("dash.jobs_sub"), Icons.Default.ConfirmationNumber, "jobs"))
-        // MikroTik + admin modules only for ADMIN
-        if (isAdmin) {
+        if (isStaff) {
+            add(DashboardAction(t("dash.tech_tools"), t("dash.tech_tools_sub"), Icons.Default.Build, "tools"))
+            add(DashboardAction(t("dash.jobs"), t("dash.jobs_sub"), Icons.Default.ConfirmationNumber, "jobs"))
             add(DashboardAction(t("dash.mikrotik"), t("dash.mikrotik_sub"), Icons.Default.Router, "mikrotik"))
+        }
+        if (isAdmin) {
             add(DashboardAction(t("dash.customers"), t("dash.customers_sub"), Icons.Default.People, "customers"))
             add(DashboardAction(t("dash.reports"), t("dash.reports_sub"), Icons.Default.BarChart, "reports"))
             add(DashboardAction(t("screen.tech_admin"), t("profile.role_admin"), Icons.Default.SupervisorAccount, "techAdmin"))
@@ -209,7 +213,9 @@ private fun TechnicianIdentityCard(nav: NavController, context: android.content.
                 Text(
                     (when (SessionManager.currentUser(context)?.role) {
                         UserRole.ADMIN -> t("profile.role_admin")
-                        else -> t("profile.role_tech")
+                        UserRole.TECHNICIAN -> t("profile.role_tech")
+                        UserRole.GUEST -> t("profile.role_guest")
+                        null -> t("profile.role_guest")
                     }),
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -58,6 +58,7 @@ class AuthRepository @Inject constructor(
                 )
 
                 val appUser = userDto.toAppUser()
+                    ?: return Result.Error("Akun ini bukan teknisi/admin")
                 SessionManager.saveRemoteSession(context, appUser)
                 Result.Success(appUser)
             } else {
@@ -116,11 +117,12 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    private fun RemoteUserDto.toAppUser(): AppUser {
+    private fun RemoteUserDto.toAppUser(): AppUser? {
         val roleStr = (role ?: "").lowercase()
         val mapped = when {
             roleStr == "admin" -> UserRole.ADMIN
             roleStr == "technician" || roleStr == "tech" -> UserRole.TECHNICIAN
+            roleStr in setOf("user", "customer", "guest") -> return null
             else -> UserRole.TECHNICIAN
         }
         return AppUser(
@@ -128,7 +130,7 @@ class AuthRepository @Inject constructor(
             name = name ?: email ?: "User",
             username = username ?: email ?: techCode ?: id?.toString() ?: "",
             role = mapped,
-            password = "" // never store server password locally
+            password = ""
         )
     }
 }
