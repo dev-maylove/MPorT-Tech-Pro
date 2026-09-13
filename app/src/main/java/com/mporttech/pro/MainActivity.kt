@@ -54,7 +54,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.mporttech.pro.core.auth.SessionManager
-import com.mporttech.pro.features.auth.LoginScreen
 import com.mporttech.pro.ui.i18n.LocalAppLanguage
 import com.mporttech.pro.ui.i18n.loadSavedLanguage
 import com.mporttech.pro.ui.i18n.rememberAppLanguageState
@@ -93,15 +92,14 @@ class MainActivity : ComponentActivity() {
                         delay(1600)
                         showStartup = false
                     }
-                    var hasSession by remember {
-                        mutableStateOf(SessionManager.hasSession(context))
+                    // Auto-enter as guest — login only via menu (⋮)
+                    LaunchedEffect(showStartup) {
+                        if (!showStartup && !SessionManager.hasSession(context)) {
+                            SessionManager.enterAsGuest(context)
+                        }
                     }
                     when {
                         showStartup -> PremiumStartupScreen()
-                        !hasSession -> LoginScreen(
-                            onLoggedIn = { hasSession = true },
-                            onContinueAsGuest = { hasSession = true }
-                        )
                         else -> AppNavigation()
                     }
                 }

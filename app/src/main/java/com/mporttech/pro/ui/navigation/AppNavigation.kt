@@ -160,11 +160,15 @@ fun AppNavigation() {
                 }
             }
             composable("login") {
-                LoginScreen(onLoggedIn = {
-                    nav.navigate("dashboard") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                })
+                LoginScreen(
+                    onLoggedIn = {
+                        nav.navigate("dashboard") {
+                            popUpTo("dashboard") { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onBack = { nav.popBackStack() }
+                )
             }
             composable("discovery") { DiscoveryHubScreen(nav) }
             composable("signalHub") { SignalHubScreen(nav) }

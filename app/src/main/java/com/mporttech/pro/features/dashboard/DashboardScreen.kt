@@ -138,12 +138,43 @@ fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()
                     modifier = Modifier.clickable { nav.navigate("alerts") }
                 )
                 Spacer(Modifier.width(12.dp))
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = "Settings",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.clickable { nav.navigate("settings") }
-                )
+                var menuOpen by remember { mutableStateOf(false) }
+                Box {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "Menu",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { menuOpen = true }
+                    )
+                    DropdownMenu(
+                        expanded = menuOpen,
+                        onDismissRequest = { menuOpen = false }
+                    ) {
+                        if (SessionManager.isGuest(context) || !SessionManager.isStaff(context)) {
+                            DropdownMenuItem(
+                                text = { Text(t("common.login")) },
+                                onClick = {
+                                    menuOpen = false
+                                    nav.navigate("login")
+                                }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text(t("common.settings")) },
+                            onClick = {
+                                menuOpen = false
+                                nav.navigate("settings")
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(t("screen.about")) },
+                            onClick = {
+                                menuOpen = false
+                                nav.navigate("about")
+                            }
+                        )
+                    }
+                }
             }
         }
         item { TechnicianIdentityCard(nav, context) }
