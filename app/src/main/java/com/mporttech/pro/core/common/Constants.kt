@@ -1,5 +1,7 @@
 package com.mporttech.pro.core.common
 
+import com.mporttech.pro.BuildConfig
+
 object Constants {
     const val APP_NAME = "MPorT Tech Pro"
     const val PACKAGE_NAME = "com.mporttech.pro"
@@ -16,13 +18,15 @@ object Constants {
     const val PREFS_LANG = "mport_lang"
 
     /**
-     * Backend base URL (Laravel MPorT API).
-     * Emulator → host machine: http://10.0.2.2:8000/
-     * Real device same LAN: http://192.168.x.x:8000/
+     * Backend base URL from BuildConfig (debug vs release).
+     * debug  → http://10.0.2.2:8000/ (emulator)
+     * release → https://api.mport.tech/
      * Must end with trailing slash for Retrofit.
      */
-    const val API_BASE_URL = "http://192.168.1.102:8000/"
+    val API_BASE_URL: String = BuildConfig.API_BASE_URL
 
-    /** Allow offline demo login (admin/admin123) when server unreachable. Set false for production. */
-    const val ALLOW_OFFLINE_DEMO_LOGIN = false
+    /** Offline demo login only on debug builds unless overridden. */
+    val ALLOW_OFFLINE_DEMO_LOGIN: Boolean = BuildConfig.ALLOW_OFFLINE_DEMO_LOGIN
+
+    val ENABLE_CERT_PINNING: Boolean = BuildConfig.ENABLE_CERT_PINNING
 }

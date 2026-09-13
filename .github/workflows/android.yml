@@ -50,7 +50,7 @@ jobs:
           sdkmanager --list_installed 2>/dev/null | head -20 || true
 
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+        run: gradle :app:assembleDebug :app:lintDebug --stacktrace --no-daemon
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v7

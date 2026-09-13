@@ -7,6 +7,7 @@ import com.mporttech.pro.core.auth.SessionManager
 import com.mporttech.pro.core.auth.TokenStore
 import com.mporttech.pro.core.auth.UserRole
 import com.mporttech.pro.core.common.Constants
+import com.mporttech.pro.core.common.NetworkErrors
 import com.mporttech.pro.core.common.Result
 import com.mporttech.pro.data.remote.AuthApi
 import com.mporttech.pro.data.remote.dto.ApiErrorBody
@@ -63,7 +64,7 @@ class AuthRepository @Inject constructor(
                 Result.Success(appUser)
             } else {
                 val errMsg = parseError(response.errorBody()?.string())
-                    ?: "Login gagal (${response.code()})"
+                    ?: NetworkErrors.fromHttpCode(response.code())
                 // Optional offline fallback when server rejects and demo allowed
                 if (Constants.ALLOW_OFFLINE_DEMO_LOGIN && response.code() in 500..599) {
                     offlineFallback(trimmed, password) ?: Result.Error(errMsg)
@@ -75,9 +76,9 @@ class AuthRepository @Inject constructor(
             // Network / timeout → try offline demo if enabled
             if (Constants.ALLOW_OFFLINE_DEMO_LOGIN) {
                 offlineFallback(trimmed, password)
-                    ?: Result.Error(e.message ?: "Tidak dapat terhubung ke server")
+                    ?: Result.Error(NetworkErrors.userMessage(e))
             } else {
-                Result.Error(e.message ?: "Tidak dapat terhubung ke server")
+                Result.Error(NetworkErrors.userMessage(e))
             }
         }
     }

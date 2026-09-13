@@ -1,69 +1,11 @@
 package com.mporttech.pro
 
-import com.mporttech.pro.R
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-package com.mporttech.pro
-
-import com.mporttech.pro.R
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-package com.mporttech.pro
-
-import com.mporttech.pro.R
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-package com.mporttech.pro
-
-import com.mporttech.pro.R
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-package com.mporttech.pro
-
-import com.mporttech.pro.R
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-package com.mporttech.pro
-
-import com.mporttech.pro.R
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-package com.mporttech.pro
-
-import com.mporttech.pro.R
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-package com.mporttech.pro
-
-import com.mporttech.pro.R
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -73,7 +15,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -86,7 +27,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -94,50 +37,51 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.mporttech.pro.ui.navigation.AppNavigation
-import com.mporttech.pro.ui.theme.LocalThemeMode
-import com.mporttech.pro.ui.theme.MPorTTechTheme
 import com.mporttech.pro.core.auth.SessionManager
 import com.mporttech.pro.features.auth.LoginScreen
-import com.mporttech.pro.ui.theme.ThemeMode
-import com.mporttech.pro.ui.theme.rememberThemeModeState
 import com.mporttech.pro.ui.i18n.LocalAppLanguage
 import com.mporttech.pro.ui.i18n.loadSavedLanguage
 import com.mporttech.pro.ui.i18n.rememberAppLanguageState
-import com.mporttech.pro.ui.i18n.t
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.CompositionLocalProvider
+import com.mporttech.pro.ui.navigation.AppNavigation
+import com.mporttech.pro.ui.theme.LocalThemeMode
+import com.mporttech.pro.ui.theme.MPorTTechTheme
+import com.mporttech.pro.ui.theme.ThemeMode
+import com.mporttech.pro.ui.theme.rememberThemeModeState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.cos
 import kotlin.math.sin
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splash = installSplashScreen()
+        val keepSplash = AtomicBoolean(true)
+        splash.setKeepOnScreenCondition { keepSplash.get() }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            SideEffect { keepSplash.set(false) }
             val context = this
             val themeModeState = rememberThemeModeState(ThemeMode.DARK)
             val languageState = rememberAppLanguageState(loadSavedLanguage(context))
-            // Read via `by` so MaterialTheme recomposes when Profile toggles dark mode
             val themeMode by themeModeState
             CompositionLocalProvider(
                 LocalThemeMode provides themeModeState,
@@ -168,7 +112,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun PremiumStartupScreen() {
-    // Compose animation: one infinite transition for orbit
     val transition = rememberInfiniteTransition(label = "splash")
     val ringAngle by transition.animateFloat(
         initialValue = 0f,
@@ -180,7 +123,6 @@ private fun PremiumStartupScreen() {
         label = "orbit"
     )
 
-    // Compose animation: logo fade-in
     var logoVisible by remember { mutableStateOf(false) }
     val logoAlpha by animateFloatAsState(
         targetValue = if (logoVisible) 1f else 0f,
@@ -233,7 +175,6 @@ private fun PremiumStartupScreen() {
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(200.dp)
             ) {
-                // STATIC layer — cached, not invalidated by orbit angle
                 Box(
                     modifier = Modifier
                         .size(200.dp)
@@ -254,7 +195,6 @@ private fun PremiumStartupScreen() {
                                     radius = radius,
                                     center = Offset(cx, cy)
                                 )
-                                // faint full track
                                 drawCircle(
                                     color = Color(0xFF21B6FF).copy(alpha = 0.18f),
                                     radius = trackR,
@@ -265,7 +205,6 @@ private fun PremiumStartupScreen() {
                         }
                 )
 
-                // ROTATING layer — only arc + dot; rotated via Compose Modifier.rotate
                 Canvas(
                     modifier = Modifier
                         .size(200.dp)
@@ -284,7 +223,6 @@ private fun PremiumStartupScreen() {
                         size = Size(r * 2f, r * 2f),
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
-                    // tip dot at end of arc (angle 100°)
                     val rad = Math.toRadians(100.0)
                     drawCircle(
                         color = Color(0xFF66E6FF),

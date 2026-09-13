@@ -1,5 +1,6 @@
 package com.mporttech.pro.data.repository
 
+import com.mporttech.pro.core.common.NetworkErrors
 import com.mporttech.pro.core.common.Result
 import com.mporttech.pro.core.database.CustomerDao
 import com.mporttech.pro.core.database.CustomerEntity
@@ -39,19 +40,25 @@ class CustomerRepository @Inject constructor(
         )
 
     /** Pull customers from Laravel and replace local cache. */
+    @Volatile var lastSyncAtMs: Long = 0L
+        private set
+
     suspend fun syncFromRemote(): Result<Int> = withContext(Dispatchers.IO) {
         try {
             val response = api.customers(page = 1)
             if (!response.isSuccessful) {
-                return@withContext Result.Error("Gagal sync pelanggan (${response.code()})")
+                return@withContext Result.Error(NetworkErrors.fromHttpCode(response.code()))
             }
             val list = response.body()?.data.orEmpty()
             val entities = list.map { it.toEntity() }
+            // Only replace local cache after a successful response
             dao.clear()
             if (entities.isNotEmpty()) dao.insertAll(entities)
+            lastSyncAtMs = System.currentTimeMillis()
             Result.Success(entities.size)
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Sync pelanggan gagal")
+            // Keep existing local data on failure
+            Result.Error(NetworkErrors.userMessage(e))
         }
     }
 
@@ -73,6 +80,8 @@ class TicketRepository @Inject constructor(
     private val dao: TicketDao,
     private val api: MportApi
 ) {
+    @Volatile var lastSyncAtMs: Long = 0L
+        private set
     fun observe(): Flow<List<TicketEntity>> = dao.observeAll()
 
     suspend fun add(title: String, description: String) {
@@ -97,20 +106,21 @@ class TicketRepository @Inject constructor(
     suspend fun updateStatus(item: TicketEntity, status: String) =
         dao.update(item.copy(status = status))
 
-    /** Pull tickets from Laravel and replace local cache. */
+    /** Pull tickets from Laravel; only replace local cache after success. */
     suspend fun syncFromRemote(status: String? = null): Result<Int> = withContext(Dispatchers.IO) {
         try {
             val response = api.tickets(status = status, page = 1)
             if (!response.isSuccessful) {
-                return@withContext Result.Error("Gagal sync tiket (${response.code()})")
+                return@withContext Result.Error(NetworkErrors.fromHttpCode(response.code()))
             }
             val list = response.body()?.data.orEmpty()
             val entities = list.map { it.toEntity() }
             dao.clear()
             if (entities.isNotEmpty()) dao.insertAll(entities)
+            lastSyncAtMs = System.currentTimeMillis()
             Result.Success(entities.size)
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Sync tiket gagal")
+            Result.Error(NetworkErrors.userMessage(e))
         }
     }
 

@@ -12,6 +12,7 @@ object Str {
         "nav.tools" to "Alat",
         "nav.alerts" to "Peringatan",
         "nav.profile" to "Profil",
+        "nav.diagnostic" to "Diagnostik",
 
         // Common
         "common.back" to "Kembali",
@@ -131,6 +132,10 @@ object Str {
         "login.staff_button" to "Masuk sebagai Staf",
         "login.staff_hint" to "Hanya untuk teknisi dan administrator",
         "profile.role_guest" to "Pengguna Umum",
+        "dash.login_staff_cta" to "Masuk sebagai staf",
+        "sync.last" to "Terakhir sinkron",
+        "sync.pull" to "Tarik untuk sinkron",
+        "error.retry" to "Coba lagi",
 
         // Network / WiFi
         "net.local_devices" to "Perangkat segmen lokal & terdeteksi",
@@ -203,6 +208,7 @@ object Str {
         "nav.tools" to "Tools",
         "nav.alerts" to "Alerts",
         "nav.profile" to "Profile",
+        "nav.diagnostic" to "Diagnostic",
 
         "common.back" to "Back",
         "common.refresh" to "Refresh",
@@ -317,6 +323,10 @@ object Str {
         "login.staff_button" to "Sign in as Staff",
         "login.staff_hint" to "For technicians and administrators only",
         "profile.role_guest" to "Guest User",
+        "dash.login_staff_cta" to "Sign in as staff",
+        "sync.last" to "Last synced",
+        "sync.pull" to "Pull to sync",
+        "error.retry" to "Retry",
 
         "net.local_devices" to "Local & discovered devices",
         "net.location_settings" to "Location settings",

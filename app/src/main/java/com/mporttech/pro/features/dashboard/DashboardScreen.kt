@@ -221,14 +221,33 @@ private fun TechnicianIdentityCard(nav: NavController, context: android.content.
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            val role = SessionManager.currentUser(context)?.role
+            val isGuest = role == UserRole.GUEST || role == null
             AssistChip(
-                onClick = { nav.navigate("profile") },
-                label = { Text(t("common.online"), fontSize = 9.sp) },
+                onClick = {
+                    if (isGuest) {
+                        // Prompt staff login: clear guest session and restart
+                        SessionManager.logout(context)
+                        (context as? android.app.Activity)?.recreate()
+                    } else {
+                        nav.navigate("profile")
+                    }
+                },
+                label = {
+                    Text(
+                        when (role) {
+                            UserRole.ADMIN -> t("profile.role_admin")
+                            UserRole.TECHNICIAN -> t("profile.role_tech")
+                            else -> t("login.staff_button")
+                        },
+                        fontSize = 9.sp
+                    )
+                },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Circle,
                         contentDescription = null,
-                        tint = Color(0xFF35E381),
+                        tint = if (isGuest) Color(0xFFFFB020) else Color(0xFF35E381),
                         modifier = Modifier.size(8.dp)
                     )
                 }

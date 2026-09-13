@@ -1,5 +1,7 @@
 package com.mporttech.pro.features.tools
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.MainScope
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.Manifest
@@ -1756,25 +1758,19 @@ fun ProfileScreen(nav: NavController) {
             SettingsRow(t("screen.tech_admin"), Icons.Default.People) { nav.navigate("techAdmin") }
         }
         SettingsRow(t("common.logout"), Icons.Default.ExitToApp) {
-            // Clear local session (guest / staff)
-            com.mporttech.pro.core.auth.SessionManager.logout(context)
-            // Clear Sanctum tokens
+            // Prefer AuthRepository.logout (server invalidate + clear tokens)
             try {
-                val secure = com.mporttech.pro.core.security.SecureStorage(context.applicationContext)
-                secure.remove("auth_access_token")
-                secure.remove("auth_refresh_token")
-                secure.remove("auth_token_type")
-                secure.remove("auth_expires_at_ms")
-            } catch (_: Exception) { /* ignore */ }
-            // Restart activity so MainActivity re-evaluates session → LoginScreen
-            val act = context as? android.app.Activity
-            if (act != null) {
-                act.recreate()
-            } else {
-                nav.navigate("login") {
-                    popUpTo(nav.graph.startDestinationId) { inclusive = true }
-                    launchSingleTop = true
+                val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    com.mporttech.pro.di.AuthEntryPoint::class.java
+                )
+                kotlinx.coroutines.MainScope().launch {
+                    entryPoint.authRepository().logout()
+                    (context as? android.app.Activity)?.recreate()
                 }
+            } catch (_: Exception) {
+                com.mporttech.pro.core.auth.SessionManager.logout(context)
+                (context as? android.app.Activity)?.recreate()
             }
         }
         SettingsRow(t("screen.about"), Icons.Default.Info) { nav.navigate("about") }

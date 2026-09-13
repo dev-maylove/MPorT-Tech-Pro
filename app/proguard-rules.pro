@@ -70,3 +70,27 @@
 -dontwarn com.google.crypto.tink.**
 -keep class com.google.crypto.tink.** { *; }
 -keep class androidx.security.crypto.** { *; }
+
+# Gson DTOs (reflection)
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.mporttech.pro.data.remote.dto.** { *; }
+-keep class com.google.gson.stream.** { *; }
+-keepclassmembers,allowobfuscation class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Retrofit
+-keep,allowobfuscation interface * {
+  @retrofit2.http.* <methods>;
+}
+-dontwarn retrofit2.**
+
+# OkHttp
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# Hilt / Dagger
+-keep class dagger.hilt.** { *; }
+-keep class javax.inject.** { *; }
+-keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }

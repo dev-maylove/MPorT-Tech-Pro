@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder
 import com.mporttech.pro.core.auth.TokenAuthenticator
 import com.mporttech.pro.core.auth.TokenStore
 import com.mporttech.pro.core.common.Constants
+// CertificatePinner optional via Constants.ENABLE_CERT_PINNING
 import com.mporttech.pro.data.remote.AuthApi
 import com.mporttech.pro.data.remote.MportApi
 import dagger.Module
@@ -48,6 +49,8 @@ object NetworkModule {
         val log = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         }
+        // When ENABLE_CERT_PINNING is true, add:
+        // .certificatePinner(CertificatePinner.Builder().add("api.mport.tech", "sha256/PIN").build())
         return OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

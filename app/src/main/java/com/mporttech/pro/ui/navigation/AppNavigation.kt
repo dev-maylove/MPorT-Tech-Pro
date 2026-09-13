@@ -98,7 +98,7 @@ fun AppNavigation() {
                                 selected = route == "diagnostic" || route == "ping",
                                 onClick = { nav.navigate("diagnostic") { launchSingleTop = true } },
                                 icon = Icons.Default.Build,
-                                label = t("nav.tools"),
+                                label = t("nav.diagnostic"),
                                 modifier = Modifier.weight(1f)
                             )
                         }
