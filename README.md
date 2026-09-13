@@ -127,3 +127,13 @@ When `true`, `NetworkModule` applies OkHttp `CertificatePinner` for the API host
 Use `keystore.properties.example` as template only.
 
 See also: `docs/RELEASE_CHECKLIST.md`
+
+## Certificate Pinning
+
+Optional OkHttp SPKI pinning — see [docs/CERT_PINNING.md](docs/CERT_PINNING.md).
+
+```bash
+./scripts/fetch-cert-pins.sh api.mandalanet.id
+# paste pins into CertificatePinning.HOST_PINS
+./gradlew :app:assembleRelease -PenableCertPinning=true
+```

@@ -57,6 +57,13 @@ val isPureDebugOrMeta = taskNamesLower.isEmpty() || taskNamesLower.all { t ->
 }
 val requiresReleaseSigning = !isPureDebugOrMeta
 
+
+// ── Certificate pinning (CI: -PenableCertPinning=true) ──
+// Requires real SPKI pins in CertificatePinning.HOST_PINS before enabling.
+// Cert pinning disabled for now — set true later when real SPKI pins are in CertificatePinning.HOST_PINS
+val appEnableCertPinning: Boolean = false
+// (project.findProperty("enableCertPinning") as String?)?.equals("true", ignoreCase = true) == true
+
 android {
     namespace = "com.mporttech.pro"
     compileSdk = 35

@@ -304,34 +304,54 @@ fun TechnicianToolsScreen(nav: NavController) {
         Tile(t("tools.tile_discovery"), t("tools.tile_discovery_sub"), Icons.Default.Search, "discovery")
     )
     Page(t("tools.technician"), Icons.Default.Build, nav) {
-        val rows = (tiles.size + 1) / 2
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.height((rows * 110).dp),
-            userScrollEnabled = false,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(tiles.size) { i ->
-                val tile = tiles[i]
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0A1528)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, Color(0xFF1A4A60), RoundedCornerShape(16.dp))
-                        .clickable { if (tile.route.isNotBlank()) nav.navigate(tile.route) }
+        // Non-lazy 2-column grid so parent Page (LazyColumn) can scroll the full list
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            tiles.chunked(2).forEach { rowTiles ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(Modifier.padding(14.dp)) {
-                        Box(
-                            Modifier.size(40.dp).background(Color(0xFF0A2840), RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
+                    rowTiles.forEach { tile ->
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF0A1528)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .border(1.dp, Color(0xFF1A4A60), RoundedCornerShape(16.dp))
+                                .clickable { if (tile.route.isNotBlank()) nav.navigate(tile.route) }
                         ) {
-                            Icon(tile.icon, null, tint = Color(0xFF00F0FF), modifier = Modifier.size(22.dp))
+                            Column(Modifier.padding(14.dp)) {
+                                Box(
+                                    Modifier
+                                        .size(40.dp)
+                                        .background(Color(0xFF0A2840), RoundedCornerShape(12.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        tile.icon,
+                                        null,
+                                        tint = Color(0xFF00F0FF),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    tile.title,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    tile.subtitle,
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                        Spacer(Modifier.height(10.dp))
-                        Text(tile.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
-                        Text(tile.subtitle, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    // Odd last row: keep grid alignment
+                    if (rowTiles.size == 1) {
+                        Spacer(Modifier.weight(1f))
                     }
                 }
             }
@@ -340,17 +360,30 @@ fun TechnicianToolsScreen(nav: NavController) {
         Card(
             shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0A2038)),
-            modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFF1A5A70), RoundedCornerShape(14.dp))
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color(0xFF1A5A70), RoundedCornerShape(14.dp))
         ) {
             Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Build, null, tint = Color(0xFF00F0FF))
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text("Semua tools dalam satu layar", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
-                    Text("Kerja lebih cepat, lebih efisien", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Semua tools dalam satu layar",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "Kerja lebih cepat, lebih efisien",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
+        // Extra bottom padding so last tiles clear the bottom nav
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -391,14 +424,20 @@ fun WifiToolsScreen(nav: NavController) {
                 Text("$quickCount AP di cache lokal", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.height(340.dp),
-            userScrollEnabled = false,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(tiles) { ToolTile(it) { nav.navigate(it.route) } }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            tiles.chunked(2).forEach { rowTiles ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    rowTiles.forEach { tile ->
+                        Box(Modifier.weight(1f)) {
+                            ToolTile(tile) { nav.navigate(tile.route) }
+                        }
+                    }
+                    if (rowTiles.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             Button(onClick = { nav.navigate("wifi") }, modifier = Modifier.weight(1f),

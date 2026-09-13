@@ -5,14 +5,13 @@ import com.google.gson.GsonBuilder
 import com.mporttech.pro.core.auth.TokenAuthenticator
 import com.mporttech.pro.core.auth.TokenStore
 import com.mporttech.pro.core.common.Constants
-// CertificatePinner optional via Constants.ENABLE_CERT_PINNING
+import com.mporttech.pro.core.security.CertificatePinning
 import com.mporttech.pro.data.remote.AuthApi
 import com.mporttech.pro.data.remote.MportApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import okhttp3.CertificatePinner
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -50,8 +49,6 @@ object NetworkModule {
         val log = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         }
-        // Optional cert pinning — enable via BuildConfig.ENABLE_CERT_PINNING=true
-        // Replace pin hashes with real production pins before enabling.
         val builder = OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -59,19 +56,13 @@ object NetworkModule {
             .addInterceptor(authInterceptor)
             .authenticator(authenticator)
             .addInterceptor(log)
-        if (Constants.ENABLE_CERT_PINNING) {
-            val host = try {
-                java.net.URI(Constants.API_BASE_URL).host ?: "api.mandalanet.id"
-            } catch (_: Exception) {
-                "api.mandalanet.id"
-            }
-            // Placeholder pins — set real sha256/... pins when enabling in production
-            builder.certificatePinner(
-                CertificatePinner.Builder()
-                    .add(host, "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
-                    .build()
-            )
+
+        // Certificate pinning (SPKI). Applied only when ENABLE_CERT_PINNING=true
+        // and CertificatePinning.HOST_PINS contains real sha256/... values.
+        CertificatePinning.buildPinnerOrNull(Constants.API_BASE_URL)?.let { pinner ->
+            builder.certificatePinner(pinner)
         }
+
         return builder.build()
     }
 
