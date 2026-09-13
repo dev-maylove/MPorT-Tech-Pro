@@ -272,7 +272,7 @@ private fun PremiumStartupScreen() {
                     )
                 }
 
-                // Clean logo — residual black removed in asset (true alpha)
+                // Brand logo (single asset: mport_tech_logo)
                 Image(
                     painter = painterResource(R.drawable.mport_tech_logo),
                     contentDescription = "MPorT Tech",
