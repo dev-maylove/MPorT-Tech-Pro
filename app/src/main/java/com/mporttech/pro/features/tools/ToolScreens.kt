@@ -499,8 +499,8 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
         if (result.values.any { it }) doScan(force = true) else {
-            permissionHint = t("wifi.perm_denied")
-            status = "Izin diperlukan untuk scan WiFi"
+            permissionHint = com.mporttech.pro.ui.i18n.Str.get("wifi.perm_denied", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
+            status = com.mporttech.pro.ui.i18n.Str.get("wifi.perm_needed", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
         }
     }
 
@@ -849,7 +849,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
             SpeedTestHistoryStore.load(context).map { r ->
                 val df = java.text.SimpleDateFormat("dd MMM yyyy HH:mm", java.util.Locale.getDefault())
                 "${df.format(java.util.Date(r.timestamp))}  ${"%.1f".format(r.downloadMbps)} / ${"%.1f".format(r.uploadMbps)} Mbps  ${r.location.ifBlank { r.serverName }}"
-            }.ifEmpty { listOf(context.getString(android.R.string.ok).let { t("speed.empty_history") }) }
+            }.ifEmpty { listOf(com.mporttech.pro.ui.i18n.Str.get("speed.empty_history", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))) }
         )
     }
     val catalog = remember { TestServer.catalog() }
