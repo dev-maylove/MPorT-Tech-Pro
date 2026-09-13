@@ -200,7 +200,6 @@ object Str {
         "mt.checklist" to "Checklist RouterOS",
         "mt.probe_title" to "Probe Router",
         "mt.probe_hint" to "Uji konektivitas API RouterOS",
-,
 
         // ── Bilingual coverage: diagnostic / speed / tools / network tools ──
         "diag.title" to "Diagnostik Jaringan",
@@ -545,7 +544,6 @@ object Str {
         "mt.checklist" to "RouterOS checklist",
         "mt.probe_title" to "Router Probe",
         "mt.probe_hint" to "Test RouterOS API connectivity",
-,
 
         // ── Bilingual coverage: diagnostic / speed / tools / network tools ──
         "diag.title" to "Network Diagnostic",

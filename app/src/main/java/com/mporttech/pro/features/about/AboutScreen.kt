@@ -1054,6 +1054,7 @@ fun AboutScreen(
 
 
                 colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
 
                     containerColor = Color(0xFF151B27),
 

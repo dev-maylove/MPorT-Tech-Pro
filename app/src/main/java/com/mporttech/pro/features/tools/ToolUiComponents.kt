@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,7 +55,7 @@ internal fun Page(
                 }
                 Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(8.dp))
-                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 Spacer(Modifier.weight(1f))
                 var menuOpen by remember { mutableStateOf(false) }
                 Box {
@@ -191,9 +192,18 @@ internal fun CardBlock(title: String, content: @Composable ColumnScope.() -> Uni
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(
+                title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
             Spacer(Modifier.height(9.dp))
-            content()
+            CompositionLocalProvider(
+                LocalContentColor provides MaterialTheme.colorScheme.onSurface
+            ) {
+                content()
+            }
         }
     }
 }
@@ -455,10 +465,21 @@ internal fun SettingsRow(title: String, icon: ImageVector, onClick: () -> Unit) 
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(12.dp))
-            Text(title, modifier = Modifier.weight(1f), fontSize = 11.sp)
-            Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp))
+            Text(
+                title,
+                modifier = Modifier.weight(1f),
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium
+            )
+            Icon(
+                Icons.Default.ChevronRight,
+                null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -473,7 +494,13 @@ internal fun SwitchRow(title: String, icon: ImageVector, checked: Boolean, onChe
         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(12.dp))
-            Text(title, modifier = Modifier.weight(1f), fontSize = 11.sp)
+            Text(
+                title,
+                modifier = Modifier.weight(1f),
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium
+            )
             Switch(checked = state, onCheckedChange = {
                 state = it
                 onCheckedChange(it)

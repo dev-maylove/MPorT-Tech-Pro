@@ -193,21 +193,22 @@ private fun ActionButton(
             .height(48.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = AccentBlue,
-            contentColor = Color(0xFF001A2B),
-            disabledContainerColor = Color(0xFF1A3048)
+            containerColor = Color(0xFF00E5FF),
+            contentColor = Color(0xFF000000),
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
         )
     ) {
         if (loading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(18.dp),
                 strokeWidth = 2.dp,
-                color = Color(0xFF001A2B)
+                color = Color(0xFF000000)
             )
             Spacer(Modifier.width(10.dp))
-            Text("Berjalan…", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(t("nt.running"), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF000000))
         } else {
-            Text(text, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(text, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF000000))
         }
     }
 }
@@ -365,9 +366,9 @@ fun PingToolScreen(nav: NavController? = null) {
                     enabled = host.isNotBlank() && !running,
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color(0xFF001A2B))
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color(0xFF000000), disabledContentColor = Color(0xFF000000))
                 ) {
-                    Text(if (running) t("nt.running") else t("nt.start_ping"), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    Text(if (running) t("nt.running") else t("nt.start_ping"), fontWeight = FontWeight.Bold, color = Color(0xFF000000), fontSize = 15.sp)
                 }
                 OutlinedButton(
                     onClick = { runFlag.set(false); running = false },

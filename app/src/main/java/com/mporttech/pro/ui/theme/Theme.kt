@@ -2,7 +2,10 @@ package com.mporttech.pro.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -30,7 +33,7 @@ val MPorTNeonDim = Color(0xFF5EC8E8)       // dim neon for tertiary
 
 private val DarkColorScheme = darkColorScheme(
     primary = MPorTCyan,
-    onPrimary = Color(0xFF03060F),  // near-black for readable text on neon cyan buttons
+    onPrimary = Color(0xFF000000),  // pure black on neon cyan buttons
     primaryContainer = Color(0xFF003D4D),
     onPrimaryContainer = MPorTNeonWhite,
     secondary = MPorTBlue,
@@ -58,8 +61,8 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF00A8C0),
-    onPrimary = Color.White,
+    primary = Color(0xFF0090A8),
+    onPrimary = Color(0xFF000000),            // black label on cyan/teal buttons
     primaryContainer = Color(0xFFB8F4FF),
     onPrimaryContainer = Color(0xFF002A33),
     secondary = Color(0xFF0077CC),
@@ -68,14 +71,14 @@ private val LightColorScheme = lightColorScheme(
     onSecondaryContainer = Color(0xFF002040),
     tertiary = Color(0xFF8B2CE8),
     onTertiary = Color.White,
-    background = Color(0xFFF0FAFF),
-    onBackground = Color(0xFF003848),         // deep cyan (neon-readable on light)
+    background = Color(0xFFF0F4F8),
+    onBackground = Color(0xFF0A1628),         // near-black — readable on light bg
     surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF003848),
-    surfaceVariant = Color(0xFFE0F6FC),
-    onSurfaceVariant = Color(0xFF0A5A70),
-    outline = Color(0xFF7EC8D8),
-    outlineVariant = Color(0xFFC0E8F0),
+    onSurface = Color(0xFF0A1628),            // near-black card text
+    surfaceVariant = Color(0xFFE8EEF4),
+    onSurfaceVariant = Color(0xFF3A5568),     // muted but readable
+    outline = Color(0xFF8AA0B0),
+    outlineVariant = Color(0xFFD0D8E0),
     error = Color(0xFFD00040),
     onError = Color.White,
     errorContainer = Color(0xFFFFD0DC),
@@ -276,3 +279,13 @@ fun MPorTTechTheme(
         )
     }
 }
+
+
+/** Primary action button: neon cyan fill + black label (always readable). */
+@Composable
+fun mportPrimaryButtonColors() = ButtonDefaults.buttonColors(
+    containerColor = MaterialTheme.colorScheme.primary,
+    contentColor = Color(0xFF000000),
+    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+    disabledContentColor = Color(0xFF000000)
+)

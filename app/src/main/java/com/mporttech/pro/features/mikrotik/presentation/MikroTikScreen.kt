@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -80,8 +81,14 @@ fun MikroTikScreen(
             Button(
                 onClick = { vm.connect() },
                 enabled = !ui.connecting,
-                modifier = Modifier.weight(1f)
-            ) {
+                modifier = Modifier.weight(1f),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) {
                 Text(if (ui.connecting) "Connecting…" else "Connect")
             }
             OutlinedButton(

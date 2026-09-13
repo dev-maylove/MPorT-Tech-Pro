@@ -68,7 +68,7 @@ fun DiagnosticScreen(
                 }
                 Icon(Icons.Default.NetworkCheck, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(8.dp))
-                Text(t("diag.title"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(t("diag.title"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             }
         }
 
@@ -110,20 +110,28 @@ fun DiagnosticScreen(
                             }
                         },
                         enabled = !running,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                            containerColor = Color(0xFF00E5FF),
+                            contentColor = Color(0xFF000000),
+                            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.5f),
+                            disabledContentColor = Color(0xFF000000)
+                        )
                     ) {
                         if (running) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = Color(0xFF000000)
                             )
                             Spacer(Modifier.width(8.dp))
                         }
                         Text(
                             if (running) t("diag.checking") else t("diag.run"),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold
+                            color = Color(0xFF000000),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
                         )
                     }
                 }
@@ -131,7 +139,7 @@ fun DiagnosticScreen(
         }
 
         item {
-            Text(t("diag.history"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(t("diag.history"), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground)
         }
 
         if (items.isEmpty()) {

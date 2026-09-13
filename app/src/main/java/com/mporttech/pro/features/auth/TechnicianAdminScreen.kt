@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,8 +62,14 @@ fun TechnicianAdminScreen(nav: NavController? = null) {
                             Toast.makeText(context, "Gagal (username sudah ada / tidak valid)", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                    modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) {
                     Icon(Icons.Default.PersonAdd, null)
                     Spacer(Modifier.width(8.dp))
                     Text("Tambah Teknisi")

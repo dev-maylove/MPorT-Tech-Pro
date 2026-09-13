@@ -245,7 +245,7 @@ fun NetworkMonitorScreen(nav: NavController) {
                         "RX ${String.format("%.2f", rxMbps)}  ·  TX ${String.format("%.2f", txMbps)} Mbps",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF9EE8FF)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(8.dp))
                     androidx.compose.foundation.Canvas(
@@ -273,7 +273,7 @@ fun NetworkMonitorScreen(nav: NavController) {
                     Text(
                         "Peak RX ${String.format("%.2f", (rxHistory.maxOrNull() ?: 0.0))}  ·  Peak TX ${String.format("%.2f", (txHistory.maxOrNull() ?: 0.0))}  ·  n=${rxHistory.size}",
                         fontSize = 11.sp,
-                        color = Color(0xFF5EC8E8)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 CardBlock(t("net.gateway_latency")) {
@@ -330,8 +330,8 @@ fun TechnicianToolsScreen(nav: NavController) {
                             Icon(tile.icon, null, tint = Color(0xFF00F0FF), modifier = Modifier.size(22.dp))
                         }
                         Spacer(Modifier.height(10.dp))
-                        Text(tile.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
-                        Text(tile.subtitle, fontSize = 10.sp, color = Color(0xFF5EC8E8))
+                        Text(tile.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(tile.subtitle, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -346,8 +346,8 @@ fun TechnicianToolsScreen(nav: NavController) {
                 Icon(Icons.Default.Build, null, tint = Color(0xFF00F0FF))
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text("Semua tools dalam satu layar", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFFE8FBFF))
-                    Text("Kerja lebih cepat, lebih efisien", fontSize = 10.sp, color = Color(0xFF5EC8E8))
+                    Text("Semua tools dalam satu layar", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Kerja lebih cepat, lebih efisien", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -401,11 +401,25 @@ fun WifiToolsScreen(nav: NavController) {
             items(tiles) { ToolTile(it) { nav.navigate(it.route) } }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(onClick = { nav.navigate("wifi") }, modifier = Modifier.weight(1f)) {
-                Text(t("tools.tile_wifi"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+            Button(onClick = { nav.navigate("wifi") }, modifier = Modifier.weight(1f),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) {
+                Text(t("tools.tile_wifi"), fontSize = 12.sp, color = Color(0xFF000000), fontWeight = FontWeight.Bold)
             }
-            Button(onClick = { nav.navigate("speedtest") }, modifier = Modifier.weight(1f)) {
-                Text(t("tools.tile_speed"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+            Button(onClick = { nav.navigate("speedtest") }, modifier = Modifier.weight(1f),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) {
+                Text(t("tools.tile_speed"), fontSize = 12.sp, color = Color(0xFF000000), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -569,10 +583,16 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                         }
                     },
                     enabled = !miniRunning,
-                    modifier = Modifier.weight(1f)
-                ) {
+                    modifier = Modifier.weight(1f),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) {
                     if (miniRunning) {
-                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color(0xFF000000))
                         Spacer(Modifier.width(6.dp))
                     }
                     Text(if (miniRunning) "…" else t("wifi.speed_test"), fontSize = 11.sp)
@@ -594,10 +614,16 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
             Button(
                 onClick = { requestAndScan(force = true) },
                 enabled = !scanning,
-                modifier = Modifier.weight(1f)
-            ) {
+                modifier = Modifier.weight(1f),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) {
                 if (scanning) {
-                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color(0xFF000000))
                     Spacer(Modifier.width(6.dp))
                 }
                 Text(if (scanning) "…" else t("wifi.scan"))
@@ -647,7 +673,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                                 "CH ${ch.channel}",
                                 modifier = Modifier.width(52.dp),
                                 fontSize = 11.sp,
-                                color = Color(0xFF9EE8FF)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Box(
                                 Modifier
@@ -780,17 +806,23 @@ fun LegacyNetworkScannerScreen(nav: NavController? = null) {
                 }
             },
             enabled = allowed && !scanning,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+            modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) {
             if (scanning) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF000000))
                 Spacer(Modifier.width(8.dp))
             }
             Text(if (scanning) "SCANNING..." else t("scan.start"))
         }
 
         if (results.isEmpty() && !scanning) {
-            Text("Tekan MULAI SCAN untuk menemukan perangkat di LAN (data real, bukan demo).", fontSize = 12.sp, color = Color(0xFF5EC8E8))
+            Text("Tekan MULAI SCAN untuk menemukan perangkat di LAN (data real, bukan demo).", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             results.forEach { host ->
                 DeviceRow(host.address, "Latency ${host.latencyMs ?: "-"} ms", host.reachable)
@@ -1057,16 +1089,24 @@ fun SpeedTestScreen(nav: NavController? = null) {
                     }
                 },
                 enabled = !running && !probing,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.5f),
+                    disabledContentColor = Color(0xFF000000)
+                )
             ) {
                 if (running) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF000000))
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
                     if (running) t("speed.testing") else t("speed.start"),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold
+                    color = Color(0xFF000000),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
                 )
             }
             if (running) {
@@ -1151,8 +1191,8 @@ fun DeviceManagerScreen(nav: NavController) {
                 }
             }
         }
-        if (loading) Text("Scanning LAN…", fontSize = 12.sp, color = Color(0xFF5EC8E8))
-        if (!loading && filtered.isEmpty()) Text("Tidak ada perangkat ditemukan", fontSize = 12.sp, color = Color(0xFF5EC8E8))
+        if (loading) Text("Scanning LAN…", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (!loading && filtered.isEmpty()) Text("Tidak ada perangkat ditemukan", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         filtered.forEach { d ->
             Card(
                 shape = RoundedCornerShape(14.dp),
@@ -1183,8 +1223,8 @@ fun DeviceManagerScreen(nav: NavController) {
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(d.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
-                        Text(d.ip, fontSize = 11.sp, color = Color(0xFF5EC8E8))
+                        Text(d.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text(d.ip, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Text(
                         if (d.online) "Online" else "Offline",
@@ -1318,8 +1358,14 @@ fun DeviceDetailScreen(nav: NavController? = null) {
                 onClick = {
                     nav?.navigate("diagnostic")
                 },
-                modifier = Modifier.weight(1f)
-            ) { Text("DIAGNOSTIC") }
+                modifier = Modifier.weight(1f),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) { Text("DIAGNOSTIC") }
         }
     }
 }
@@ -1448,7 +1494,7 @@ fun AlertDetailScreen(nav: NavController? = null) {
                     detail,
                 fontSize = 12.sp,
                 lineHeight = 20.sp,
-                color = Color(0xFFE8FBFF)
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
         CardBlock(t("alert.context")) {
@@ -1473,8 +1519,14 @@ fun AlertDetailScreen(nav: NavController? = null) {
         }
         Button(
             onClick = { nav?.navigate("diagnostic") },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(t("alert.open_diag")) }
+            modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) { Text(t("alert.open_diag")) }
     }
 }
 
@@ -1534,7 +1586,7 @@ fun JobsScreen(nav: NavController) {
             Text(
                 t("jobs.empty"),
                 fontSize = 12.sp,
-                color = Color(0xFF5EC8E8)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         } else {
             filtered.forEach { tkt ->
@@ -1570,8 +1622,8 @@ fun JobsScreen(nav: NavController) {
                 Icon(Icons.Default.ConfirmationNumber, null, tint = Color(0xFF00F0FF))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(t("jobs.manage"), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
-                    Text(t("jobs.manage_sub"), fontSize = 11.sp, color = Color(0xFF5EC8E8))
+                    Text(t("jobs.manage"), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text(t("jobs.manage_sub"), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text("→", color = Color(0xFF00F0FF), fontSize = 18.sp)
             }
@@ -1609,7 +1661,7 @@ fun ReportsScreen(nav: NavController? = null) {
             }
         }
         CardBlock("Periode") {
-            Text("7 Hari Terakhir (data lokal device)", fontSize = 12.sp, color = Color(0xFF9EE8FF))
+            Text("7 Hari Terakhir (data lokal device)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Box(
             modifier = Modifier
@@ -1866,7 +1918,14 @@ fun ProfileScreen(nav: NavController) {
                 Button(onClick = {
                     showEditProfile = false
                     Toast.makeText(context, "Profil diperbarui", Toast.LENGTH_SHORT).show()
-                }) { Text("Simpan") }
+                },
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) { Text("Simpan") }
             },
             dismissButton = {
                 TextButton(onClick = { showEditProfile = false }) { Text(t("common.cancel")) }
@@ -1903,7 +1962,14 @@ fun ProfileScreen(nav: NavController) {
                         "Security: PIN ${if (pinEnabled) "ON" else "OFF"} • Bio ${if (biometrics) "ON" else "OFF"}",
                         Toast.LENGTH_SHORT
                     ).show()
-                }) { Text("Simpan") }
+                },
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) { Text("Simpan") }
             },
             dismissButton = {
                 TextButton(onClick = { showSecurity = false }) { Text(t("common.close")) }
@@ -1926,7 +1992,14 @@ fun ProfileScreen(nav: NavController) {
                 Button(onClick = {
                     showServer = false
                     Toast.makeText(context, "Server: $serverHost:$serverPort disimpan", Toast.LENGTH_SHORT).show()
-                }) { Text("Simpan") }
+                },
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) { Text("Simpan") }
             },
             dismissButton = {
                 TextButton(onClick = {
@@ -1998,8 +2071,14 @@ fun LegacyMikroTikScreen(nav: NavController? = null) {
                     checking = false
                 }
             },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text(if (checking) t("common.loading") else t("mt.check")) }
+            modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) { Text(if (checking) t("common.loading") else t("mt.check")) }
 
         result?.let {
             CardBlock("Hasil probe $host") {
@@ -2065,7 +2144,7 @@ fun SettingsScreen(nav: NavController? = null) {
     val link = remember { LiveNetworkInfo.snapshot(context) }
     Page(t("screen.settings"), Icons.Default.Settings, nav) {
         CardBlock(t("settings.app")) {
-            Text("MPorT Tech Pro", fontWeight = FontWeight.Bold)
+            Text("MPorT Tech Pro", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
             Text(t("settings.app_desc"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         CardBlock(t("settings.device_network")) {

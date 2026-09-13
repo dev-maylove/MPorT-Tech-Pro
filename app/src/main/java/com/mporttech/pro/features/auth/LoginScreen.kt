@@ -145,13 +145,19 @@ fun LoginScreen(
                 onClick = { vm.login(username, password) },
                 enabled = !ui.loading && username.isNotBlank() && password.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
+                shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = Color(0xFF000000),
+                    containerColor = Color(0xFF00E5FF),
+                    contentColor = Color(0xFF000000),
+                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+                    disabledContentColor = Color(0xFF000000)
+                )) {
                 if (ui.loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = Color(0xFF000000)
                     )
                 } else {
                     Text(t("login.button"), fontWeight = FontWeight.Bold)
