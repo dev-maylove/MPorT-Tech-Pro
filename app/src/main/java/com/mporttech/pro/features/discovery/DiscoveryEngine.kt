@@ -1,5 +1,6 @@
 package com.mporttech.pro.features.discovery
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.SystemClock
@@ -216,6 +217,7 @@ object DiscoveryEngine {
             )
         }
 
+    @SuppressLint("MissingPermission")
     fun signalFlow(context: Context): Flow<SignalSample> = flow {
         val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         while (true) {

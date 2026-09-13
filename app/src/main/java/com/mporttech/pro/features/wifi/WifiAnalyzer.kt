@@ -1,6 +1,10 @@
 package com.mporttech.pro.features.wifi
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -62,9 +66,39 @@ data class WifiScanSnapshot(
  * 4) Single-pass BSSID dedupe + channel stats
  * 5) Stale-while-revalidate for UI snappiness
  */
+@SuppressLint("MissingPermission")
 class WifiAnalyzer(private val context: Context) {
     private val wifi: WifiManager =
         context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+
+    private fun hasScanPermission(): Boolean {
+        if (Build.VERSION.SDK_INT >= 33) {
+            val nearby = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.NEARBY_WIFI_DEVICES
+            ) == PackageManager.PERMISSION_GRANTED
+            if (nearby) return true
+        }
+        val fine = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        return fine || coarse
+    }
+
+    /** Lint-safe scanResults access — checks permission + catches SecurityException. */
+    @SuppressLint("MissingPermission")
+    private fun safeScanResults(): List<ScanResult> {
+        if (!hasScanPermission()) return emptyList()
+        return try {
+            wifi.scanResults ?: emptyList()
+        } catch (_: SecurityException) {
+            emptyList()
+        }
+    }
+
 
     companion object {
         /** Serve memory cache without radio work */
@@ -108,7 +142,7 @@ class WifiAnalyzer(private val context: Context) {
 
         // 2) Instant system buffer (last OS scan) — often non-empty without startScan
         @Suppress("DEPRECATION")
-        var results: List<ScanResult> = wifi.scanResults ?: emptyList()
+        var results: List<ScanResult> = safeScanResults()
 
         val sinceLast = now - lastScanAt.get()
         val throttleOk = force || sinceLast >= MIN_SCAN_INTERVAL_MS
@@ -123,7 +157,7 @@ class WifiAnalyzer(private val context: Context) {
             } else if (results.isEmpty()) {
                 // last resort: re-read system buffer after failed/timeout scan
                 @Suppress("DEPRECATION")
-                results = wifi.scanResults ?: emptyList()
+                results = safeScanResults()
             }
         } else if (results.isEmpty() && cached != null) {
             return@withContext cached.copy(
@@ -163,7 +197,9 @@ class WifiAnalyzer(private val context: Context) {
 
     fun cachedSnapshot(): WifiScanSnapshot? = cacheRef.get()
 
+    @SuppressLint("MissingPermission")
     fun currentConnection(): WifiNetworkInfo? {
+        if (!hasScanPermission()) return null
         return try {
             @Suppress("DEPRECATION")
             val info = wifi.connectionInfo ?: return null
@@ -206,21 +242,30 @@ class WifiAnalyzer(private val context: Context) {
         false
     }
 
-    private fun currentBssid(): String? = try {
-        @Suppress("DEPRECATION")
-        wifi.connectionInfo?.bssid
-    } catch (_: Exception) {
-        null
+    @SuppressLint("MissingPermission")
+    private fun currentBssid(): String? {
+        if (!hasScanPermission()) return null
+        return try {
+            @Suppress("DEPRECATION")
+            wifi.connectionInfo?.bssid
+        } catch (_: Exception) {
+            null
+        }
     }
 
-    private fun currentSsid(): String? = try {
-        @Suppress("DEPRECATION")
-        wifi.connectionInfo?.ssid?.removeSurrounding("\"")
-            ?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
-    } catch (_: Exception) {
-        null
+    @SuppressLint("MissingPermission")
+    private fun currentSsid(): String? {
+        if (!hasScanPermission()) return null
+        return try {
+            @Suppress("DEPRECATION")
+            wifi.connectionInfo?.ssid?.removeSurrounding("\"")
+                ?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
+        } catch (_: Exception) {
+            null
+        }
     }
 
+    @SuppressLint("MissingPermission")
     private suspend fun awaitScanResults(): List<ScanResult> =
         suspendCancellableCoroutine { cont ->
             val receiver = object : BroadcastReceiver() {
@@ -231,7 +276,7 @@ class WifiAnalyzer(private val context: Context) {
                     } catch (_: Exception) {
                     }
                     if (cont.isActive) {
-                        cont.resume(wifi.scanResults ?: emptyList())
+                        cont.resume(safeScanResults())
                     }
                 }
             }
@@ -245,12 +290,15 @@ class WifiAnalyzer(private val context: Context) {
                     appCtx.registerReceiver(receiver, filter)
                 }
                 try {
-                    @Suppress("DEPRECATION")
-                    wifi.startScan()
+                    if (hasScanPermission()) {
+                        @Suppress("DEPRECATION")
+                        @SuppressLint("MissingPermission")
+                        val started = wifi.startScan()
+                    }
                 } catch (_: Exception) {
                 }
             } catch (_: Exception) {
-                if (cont.isActive) cont.resume(wifi.scanResults ?: emptyList())
+                if (cont.isActive) cont.resume(safeScanResults())
             }
             cont.invokeOnCancellation {
                 try {

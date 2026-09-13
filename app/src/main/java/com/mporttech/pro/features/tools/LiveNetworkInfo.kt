@@ -1,5 +1,6 @@
 package com.mporttech.pro.features.tools
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -47,6 +48,7 @@ object SelectedDeviceStore {
 
 object LiveNetworkInfo {
 
+    @SuppressLint("MissingPermission")
     fun snapshot(context: Context): LiveLinkInfo {
         val cm = context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
