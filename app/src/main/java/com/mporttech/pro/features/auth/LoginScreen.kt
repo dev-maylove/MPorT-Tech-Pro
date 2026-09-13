@@ -26,20 +26,38 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mporttech.pro.R
-import com.mporttech.pro.core.auth.SessionManager
 import com.mporttech.pro.core.auth.UserRole
-import com.mporttech.pro.ui.i18n.loadSavedLanguage
+import com.mporttech.pro.core.common.Constants
 import com.mporttech.pro.ui.i18n.t
-import com.mporttech.pro.ui.i18n.tr
 
 @Composable
-fun LoginScreen(onLoggedIn: () -> Unit) {
+fun LoginScreen(
+    onLoggedIn: () -> Unit,
+    vm: LoginViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPass by remember { mutableStateOf(false) }
-    var loading by remember { mutableStateOf(false) }
+
+    val ui by vm.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(ui.successUser) {
+        val user = ui.successUser ?: return@LaunchedEffect
+        val role = if (user.role == UserRole.ADMIN) "Admin" else "Teknisi"
+        Toast.makeText(context, "Selamat datang, ${user.name} ($role)", Toast.LENGTH_SHORT).show()
+        vm.consumeSuccess()
+        onLoggedIn()
+    }
+
+    LaunchedEffect(ui.error) {
+        val err = ui.error ?: return@LaunchedEffect
+        Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+        vm.consumeError()
+    }
 
     Box(
         Modifier
@@ -74,6 +92,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                 label = { Text(t("login.username")) },
                 leadingIcon = { Icon(Icons.Default.Person, null) },
                 singleLine = true,
+                enabled = !ui.loading,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
@@ -94,35 +113,43 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                 visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
+                enabled = !ui.loading,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
             Spacer(Modifier.height(20.dp))
             Button(
-                onClick = {
-                    loading = true
-                    val user = SessionManager.login(context, username, password)
-                    loading = false
-                    if (user != null) {
-                        val role = if (user.role == UserRole.ADMIN) "Admin" else "Teknisi"
-                        Toast.makeText(context, "Selamat datang, ${user.name} ($role)", Toast.LENGTH_SHORT).show()
-                        onLoggedIn()
-                    } else {
-                        Toast.makeText(context, tr("login.failed", loadSavedLanguage(context)), Toast.LENGTH_SHORT).show()
-                    }
-                },
-                enabled = !loading && username.isNotBlank() && password.isNotBlank(),
+                onClick = { vm.login(username, password) },
+                enabled = !ui.loading && username.isNotBlank() && password.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(if (loading) "…" else t("login.button"), fontWeight = FontWeight.Bold)
+                if (ui.loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(t("login.button"), fontWeight = FontWeight.Bold)
+                }
             }
             Spacer(Modifier.height(16.dp))
             Text(
-                t("login.hint"),
+                if (Constants.ALLOW_OFFLINE_DEMO_LOGIN) {
+                    t("login.hint")
+                } else {
+                    "Gunakan akun teknisi / admin dari server MPorT"
+                },
                 color = Color(0xFF6A829E),
                 fontSize = 11.sp,
                 lineHeight = 16.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Server: ${Constants.API_BASE_URL}",
+                color = Color(0xFF4A6070),
+                fontSize = 10.sp
             )
         }
     }

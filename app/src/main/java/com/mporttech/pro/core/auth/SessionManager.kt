@@ -11,17 +11,18 @@ data class AppUser(
     val name: String,
     val username: String,
     val role: UserRole,
-    val password: String // local-only demo store; production should hash
+    val password: String = "" // empty for remote sessions
 )
 
 /**
- * Local session + technician roster (SharedPreferences).
- * Default admin: admin / admin123
+ * Session + optional local technician roster.
+ * Remote login is preferred (AuthRepository); offline demo remains as fallback.
  */
 object SessionManager {
     private const val PREFS = "mport_session"
     private const val KEY_USER = "user_json"
     private const val KEY_TECHS = "technicians_json"
+    private const val KEY_SOURCE = "auth_source" // "remote" | "local"
 
     fun isLoggedIn(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).contains(KEY_USER)
@@ -35,25 +36,46 @@ object SessionManager {
     fun isAdmin(context: Context): Boolean =
         currentUser(context)?.role == UserRole.ADMIN
 
-    fun login(context: Context, username: String, password: String): AppUser? {
+    fun isRemoteSession(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_SOURCE, "local") == "remote"
+
+    /** Persist user coming from API login. */
+    fun saveRemoteSession(context: Context, user: AppUser) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_USER, toJson(user).toString())
+            .putString(KEY_SOURCE, "remote")
+            .apply()
+    }
+
+    /**
+     * Offline demo login (admin/admin123, seeded techs).
+     * Kept for field use when server is unreachable.
+     */
+    fun loginOffline(context: Context, username: String, password: String): AppUser? {
         val u = username.trim()
         val p = password
-        // Built-in admin
         if (u.equals("admin", true) && p == "admin123") {
             val admin = AppUser("admin", "Administrator", "admin", UserRole.ADMIN, "admin123")
-            saveSession(context, admin)
+            saveLocalSession(context, admin)
             return admin
         }
-        // Technicians roster
         val tech = listTechnicians(context).firstOrNull {
             it.username.equals(u, true) && it.password == p
         } ?: return null
-        saveSession(context, tech)
+        saveLocalSession(context, tech)
         return tech
     }
 
+    /** @deprecated Prefer AuthRepository.login — kept for compatibility */
+    fun login(context: Context, username: String, password: String): AppUser? =
+        loginOffline(context, username, password)
+
     fun logout(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_USER).apply()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .remove(KEY_USER)
+            .remove(KEY_SOURCE)
+            .apply()
     }
 
     fun listTechnicians(context: Context): List<AppUser> {
@@ -96,6 +118,13 @@ object SessionManager {
         return true
     }
 
+    private fun saveLocalSession(context: Context, user: AppUser) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_USER, toJson(user).toString())
+            .putString(KEY_SOURCE, "local")
+            .apply()
+    }
+
     private fun ensureSeed(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.contains(KEY_TECHS)) {
@@ -104,11 +133,6 @@ object SessionManager {
             )
             saveTechs(context, seed)
         }
-    }
-
-    private fun saveSession(context: Context, user: AppUser) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString(KEY_USER, toJson(user).toString()).apply()
     }
 
     private fun saveTechs(context: Context, list: List<AppUser>) {

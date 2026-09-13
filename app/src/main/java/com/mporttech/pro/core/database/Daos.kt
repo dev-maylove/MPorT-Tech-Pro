@@ -13,8 +13,17 @@ interface CustomerDao {
     @Query("SELECT * FROM customers ORDER BY id DESC")
     fun observeAll(): Flow<List<CustomerEntity>>
 
+    @Query("SELECT * FROM customers ORDER BY id DESC")
+    suspend fun getAll(): List<CustomerEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(item: CustomerEntity)
+    suspend fun insert(item: CustomerEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<CustomerEntity>)
+
+    @Query("DELETE FROM customers")
+    suspend fun clear()
 
     @Delete
     suspend fun delete(item: CustomerEntity)
@@ -25,8 +34,17 @@ interface TicketDao {
     @Query("SELECT * FROM tickets ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<TicketEntity>>
 
+    @Query("SELECT * FROM tickets ORDER BY createdAt DESC")
+    suspend fun getAll(): List<TicketEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(item: TicketEntity)
+    suspend fun insert(item: TicketEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(items: List<TicketEntity>)
+
+    @Query("DELETE FROM tickets")
+    suspend fun clear()
 
     @Update
     suspend fun update(item: TicketEntity)
@@ -39,4 +57,7 @@ interface DiagnosticDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: DiagnosticEntity)
+
+    @Query("DELETE FROM diagnostics")
+    suspend fun clear()
 }

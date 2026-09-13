@@ -14,4 +14,15 @@ object Constants {
     const val PREFS_APP = "mport_app"
     const val PREFS_SPEED = "mport_speed_history"
     const val PREFS_LANG = "mport_lang"
+
+    /**
+     * Backend base URL (Laravel MPorT API).
+     * Emulator → host machine: http://10.0.2.2:8000/
+     * Real device same LAN: http://192.168.x.x:8000/
+     * Must end with trailing slash for Retrofit.
+     */
+    const val API_BASE_URL = "http://192.168.1.102:8000/"
+
+    /** Allow offline demo login (admin/admin123) when server unreachable. Set false for production. */
+    const val ALLOW_OFFLINE_DEMO_LOGIN = false
 }

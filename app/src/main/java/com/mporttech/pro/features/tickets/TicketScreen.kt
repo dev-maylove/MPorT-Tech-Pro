@@ -47,10 +47,30 @@ class TicketViewModel @Inject constructor(
     private val repo: TicketRepository
 ) : ViewModel() {
     val items = repo.observe()
+    private val _syncing = MutableStateFlow(false)
+    val syncing = _syncing.asStateFlow()
+    private val _syncMessage = MutableStateFlow<String?>(null)
+    val syncMessage = _syncMessage.asStateFlow()
+
     fun add(title: String, description: String = "") =
         viewModelScope.launch { repo.add(title, description) }
     fun setStatus(item: TicketEntity, status: String) =
         viewModelScope.launch { repo.updateStatus(item, status) }
+
+    fun sync(status: String? = null) = viewModelScope.launch {
+        if (_syncing.value) return@launch
+        _syncing.value = true
+        when (val r = repo.syncFromRemote(status)) {
+            is com.mporttech.pro.core.common.Result.Success ->
+                _syncMessage.value = "Sinkron ${r.data} tiket"
+            is com.mporttech.pro.core.common.Result.Error ->
+                _syncMessage.value = r.message
+            else -> {}
+        }
+        _syncing.value = false
+    }
+
+    fun consumeSyncMessage() { _syncMessage.value = null }
 }
 
 private val AccentBlue = Color(0xFF21B6FF)
@@ -76,6 +96,15 @@ fun TicketScreen(
     var showForm by remember { mutableStateOf(true) }
     var filter by remember { mutableStateOf("ALL") }
     val scope = rememberCoroutineScope()
+    val syncing by vm.syncing.collectAsStateWithLifecycle()
+    val syncMessage by vm.syncMessage.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { vm.sync() }
+    LaunchedEffect(syncMessage) {
+        val msg = syncMessage ?: return@LaunchedEffect
+        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+        vm.consumeSyncMessage()
+    }
 
     val filtered = when (filter) {
         "OPEN" -> items.filter { it.status.equals("OPEN", true) }

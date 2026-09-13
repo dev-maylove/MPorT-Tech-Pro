@@ -1,35 +1,139 @@
 package com.mporttech.pro.data.repository
 
+import com.mporttech.pro.core.common.Result
 import com.mporttech.pro.core.database.CustomerDao
 import com.mporttech.pro.core.database.CustomerEntity
 import com.mporttech.pro.core.database.DiagnosticDao
 import com.mporttech.pro.core.database.DiagnosticEntity
 import com.mporttech.pro.core.database.TicketDao
 import com.mporttech.pro.core.database.TicketEntity
+import com.mporttech.pro.data.remote.MportApi
+import com.mporttech.pro.data.remote.dto.CreateTicketRequest
+import com.mporttech.pro.data.remote.dto.RemoteCustomerDto
+import com.mporttech.pro.data.remote.dto.RemoteTicketDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.time.Instant
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class CustomerRepository @Inject constructor(
-    private val dao: CustomerDao
+    private val dao: CustomerDao,
+    private val api: MportApi
 ) {
     fun observe(): Flow<List<CustomerEntity>> = dao.observeAll()
+
     suspend fun add(name: String, phone: String, address: String, plan: String) =
-        dao.insert(CustomerEntity(name = name, phone = phone, address = address, packageName = plan))
+        dao.insert(
+            CustomerEntity(
+                name = name,
+                phone = phone,
+                address = address,
+                packageName = plan
+            )
+        )
+
+    /** Pull customers from Laravel and replace local cache. */
+    suspend fun syncFromRemote(): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.customers(page = 1)
+            if (!response.isSuccessful) {
+                return@withContext Result.Error("Gagal sync pelanggan (${response.code()})")
+            }
+            val list = response.body()?.data.orEmpty()
+            val entities = list.map { it.toEntity() }
+            dao.clear()
+            if (entities.isNotEmpty()) dao.insertAll(entities)
+            Result.Success(entities.size)
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Sync pelanggan gagal")
+        }
+    }
+
+    private fun RemoteCustomerDto.toEntity() = CustomerEntity(
+        remoteId = id,
+        customerCode = customerCode.orEmpty(),
+        name = name.orEmpty(),
+        phone = whatsapp ?: phone.orEmpty(),
+        email = email.orEmpty(),
+        address = address.orEmpty(),
+        packageName = pkg?.name ?: packageX?.name.orEmpty(),
+        status = status ?: "active",
+        ipAddress = ipAddress.orEmpty()
+    )
 }
 
+@Singleton
 class TicketRepository @Inject constructor(
-    private val dao: TicketDao
+    private val dao: TicketDao,
+    private val api: MportApi
 ) {
     fun observe(): Flow<List<TicketEntity>> = dao.observeAll()
-    suspend fun add(title: String, description: String) =
+
+    suspend fun add(title: String, description: String) {
+        // Prefer server create when online
+        try {
+            val response = api.createTicket(
+                CreateTicketRequest(subject = title, description = description)
+            )
+            if (response.isSuccessful) {
+                val remote = response.body()
+                if (remote != null) {
+                    dao.insert(remote.toEntity())
+                    return
+                }
+            }
+        } catch (_: Exception) {
+            // fall through to local
+        }
         dao.insert(TicketEntity(title = title, description = description, customerId = null))
+    }
+
     suspend fun updateStatus(item: TicketEntity, status: String) =
         dao.update(item.copy(status = status))
+
+    /** Pull tickets from Laravel and replace local cache. */
+    suspend fun syncFromRemote(status: String? = null): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.tickets(status = status, page = 1)
+            if (!response.isSuccessful) {
+                return@withContext Result.Error("Gagal sync tiket (${response.code()})")
+            }
+            val list = response.body()?.data.orEmpty()
+            val entities = list.map { it.toEntity() }
+            dao.clear()
+            if (entities.isNotEmpty()) dao.insertAll(entities)
+            Result.Success(entities.size)
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Sync tiket gagal")
+        }
+    }
+
+    private fun RemoteTicketDto.toEntity(): TicketEntity {
+        val createdMs = try {
+            createdAt?.let { Instant.parse(it).toEpochMilli() }
+        } catch (_: Exception) {
+            null
+        } ?: System.currentTimeMillis()
+        return TicketEntity(
+            remoteId = id,
+            ticketNumber = ticketNumber.orEmpty(),
+            customerId = customerId,
+            title = subject.orEmpty(),
+            description = description.orEmpty(),
+            status = (status ?: "OPEN").uppercase(),
+            priority = priority ?: "normal",
+            category = category.orEmpty(),
+            customerName = customer?.name.orEmpty(),
+            technicianName = technician?.name.orEmpty(),
+            createdAt = createdMs
+        )
+    }
 }
 
 class DiagnosticRepository @Inject constructor(
@@ -37,10 +141,6 @@ class DiagnosticRepository @Inject constructor(
 ) {
     fun observe(): Flow<List<DiagnosticEntity>> = dao.observeAll()
 
-    /**
-     * Reachability that works on Android (ICMP isReachable often fails without root).
-     * Strategy: DNS resolve → TCP connect to common ports → optional isReachable fallback.
-     */
     suspend fun ping(target: String): DiagnosticEntity = withContext(Dispatchers.IO) {
         val host = target.trim()
         val start = System.nanoTime()
@@ -76,7 +176,6 @@ class DiagnosticRepository @Inject constructor(
                     }
                 }
                 if (!ok) {
-                    // Last resort ICMP (may still fail on many devices)
                     ok = try {
                         address.isReachable(1500)
                     } catch (_: Exception) {

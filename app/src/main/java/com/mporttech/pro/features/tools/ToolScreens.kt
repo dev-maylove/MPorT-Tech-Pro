@@ -1757,7 +1757,17 @@ fun ProfileScreen(nav: NavController) {
         }
         SettingsRow(t("common.logout"), Icons.Default.ExitToApp) {
             com.mporttech.pro.core.auth.SessionManager.logout(context)
-            // Recreate activity so MainActivity re-reads session → LoginScreen
+            // Clear Sanctum tokens from encrypted storage
+            try {
+                val secure = com.mporttech.pro.core.security.SecureStorage(
+                    // reconstruct lightweight — prefers EncryptedSharedPreferences
+                    (context.applicationContext)
+                )
+                secure.remove("auth_access_token")
+                secure.remove("auth_refresh_token")
+                secure.remove("auth_token_type")
+                secure.remove("auth_expires_at_ms")
+            } catch (_: Exception) { /* ignore */ }
             (context as? android.app.Activity)?.recreate()
                 ?: nav.navigate("login") {
                     popUpTo(nav.graph.startDestinationId) { inclusive = true }
@@ -1983,23 +1993,23 @@ fun SettingsScreen(nav: NavController? = null) {
     Page(t("screen.settings"), Icons.Default.Settings, nav) {
         CardBlock(t("settings.app")) {
             Text("MPorT Tech Pro", fontWeight = FontWeight.Bold)
-            Text("Toolkit teknisi jaringan · data lokal on-device", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(t("settings.app_desc"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        CardBlock("Jaringan perangkat") {
+        CardBlock(t("settings.device_network")) {
             Text(
                 "${link.transport}  ·  ${link.ip ?: "—"}\nGW ${link.gateway ?: "—"}",
                 fontSize = 12.sp
             )
         }
         SettingsRow(t("screen.profile"), Icons.Default.Person) { nav?.navigate("profile") }
-        SettingsRow("Pelanggan (Room)", Icons.Default.People) { nav?.navigate("customers") }
-        SettingsRow("Tiket lapangan", Icons.Default.ConfirmationNumber) { nav?.navigate("tickets") }
-        SettingsRow("Diagnostic", Icons.Default.NetworkCheck) { nav?.navigate("diagnostic") }
-        SettingsRow("WiFi Analyzer", Icons.Default.Wifi) { nav?.navigate("wifi") }
-        SettingsRow("About", Icons.Default.Info) { nav?.navigate("about") }
+        SettingsRow(t("screen.customers"), Icons.Default.People) { nav?.navigate("customers") }
+        SettingsRow(t("screen.tickets"), Icons.Default.ConfirmationNumber) { nav?.navigate("tickets") }
+        SettingsRow(t("screen.diagnostic"), Icons.Default.NetworkCheck) { nav?.navigate("diagnostic") }
+        SettingsRow(t("screen.wifi"), Icons.Default.Wifi) { nav?.navigate("wifi") }
+        SettingsRow(t("screen.about"), Icons.Default.Info) { nav?.navigate("about") }
         CardBlock(t("settings.privacy")) {
             Text(
-t("settings.privacy_body"),
+                t("settings.privacy_body"),
                 fontSize = 12.sp,
                 lineHeight = 20.sp
             )

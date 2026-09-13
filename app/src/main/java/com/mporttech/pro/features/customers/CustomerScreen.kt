@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
@@ -43,8 +45,28 @@ class CustomerViewModel @Inject constructor(
     private val repo: CustomerRepository
 ) : ViewModel() {
     val items = repo.observe()
+    private val _syncing = MutableStateFlow(false)
+    val syncing = _syncing.asStateFlow()
+    private val _syncMessage = MutableStateFlow<String?>(null)
+    val syncMessage = _syncMessage.asStateFlow()
+
     fun add(name: String, phone: String, address: String, plan: String) =
         viewModelScope.launch { repo.add(name, phone, address, plan) }
+
+    fun sync() = viewModelScope.launch {
+        if (_syncing.value) return@launch
+        _syncing.value = true
+        when (val r = repo.syncFromRemote()) {
+            is com.mporttech.pro.core.common.Result.Success ->
+                _syncMessage.value = "Sinkron ${r.data} pelanggan"
+            is com.mporttech.pro.core.common.Result.Error ->
+                _syncMessage.value = r.message
+            else -> {}
+        }
+        _syncing.value = false
+    }
+
+    fun consumeSyncMessage() { _syncMessage.value = null }
 }
 
 private val AccentBlue = Color(0xFF21B6FF)
@@ -68,6 +90,15 @@ fun CustomerScreen(
     var showForm by remember { mutableStateOf(true) }
     var query by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val syncing by vm.syncing.collectAsStateWithLifecycle()
+    val syncMessage by vm.syncMessage.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { vm.sync() }
+    LaunchedEffect(syncMessage) {
+        val msg = syncMessage ?: return@LaunchedEffect
+        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+        vm.consumeSyncMessage()
+    }
 
     val plans = listOf("Basic", "Standard", "Business", "Enterprise")
     val filtered = if (query.isBlank()) items else items.filter {

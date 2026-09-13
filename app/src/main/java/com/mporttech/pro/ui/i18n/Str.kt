@@ -122,7 +122,7 @@ object Str {
         "login.username" to "Username",
         "login.password" to "Password",
         "login.button" to "Masuk",
-        "login.hint" to "Admin: admin / admin123\nTeknisi: budi / budi123",
+        "login.hint" to "Gunakan akun teknisi / admin dari server MPorT",
         "login.failed" to "Username atau password salah",
         "login.welcome" to "Selamat datang",
 
@@ -149,6 +149,46 @@ object Str {
         "ticket.done" to "Selesai",
         "ticket.all" to "Semua",
         "ticket.list" to "DAFTAR",
+
+        // Dashboard extra
+        "dash.subtitle" to "Toolkit teknisi jaringan profesional",
+        "dash.download" to "Unduh",
+        "dash.upload" to "Unggah",
+        "dash.live_traffic" to "Lalu lintas langsung",
+
+        // Network scan
+        "net.authorize_scan" to "Izinkan pindaian jaringan",
+        "net.authorize_first" to "Izinkan akses jaringan terlebih dahulu",
+        "net.scan_lan" to "Pindai LAN",
+
+        // Settings
+        "settings.app" to "Aplikasi",
+        "settings.app_desc" to "Toolkit teknisi jaringan · data lokal on-device",
+        "settings.device_network" to "Jaringan perangkat",
+        "settings.privacy" to "Privasi & Data",
+        "settings.privacy_body" to "Semua data disimpan lokal di perangkat. Tidak ada data yang dikirim ke server eksternal tanpa izin Anda. Kredensial MikroTik dienkripsi dengan SecureStorage.",
+
+        // Alerts
+        "alert.live_source" to "Sumber langsung",
+        "alert.refresh" to "Muat ulang peringatan",
+
+        // Customers
+        "customers.empty" to "Belum ada pelanggan",
+        "customers.search" to "Cari pelanggan…",
+
+        // Diagnostic
+        "diagnostic.empty" to "Belum ada hasil diagnostik",
+
+        // Jobs
+        "jobs.intro" to "Kelola pekerjaan instalasi & perbaikan",
+        "jobs.flow" to "Alur pekerjaan",
+
+        // MikroTik
+        "mt.host" to "Host / IP Router",
+        "mt.check" to "Periksa koneksi",
+        "mt.checklist" to "Checklist RouterOS",
+        "mt.probe_title" to "Probe Router",
+        "mt.probe_hint" to "Uji konektivitas API RouterOS",
     )
 
     private val en = mapOf(
@@ -262,7 +302,7 @@ object Str {
         "login.username" to "Username",
         "login.password" to "Password",
         "login.button" to "Sign in",
-        "login.hint" to "Admin: admin / admin123\nTechnician: budi / budi123",
+        "login.hint" to "Use technician / admin account from MPorT server",
         "login.failed" to "Invalid username or password",
         "login.welcome" to "Welcome",
 
@@ -286,6 +326,46 @@ object Str {
         "ticket.done" to "Done",
         "ticket.all" to "All",
         "ticket.list" to "LIST",
+
+        // Dashboard extra
+        "dash.subtitle" to "Professional network technician toolkit",
+        "dash.download" to "Download",
+        "dash.upload" to "Upload",
+        "dash.live_traffic" to "Live traffic",
+
+        // Network scan
+        "net.authorize_scan" to "Authorize network scan",
+        "net.authorize_first" to "Authorize network access first",
+        "net.scan_lan" to "Scan LAN",
+
+        // Settings
+        "settings.app" to "Application",
+        "settings.app_desc" to "Network technician toolkit · local on-device data",
+        "settings.device_network" to "Device network",
+        "settings.privacy" to "Privacy & Data",
+        "settings.privacy_body" to "All data is stored locally on the device. No data is sent to external servers without your permission. MikroTik credentials are encrypted with SecureStorage.",
+
+        // Alerts
+        "alert.live_source" to "Live source",
+        "alert.refresh" to "Refresh alerts",
+
+        // Customers
+        "customers.empty" to "No customers yet",
+        "customers.search" to "Search customers…",
+
+        // Diagnostic
+        "diagnostic.empty" to "No diagnostic results yet",
+
+        // Jobs
+        "jobs.intro" to "Manage installation & repair jobs",
+        "jobs.flow" to "Job workflow",
+
+        // MikroTik
+        "mt.host" to "Host / IP Router",
+        "mt.check" to "Check connection",
+        "mt.checklist" to "RouterOS checklist",
+        "mt.probe_title" to "Router Probe",
+        "mt.probe_hint" to "Test RouterOS API connectivity",
     )
 
     fun get(key: String, lang: AppLanguage): String {

@@ -6,10 +6,14 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "customers")
 data class CustomerEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val remoteId: Long? = null,
+    val customerCode: String = "",
     val name: String,
     val phone: String,
+    val email: String = "",
     val address: String,
     val packageName: String,
+    val status: String = "active",
     val ipAddress: String = "",
     val macAddress: String = "",
     val accessPoint: String = "",
@@ -19,10 +23,16 @@ data class CustomerEntity(
 @Entity(tableName = "tickets")
 data class TicketEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val remoteId: Long? = null,
+    val ticketNumber: String = "",
     val customerId: Long?,
     val title: String,
     val description: String,
     val status: String = "OPEN",
+    val priority: String = "normal",
+    val category: String = "",
+    val customerName: String = "",
+    val technicianName: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )
 
