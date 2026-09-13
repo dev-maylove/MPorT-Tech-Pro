@@ -1,11 +1,9 @@
 package com.mporttech.pro.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
-import androidx.compose.runtime.Composable
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -284,8 +282,8 @@ fun MPorTTechTheme(
 /** Primary action button: neon cyan fill + black label (always readable). */
 @Composable
 fun mportPrimaryButtonColors() = ButtonDefaults.buttonColors(
-    containerColor = MaterialTheme.colorScheme.primary,
-    contentColor = Color(0xFF000000),
-    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-    disabledContentColor = Color(0xFF000000)
-)
+            containerColor = Color(0xFF00E5FF),
+            contentColor = Color(0xFF000000),
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )

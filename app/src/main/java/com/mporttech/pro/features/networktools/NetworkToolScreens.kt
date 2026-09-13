@@ -321,7 +321,7 @@ fun PingToolScreen(nav: NavController? = null) {
                     onClick = {
                         if (running) return@Button
                         if (host.isBlank()) {
-                            Toast.makeText(context, t("nt.enter_host"), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, com.mporttech.pro.ui.i18n.Str.get("nt.enter_host", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         running = true
@@ -366,7 +366,12 @@ fun PingToolScreen(nav: NavController? = null) {
                     enabled = host.isNotBlank() && !running,
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color(0xFF000000), disabledContentColor = Color(0xFF000000))
+                    colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
+            contentColor = Color(0xFF000000),
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )
                 ) {
                     Text(if (running) t("nt.running") else t("nt.start_ping"), fontWeight = FontWeight.Bold, color = Color(0xFF000000), fontSize = 15.sp)
                 }
@@ -527,7 +532,7 @@ fun TracerouteScreen(nav: NavController? = null) {
                 enabled = host.isNotBlank()
             ) {
                 if (host.isBlank()) {
-                    Toast.makeText(context, t("nt.enter_dest"), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, com.mporttech.pro.ui.i18n.Str.get("nt.enter_dest", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)), Toast.LENGTH_SHORT).show()
                     return@ActionButton
                 }
                 running = true
@@ -747,7 +752,7 @@ fun DnsLookupScreen(nav: NavController? = null) {
                 enabled = query.isNotBlank()
             ) {
                 if (query.isBlank()) {
-                    Toast.makeText(context, t("nt.enter_domain"), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, com.mporttech.pro.ui.i18n.Str.get("nt.enter_domain", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)), Toast.LENGTH_SHORT).show()
                     return@ActionButton
                 }
                 running = true
@@ -968,7 +973,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
             ) {
                 val ports = NetworkOutputParser.parsePortList(portInput)
                 if (host.isBlank() || ports.isEmpty()) {
-                    Toast.makeText(context, t("nt.host_port_required"), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, com.mporttech.pro.ui.i18n.Str.get("nt.host_port_required", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)), Toast.LENGTH_SHORT).show()
                     return@ActionButton
                 }
                 running = true

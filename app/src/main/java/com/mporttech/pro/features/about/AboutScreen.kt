@@ -951,11 +951,11 @@ fun AboutScreen(
 
 
                 colors = ButtonDefaults.buttonColors(
-
-                    containerColor = cyan,
-
-                    contentColor = Color(0xFF020617)
-                ),
+            containerColor = Color(0xFF00E5FF),
+            contentColor = Color(0xFF000000),
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        ),
 
 
                 contentPadding = PaddingValues(
@@ -1054,12 +1054,11 @@ fun AboutScreen(
 
 
                 colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-
-                    containerColor = Color(0xFF151B27),
-
-                    contentColor = primaryText
-                ),
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        ),
 
 
                 border = androidx.compose.foundation.BorderStroke(

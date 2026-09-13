@@ -83,12 +83,11 @@ fun MikroTikScreen(
                 enabled = !ui.connecting,
                 modifier = Modifier.weight(1f),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) {
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) {
                 Text(if (ui.connecting) "Connecting…" else "Connect")
             }
             OutlinedButton(

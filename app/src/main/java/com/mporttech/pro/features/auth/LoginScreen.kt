@@ -147,12 +147,11 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) {
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) {
                 if (ui.loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),

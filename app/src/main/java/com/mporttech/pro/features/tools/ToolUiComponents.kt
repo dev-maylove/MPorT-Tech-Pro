@@ -79,7 +79,7 @@ internal fun Page(
                                         Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                                     )
                                 } catch (_: Exception) {
-                                    Toast.makeText(pageContext, t("menu.open_location_toast"), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(pageContext, com.mporttech.pro.ui.i18n.Str.get("menu.open_location_toast", com.mporttech.pro.ui.i18n.loadSavedLanguage(pageContext)), Toast.LENGTH_SHORT).show()
                                 }
                             },
                             leadingIcon = { Icon(Icons.Default.LocationOn, null) }

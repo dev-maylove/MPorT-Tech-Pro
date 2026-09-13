@@ -97,7 +97,7 @@ fun DiagnosticScreen(
                     Button(
                         onClick = {
                             if (target.isBlank()) {
-                                Toast.makeText(context, t("diag.host_required"), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, com.mporttech.pro.ui.i18n.Str.get("diag.host_required", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)), Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
                             running = true
@@ -112,12 +112,11 @@ fun DiagnosticScreen(
                         enabled = !running,
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                            containerColor = Color(0xFF00E5FF),
-                            contentColor = Color(0xFF000000),
-                            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.5f),
-                            disabledContentColor = Color(0xFF000000)
-                        )
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )
                     ) {
                         if (running) {
                             CircularProgressIndicator(

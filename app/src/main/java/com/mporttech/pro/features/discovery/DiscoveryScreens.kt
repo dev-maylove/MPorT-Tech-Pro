@@ -215,7 +215,11 @@ fun DiscoveryHubScreen(nav: NavController) {
                         enabled = !scanning,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-            contentColor = Color(0xFF000000),containerColor = Accent),
+            containerColor = Color(0xFF00E5FF),
+            contentColor = Color(0xFF000000),
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(if (scanning) labelLoading else labelScan)

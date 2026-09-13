@@ -403,22 +403,20 @@ fun WifiToolsScreen(nav: NavController) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             Button(onClick = { nav.navigate("wifi") }, modifier = Modifier.weight(1f),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) {
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) {
                 Text(t("tools.tile_wifi"), fontSize = 12.sp, color = Color(0xFF000000), fontWeight = FontWeight.Bold)
             }
             Button(onClick = { nav.navigate("speedtest") }, modifier = Modifier.weight(1f),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) {
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) {
                 Text(t("tools.tile_speed"), fontSize = 12.sp, color = Color(0xFF000000), fontWeight = FontWeight.Bold)
             }
         }
@@ -585,12 +583,11 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                     enabled = !miniRunning,
                     modifier = Modifier.weight(1f),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) {
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) {
                     if (miniRunning) {
                         CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color(0xFF000000))
                         Spacer(Modifier.width(6.dp))
@@ -616,12 +613,11 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                 enabled = !scanning,
                 modifier = Modifier.weight(1f),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) {
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) {
                 if (scanning) {
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color(0xFF000000))
                     Spacer(Modifier.width(6.dp))
@@ -765,7 +761,7 @@ fun LegacyNetworkScannerScreen(nav: NavController? = null) {
         Button(
             onClick = {
                 if (!allowed) {
-                    Toast.makeText(context, t("scan.need_consent"), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, com.mporttech.pro.ui.i18n.Str.get("scan.need_consent", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)), Toast.LENGTH_SHORT).show()
                     return@Button
                 }
                 scanning = true
@@ -808,12 +804,11 @@ fun LegacyNetworkScannerScreen(nav: NavController? = null) {
             enabled = allowed && !scanning,
             modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) {
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) {
             if (scanning) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF000000))
                 Spacer(Modifier.width(8.dp))
@@ -1091,12 +1086,11 @@ fun SpeedTestScreen(nav: NavController? = null) {
                 enabled = !running && !probing,
                 modifier = Modifier.weight(1f).height(48.dp),
                 colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.5f),
-                    disabledContentColor = Color(0xFF000000)
-                )
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )
             ) {
                 if (running) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF000000))
@@ -1360,12 +1354,11 @@ fun DeviceDetailScreen(nav: NavController? = null) {
                 },
                 modifier = Modifier.weight(1f),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) { Text("DIAGNOSTIC") }
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) { Text("DIAGNOSTIC") }
         }
     }
 }
@@ -1521,12 +1514,11 @@ fun AlertDetailScreen(nav: NavController? = null) {
             onClick = { nav?.navigate("diagnostic") },
             modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) { Text(t("alert.open_diag")) }
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) { Text(t("alert.open_diag")) }
     }
 }
 
@@ -1920,12 +1912,11 @@ fun ProfileScreen(nav: NavController) {
                     Toast.makeText(context, "Profil diperbarui", Toast.LENGTH_SHORT).show()
                 },
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) { Text("Simpan") }
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) { Text("Simpan") }
             },
             dismissButton = {
                 TextButton(onClick = { showEditProfile = false }) { Text(t("common.cancel")) }
@@ -1964,12 +1955,11 @@ fun ProfileScreen(nav: NavController) {
                     ).show()
                 },
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) { Text("Simpan") }
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) { Text("Simpan") }
             },
             dismissButton = {
                 TextButton(onClick = { showSecurity = false }) { Text(t("common.close")) }
@@ -1994,12 +1984,11 @@ fun ProfileScreen(nav: NavController) {
                     Toast.makeText(context, "Server: $serverHost:$serverPort disimpan", Toast.LENGTH_SHORT).show()
                 },
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) { Text("Simpan") }
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) { Text("Simpan") }
             },
             dismissButton = {
                 TextButton(onClick = {
@@ -2073,12 +2062,11 @@ fun LegacyMikroTikScreen(nav: NavController? = null) {
             },
             modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF00E5FF),
             contentColor = Color(0xFF000000),
-                    containerColor = Color(0xFF00E5FF),
-                    contentColor = Color(0xFF000000),
-                    disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
-                    disabledContentColor = Color(0xFF000000)
-                )) { Text(if (checking) t("common.loading") else t("mt.check")) }
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )) { Text(if (checking) t("common.loading") else t("mt.check")) }
 
         result?.let {
             CardBlock("Hasil probe $host") {

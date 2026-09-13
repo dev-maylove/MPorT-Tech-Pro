@@ -287,9 +287,11 @@ fun CustomerScreen(
                                 .height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = AccentBlue,
-                                contentColor = Color(0xFF001A2B)
-                            )
+            containerColor = Color(0xFF00E5FF),
+            contentColor = Color(0xFF000000),
+            disabledContainerColor = Color(0xFF00E5FF).copy(alpha = 0.45f),
+            disabledContentColor = Color(0xFF000000)
+        )
                         ) {
                             Icon(Icons.Default.Save, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
