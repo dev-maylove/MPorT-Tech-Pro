@@ -78,7 +78,7 @@ internal fun Page(
                                         Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                                     )
                                 } catch (_: Exception) {
-                                    Toast.makeText(pageContext, "Buka Settings → Location", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(pageContext, t("menu.open_location_toast"), Toast.LENGTH_SHORT).show()
                                 }
                             },
                             leadingIcon = { Icon(Icons.Default.LocationOn, null) }
@@ -96,7 +96,7 @@ internal fun Page(
                             leadingIcon = { Icon(Icons.Default.Share, null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Go to Tools") },
+                            text = { Text(t("menu.to_tools")) },
                             onClick = {
                                 menuOpen = false
                                 nav?.navigate("tools") { launchSingleTop = true }
@@ -104,7 +104,7 @@ internal fun Page(
                             leadingIcon = { Icon(Icons.Default.Build, null) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Go to Home") },
+                            text = { Text(t("menu.to_home")) },
                             onClick = {
                                 menuOpen = false
                                 nav?.navigate("dashboard") {
@@ -340,7 +340,7 @@ internal fun InterfaceList() {
     val ifaces = remember { LiveNetworkInfo.interfaceNames() }
     CardBlock("Interfaces") {
         if (ifaces.isEmpty()) {
-            Text("Tidak ada interface aktif", fontSize = 12.sp)
+            Text(t("net.no_iface"), fontSize = 12.sp)
         } else {
             ifaces.take(10).forEach {
                 Text(it, fontSize = 11.sp, lineHeight = 18.sp)

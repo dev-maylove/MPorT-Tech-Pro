@@ -198,8 +198,8 @@ class DiagnosticRepository @Inject constructor(
                     success = ok,
                     latencyMs = if (ok) ms else null,
                     message = when {
-                        ok && usedPort != null -> "Reachable ($ip:$usedPort) ${ms}ms"
-                        ok -> "Reachable ($ip) ${ms}ms"
+                        ok && usedPort != null -> "Reachable/Terjangkau ($ip:$usedPort) ${ms} ms"
+                        ok -> "Reachable/Terjangkau ($ip) ${ms} ms"
                         else -> "No response ($ip) — cek jaringan/firewall"
                     }
                 )

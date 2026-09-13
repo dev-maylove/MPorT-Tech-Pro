@@ -68,7 +68,7 @@ fun DiagnosticScreen(
                 }
                 Icon(Icons.Default.NetworkCheck, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(8.dp))
-                Text("Network Diagnostic", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(t("diag.title"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -78,11 +78,11 @@ fun DiagnosticScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Reachability Check", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(t("diag.reachability"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     OutlinedTextField(
                         value = target,
                         onValueChange = { target = it.trim() },
-                        label = { Text("Host / IP") },
+                        label = { Text(t("diag.host_ip")) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -97,7 +97,7 @@ fun DiagnosticScreen(
                     Button(
                         onClick = {
                             if (target.isBlank()) {
-                                Toast.makeText(context, "Isi host/IP dulu", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, t("diag.host_required"), Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
                             running = true
@@ -120,14 +120,18 @@ fun DiagnosticScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(if (running) "CHECKING..." else "RUN REACHABILITY CHECK")
+                        Text(
+                            if (running) t("diag.checking") else t("diag.run"),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
         }
 
         item {
-            Text("History", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(t("diag.history"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
         }
 
         if (items.isEmpty()) {

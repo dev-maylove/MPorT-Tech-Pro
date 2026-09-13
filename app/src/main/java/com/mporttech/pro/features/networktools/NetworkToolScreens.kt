@@ -1,5 +1,7 @@
 package com.mporttech.pro.features.networktools
 
+import com.mporttech.pro.ui.i18n.t
+
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -203,7 +205,7 @@ private fun ActionButton(
                 color = Color(0xFF001A2B)
             )
             Spacer(Modifier.width(10.dp))
-            Text("RUNNING...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text("Berjalan…", fontWeight = FontWeight.Bold, fontSize = 13.sp)
         } else {
             Text(text, fontWeight = FontWeight.Bold, fontSize = 13.sp)
         }
@@ -281,11 +283,11 @@ fun PingToolScreen(nav: NavController? = null) {
         nav = nav
     ) {
         PremiumCard {
-            Text("TARGET HOST", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+            Text(t("nt.target_host"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it.trim() },
-                label = { Text("IP Address / Hostname") },
+                label = { Text(t("nt.ip_hostname")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -298,7 +300,7 @@ fun PingToolScreen(nav: NavController? = null) {
             )
             PresetChips(presets) { host = it }
 
-            Text("PACKET COUNT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+            Text(t("nt.packet_count"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(4, 8, 16).forEach { n ->
                     FilterChip(
@@ -318,7 +320,7 @@ fun PingToolScreen(nav: NavController? = null) {
                     onClick = {
                         if (running) return@Button
                         if (host.isBlank()) {
-                            Toast.makeText(context, "Masukkan host / IP", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, t("nt.enter_host"), Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         running = true
@@ -365,21 +367,21 @@ fun PingToolScreen(nav: NavController? = null) {
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = Color(0xFF001A2B))
                 ) {
-                    Text(if (running) "RUNNING…" else "START PING", fontWeight = FontWeight.Bold)
+                    Text(if (running) t("nt.running") else t("nt.start_ping"), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
                 OutlinedButton(
                     onClick = { runFlag.set(false); running = false },
                     enabled = running,
                     modifier = Modifier.height(48.dp),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text("STOP") }
+                ) { Text(t("nt.stop")) }
             }
         }
 
         // Live stats — show immediately while running or when samples exist
         AnimatedVisibility(visible = running || samples.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
             PremiumCard {
-                Text("STATISTICS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+                Text(t("nt.statistics"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -400,7 +402,7 @@ fun PingToolScreen(nav: NavController? = null) {
                     }
                 }
                 lastRunAt?.let {
-                    Text("Last run • $it", fontSize = 10.sp, color = Color(0xFF6A829E))
+                    Text("${t("nt.last_run")} • $it", fontSize = 10.sp, color = Color(0xFF6A829E))
                 }
             }
         }
@@ -408,7 +410,7 @@ fun PingToolScreen(nav: NavController? = null) {
         // Packet log
         if (samples.isNotEmpty()) {
             PremiumCard {
-                Text("PACKET LOG", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+                Text(t("nt.packet_log"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 samples.forEach { s ->
                     Row(
                         Modifier
@@ -480,17 +482,17 @@ fun TracerouteScreen(nav: NavController? = null) {
     // Path discovery delegated to NetworkOutputParser.traceroute
 
     ToolScaffold(
-        title = "Traceroute",
-        subtitle = "Path discovery & hop latency",
+        title = t("nt.trace_title"),
+        subtitle = t("nt.trace_sub"),
         icon = Icons.Default.Timeline,
         nav = nav
     ) {
         PremiumCard {
-            Text("DESTINATION", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+            Text(t("nt.destination"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it.trim() },
-                label = { Text("Hostname / IP") },
+                label = { Text(t("nt.hostname_ip")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -503,7 +505,7 @@ fun TracerouteScreen(nav: NavController? = null) {
             )
             PresetChips(presets) { host = it }
 
-            Text("MAX HOPS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+            Text(t("nt.max_hops"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(8, 12, 20).forEach { n ->
                     FilterChip(
@@ -524,7 +526,7 @@ fun TracerouteScreen(nav: NavController? = null) {
                 enabled = host.isNotBlank()
             ) {
                 if (host.isBlank()) {
-                    Toast.makeText(context, "Masukkan destinasi", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, t("nt.enter_dest"), Toast.LENGTH_SHORT).show()
                     return@ActionButton
                 }
                 running = true
@@ -570,7 +572,7 @@ fun TracerouteScreen(nav: NavController? = null) {
                     Icon(Icons.Default.Dns, null, tint = AccentCyan, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Column {
-                        Text("Resolved destination", fontSize = 10.sp, color = Color(0xFF9EE8FF))
+                        Text(t("nt.resolved"), fontSize = 10.sp, color = Color(0xFF9EE8FF))
                         Text(ip, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFE8FBFF), fontFamily = FontFamily.Monospace)
                     }
                 }
@@ -579,7 +581,7 @@ fun TracerouteScreen(nav: NavController? = null) {
 
         if (hops.isNotEmpty()) {
             PremiumCard {
-                Text("HOP TABLE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+                Text(t("nt.hop_table"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 hops.forEach { hop ->
                     val statusColor = when (hop.status) {
                         "ok" -> SuccessGreen
@@ -617,7 +619,7 @@ fun TracerouteScreen(nav: NavController? = null) {
                                 color = Color(0xFFE8FBFF)
                             )
                             Text(
-                                hop.ip ?: "no reply",
+                                hop.ip ?: t("nt.no_reply"),
                                 fontSize = 10.sp,
                                 color = Color(0xFF5EC8E8),
                                 fontFamily = FontFamily.Monospace
@@ -680,17 +682,17 @@ fun DnsLookupScreen(nav: NavController? = null) {
     // Uses NetworkOutputParser.dnsLookup — single resolve + typed records
 
     ToolScaffold(
-        title = "DNS Lookup",
-        subtitle = "Resolve hostnames & inspect records",
+        title = t("nt.dns_title"),
+        subtitle = t("nt.dns_sub"),
         icon = Icons.Default.Search,
         nav = nav
     ) {
         PremiumCard {
-            Text("QUERY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+            Text(t("nt.query"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.trim() },
-                label = { Text("Domain or IP") },
+                label = { Text(t("nt.domain_or_ip")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -710,7 +712,7 @@ fun DnsLookupScreen(nav: NavController? = null) {
                     value = query,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Pilih domain preset") },
+                    label = { Text(t("nt.preset_domain")) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = presetExpanded) },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -744,7 +746,7 @@ fun DnsLookupScreen(nav: NavController? = null) {
                 enabled = query.isNotBlank()
             ) {
                 if (query.isBlank()) {
-                    Toast.makeText(context, "Masukkan domain / IP", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, t("nt.enter_domain"), Toast.LENGTH_SHORT).show()
                     return@ActionButton
                 }
                 running = true
@@ -782,7 +784,7 @@ fun DnsLookupScreen(nav: NavController? = null) {
                 ) {
                     StatPill("Time", "${ms} ms", AccentCyan)
                     StatPill("Records", "${records.size}", AccentBlue)
-                    StatPill("Status", if (error == null) "OK" else "FAIL", if (error == null) SuccessGreen else ErrorRed)
+                    StatPill("Status", if (error == null) "OK" else t("nt.fail"), if (error == null) SuccessGreen else ErrorRed)
                 }
             }
         }
@@ -799,7 +801,7 @@ fun DnsLookupScreen(nav: NavController? = null) {
 
         if (records.isNotEmpty()) {
             PremiumCard {
-                Text("RECORDS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+                Text(t("nt.records"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 records.forEach { rec ->
                     Row(
                         Modifier
@@ -891,17 +893,17 @@ fun PortCheckerScreen(nav: NavController? = null) {
     // Port checks delegated to NetworkOutputParser.portScan (parallel)
 
     ToolScaffold(
-        title = "Port Checker",
-        subtitle = "TCP port reachability scanner",
+        title = t("nt.port_title"),
+        subtitle = t("nt.port_sub"),
         icon = Icons.Default.Security,
         nav = nav
     ) {
         PremiumCard {
-            Text("TARGET", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+            Text(t("nt.target"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it.trim() },
-                label = { Text("Host / IP") },
+                label = { Text(t("diag.host_ip")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -913,11 +915,11 @@ fun PortCheckerScreen(nav: NavController? = null) {
                 )
             )
 
-            Text("PORTS (comma separated)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+            Text(t("nt.ports"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             OutlinedTextField(
                 value = portInput,
                 onValueChange = { portInput = it },
-                label = { Text("e.g. 80,443,22") },
+                label = { Text(t("nt.ports_hint")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -929,7 +931,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
                 )
             )
 
-            Text("QUICK SETS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+            Text(t("nt.quick_sets"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -965,7 +967,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
             ) {
                 val ports = NetworkOutputParser.parsePortList(portInput)
                 if (host.isBlank() || ports.isEmpty()) {
-                    Toast.makeText(context, "Host dan port valid diperlukan", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, t("nt.host_port_required"), Toast.LENGTH_SHORT).show()
                     return@ActionButton
                 }
                 running = true
@@ -1012,7 +1014,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
             }
 
             PremiumCard {
-                Text("RESULTS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
+                Text(t("nt.results"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9EE8FF), letterSpacing = 1.sp)
                 results.forEach { r ->
                     Row(
                         Modifier
@@ -1043,7 +1045,7 @@ fun PortCheckerScreen(nav: NavController? = null) {
                             )
                         }
                         Text(
-                            if (r.open) "${r.latencyMs} ms  OPEN" else "CLOSED",
+                            if (r.open) "${r.latencyMs} ms  OPEN" else t("nt.closed"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             color = if (r.open) SuccessGreen else ErrorRed

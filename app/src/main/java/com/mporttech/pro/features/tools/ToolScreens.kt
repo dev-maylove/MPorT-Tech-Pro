@@ -239,7 +239,7 @@ fun NetworkMonitorScreen(nav: NavController) {
                 }
             }
             else -> {
-                CardBlock("Live throughput chart") {
+                CardBlock(t("net.throughput_chart")) {
                     val maxY = maxOf((rxHistory + txHistory).maxOrNull() ?: 1.0, 1.0)
                     Text(
                         "RX ${String.format("%.2f", rxMbps)}  ·  TX ${String.format("%.2f", txMbps)} Mbps",
@@ -276,12 +276,12 @@ fun NetworkMonitorScreen(nav: NavController) {
                         color = Color(0xFF5EC8E8)
                     )
                 }
-                CardBlock("Gateway latency") {
+                CardBlock(t("net.gateway_latency")) {
                     Text(
                         when {
-                            link.gateway == null -> "Gateway tidak terdeteksi"
-                            gatewayMs != null && gatewayOk -> "Ping ${link.gateway}  ·  ${gatewayMs} ms  ·  reachable"
-                            else -> "Ping ${link.gateway}  ·  no response"
+                            link.gateway == null -> t("net.gateway_missing")
+                            gatewayMs != null && gatewayOk -> "Ping ${link.gateway}  ·  ${gatewayMs} ms  ·  ${t("net.reachable")}"
+                            else -> "Ping ${link.gateway}  ·  ${t("net.no_response")}"
                         },
                         fontSize = 12.sp
                     )
@@ -294,16 +294,16 @@ fun NetworkMonitorScreen(nav: NavController) {
 @Composable
 fun TechnicianToolsScreen(nav: NavController) {
     val tiles = listOf(
-        Tile("Ping Tool", "Cek konektivitas", Icons.Default.NetworkCheck, "ping"),
-        Tile("Traceroute", "Lacak jalur jaringan", Icons.Default.Timeline, "traceroute"),
-        Tile("DNS Lookup", "Cek record DNS", Icons.Default.Search, "dns"),
-        Tile("WiFi Analyzer", "Analisa WiFi", Icons.Default.Wifi, "wifi"),
-        Tile("Port Checker", "Cek port terbuka", Icons.Default.Security, "portcheck"),
-        Tile("Speed Test", "Tes kecepatan", Icons.Default.Speed, "speedtest"),
-        Tile("IP Scanner", "Scan perangkat", Icons.Default.Router, "scanner"),
-        Tile("Discovery", "LAN discovery", Icons.Default.Search, "discovery")
+        Tile(t("tools.tile_ping"), t("tools.tile_ping_sub"), Icons.Default.NetworkCheck, "ping"),
+        Tile(t("tools.tile_trace"), t("tools.tile_trace_sub"), Icons.Default.Timeline, "traceroute"),
+        Tile(t("tools.tile_dns"), t("tools.tile_dns_sub"), Icons.Default.Search, "dns"),
+        Tile(t("tools.tile_wifi"), t("tools.tile_wifi_sub"), Icons.Default.Wifi, "wifi"),
+        Tile(t("tools.tile_port"), t("tools.tile_port_sub"), Icons.Default.Security, "portcheck"),
+        Tile(t("tools.tile_speed"), t("tools.tile_speed_sub"), Icons.Default.Speed, "speedtest"),
+        Tile(t("tools.tile_scan"), t("tools.tile_scan_sub"), Icons.Default.Router, "scanner"),
+        Tile(t("tools.tile_discovery"), t("tools.tile_discovery_sub"), Icons.Default.Search, "discovery")
     )
-    Page("Technician Tools", Icons.Default.Build, nav) {
+    Page(t("tools.technician"), Icons.Default.Build, nav) {
         val rows = (tiles.size + 1) / 2
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -367,15 +367,15 @@ fun WifiToolsScreen(nav: NavController) {
         quickCount = analyzer.cachedSnapshot()?.networks?.size ?: 0
     }
     val tiles = listOf(
-        Tile("WiFi Scanner", "Scan AP sekitar (optimized)", Icons.Default.Wifi, "wifi"),
-        Tile("Signal Strength", "Kualitas & estimasi link", Icons.Default.NetworkCheck, "signalHub"),
-        Tile("Channel Analyzer", "Rekomendasi channel", Icons.Default.BarChart, "wifi"),
-        Tile("Network Information", "Info koneksi aktif", Icons.Default.Info, "wifi"),
-        Tile("Connected Devices", "Perangkat terhubung", Icons.Default.Groups, "discovery"),
+        Tile(t("tools.tile_wifi_scan"), t("tools.tile_wifi_scan_sub"), Icons.Default.Wifi, "wifi"),
+        Tile(t("tools.tile_signal"), t("tools.tile_signal_sub"), Icons.Default.NetworkCheck, "signalHub"),
+        Tile(t("tools.tile_channel"), t("tools.tile_channel_sub"), Icons.Default.BarChart, "wifi"),
+        Tile(t("tools.tile_netinfo"), t("tools.tile_netinfo_sub"), Icons.Default.Info, "wifi"),
+        Tile(t("tools.tile_connected"), t("tools.tile_connected_sub"), Icons.Default.Groups, "discovery"),
         Tile("Speed Test", "Tes kecepatan penuh", Icons.Default.Speed, "speedtest")
     )
-    Page("WiFi Tools", Icons.Default.Wifi, nav) {
-        CardBlock(connected?.ssid ?: "WiFi tidak terhubung") {
+    Page(t("tools.wifi"), Icons.Default.Wifi, nav) {
+        CardBlock(connected?.ssid ?: t("wifi.not_connected")) {
             if (connected != null) {
                 Text(
                     "RSSI ${(connected?.rssiDbm ?: 0)} dBm • Q${(connected?.qualityScore ?: 0)}/100 • ~${(connected?.estimatedMbps ?: 0)} Mbps",
@@ -384,7 +384,7 @@ fun WifiToolsScreen(nav: NavController) {
                     fontWeight = FontWeight.Bold
                 )
             } else {
-                Text("Buka analyzer untuk scan & speed test", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(t("wifi.open_analyzer"), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (quickCount > 0) {
                 Spacer(Modifier.height(4.dp))
@@ -402,10 +402,10 @@ fun WifiToolsScreen(nav: NavController) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             Button(onClick = { nav.navigate("wifi") }, modifier = Modifier.weight(1f)) {
-                Text("WIFI ANALYZER", fontSize = 12.sp)
+                Text(t("tools.tile_wifi"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
             }
             Button(onClick = { nav.navigate("speedtest") }, modifier = Modifier.weight(1f)) {
-                Text("SPEED TEST", fontSize = 12.sp)
+                Text(t("tools.tile_speed"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -475,7 +475,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                     snap.recommended5?.let { append(" • Best 5: CH $it") }
                 }
             } catch (e: Exception) {
-                status = "Gagal: ${e.message}"
+                status = com.mporttech.pro.ui.i18n.Str.get("common.error_prefix", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)) + ": ${e.message}"
                 Toast.makeText(context, e.message ?: "Scan gagal", Toast.LENGTH_LONG).show()
             } finally {
                 scanning = false
@@ -487,7 +487,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
         if (result.values.any { it }) doScan(force = true) else {
-            permissionHint = "Izin lokasi / Nearby WiFi ditolak."
+            permissionHint = t("wifi.perm_denied")
             status = "Izin diperlukan untuk scan WiFi"
         }
     }
@@ -614,7 +614,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
         permissionHint?.let { Text(it, fontSize = 11.sp, color = MaterialTheme.colorScheme.error) }
 
         snapshot?.let { snap ->
-            CardBlock("Channel Recommendation") {
+            CardBlock(t("wifi.channel_rec_title")) {
                 Text(
                     "2.4 GHz → CH ${snap.recommended24 ?: "-"}    |    5 GHz → CH ${snap.recommended5 ?: "-"}",
                     color = Color(0xFF39FF14),
@@ -625,7 +625,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
                 val busy24 = snap.channels24.sortedByDescending { it.congestionScore }.take(3)
                 if (busy24.isNotEmpty()) {
                     Text(
-                        "Padat 2.4: " + busy24.joinToString { "CH ${it.channel}(${it.networkCount})" },
+                        t("wifi.busy_24") + " " + busy24.joinToString { "CH ${it.channel}(${it.networkCount})" },
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -633,7 +633,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
             }
             // Visual channel occupancy (real scan stats)
             if (snap.channels24.isNotEmpty() || snap.channels5.isNotEmpty()) {
-                CardBlock("Channel occupancy") {
+                CardBlock(t("wifi.channel_occ")) {
                     val bars = (snap.channels24 + snap.channels5)
                         .sortedByDescending { it.networkCount }
                         .take(10)
@@ -686,7 +686,7 @@ fun WifiAnalyzerScreen(nav: NavController? = null) {
 
         if (filtered.isEmpty() && !scanning) {
             Text(
-                "Belum ada hasil. Pastikan Location ON, lalu SCAN WIFI.",
+                t("wifi.no_results"),
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -716,11 +716,11 @@ fun LegacyNetworkScannerScreen(nav: NavController? = null) {
     var progress by remember { mutableStateOf(0f) }
 
     Page("Network Scanner", Icons.Default.NetworkCheck, nav) {
-        CardBlock("Authorized network scanning") {
+        CardBlock(t("scan.authorized")) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = allowed, onCheckedChange = { allowed = it })
                 Text(
-                    "Saya memiliki izin untuk memindai jaringan ini (RFC1918)",
+                    t("scan.consent"),
                     fontSize = 11.sp
                 )
             }
@@ -739,7 +739,7 @@ fun LegacyNetworkScannerScreen(nav: NavController? = null) {
         Button(
             onClick = {
                 if (!allowed) {
-                    Toast.makeText(context, "Centang izin terlebih dahulu", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, t("scan.need_consent"), Toast.LENGTH_SHORT).show()
                     return@Button
                 }
                 scanning = true
@@ -772,7 +772,7 @@ fun LegacyNetworkScannerScreen(nav: NavController? = null) {
                         }
                         progress = 1f
                     } catch (e: Exception) {
-                        status = "Gagal: ${e.message}"
+                        status = com.mporttech.pro.ui.i18n.Str.get("common.error_prefix", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)) + ": ${e.message}"
                         Toast.makeText(context, e.message ?: "Scan gagal", Toast.LENGTH_LONG).show()
                     } finally {
                         scanning = false
@@ -786,7 +786,7 @@ fun LegacyNetworkScannerScreen(nav: NavController? = null) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                 Spacer(Modifier.width(8.dp))
             }
-            Text(if (scanning) "SCANNING..." else "MULAI SCAN")
+            Text(if (scanning) "SCANNING..." else t("scan.start"))
         }
 
         if (results.isEmpty() && !scanning) {
@@ -822,7 +822,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
             SpeedTestHistoryStore.load(context).map { r ->
                 val df = java.text.SimpleDateFormat("dd MMM yyyy HH:mm", java.util.Locale.getDefault())
                 "${df.format(java.util.Date(r.timestamp))}  ${"%.1f".format(r.downloadMbps)} / ${"%.1f".format(r.uploadMbps)} Mbps  ${r.location.ifBlank { r.serverName }}"
-            }.ifEmpty { listOf("Belum ada tes — jalankan speed test") }
+            }.ifEmpty { listOf(context.getString(android.R.string.ok).let { t("speed.empty_history") }) }
         )
     }
     val catalog = remember { TestServer.catalog() }
@@ -833,7 +833,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
         status = "${selected.displayName} • ${selected.displaySubtitle}"
     }
 
-    Page("Speed Test", Icons.Default.Speed, nav) {
+    Page(t("speed.title"), Icons.Default.Speed, nav) {
         // Server resource card (from MPorT-Tes-Speed catalog)
         Card(
             shape = RoundedCornerShape(14.dp),
@@ -890,7 +890,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                                 CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
                                 Spacer(Modifier.width(6.dp))
                             }
-                            Text(if (probing) "PROBING..." else "AUTO NEAREST", fontSize = 10.sp)
+                            Text(if (probing) "PROBING..." else t("speed.auto_nearest"), fontSize = 10.sp)
                         }
                         OutlinedButton(
                             onClick = {
@@ -898,7 +898,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                                 showServerPicker = false
                             },
                             modifier = Modifier.weight(1f)
-                        ) { Text("DEFAULT HaaNSirO", fontSize = 10.sp) }
+                        ) { Text(t("speed.default_server"), fontSize = 10.sp) }
                     }
                     Text("Katalog server (${catalog.size})", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     catalog.take(12).forEach { s ->
@@ -991,7 +991,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                     if (running) return@Button
                     running = true
                     showServerPicker = false
-                    phase = "Ping..."
+                    phase = com.mporttech.pro.ui.i18n.Str.get("speed.phase_ping", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                     progress = 0.05f
                     ServerSelector.select(selected)
                     status = "${selected.displayName} · ${selected.host.substringBefore(":")}"
@@ -1002,22 +1002,22 @@ fun SpeedTestScreen(nav: NavController? = null) {
                                 engine.run(multiConnection = true) { p ->
                                     when (p.phase) {
                                         Phase.PING -> {
-                                            phase = "Ping..."
+                                            phase = com.mporttech.pro.ui.i18n.Str.get("speed.phase_ping", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                                             progress = 0.1f
                                             if (p.pingMs > 0) pingMs = p.pingMs
                                         }
                                         Phase.DOWNLOAD -> {
-                                            phase = "Download..."
+                                            phase = com.mporttech.pro.ui.i18n.Str.get("speed.phase_download", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                                             progress = (0.15f + (p.mbps / 300.0).toFloat() * 0.4f).coerceIn(0.15f, 0.55f)
                                             if (p.mbps > 0) downloadMbps = p.mbps
                                         }
                                         Phase.UPLOAD -> {
-                                            phase = "Upload..."
+                                            phase = com.mporttech.pro.ui.i18n.Str.get("speed.phase_upload", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                                             progress = (0.55f + (p.mbps / 150.0).toFloat() * 0.4f).coerceIn(0.55f, 0.95f)
                                             if (p.mbps > 0) uploadMbps = p.mbps
                                         }
-                                        Phase.COMPLETED -> { phase = "Selesai"; progress = 1f }
-                                        Phase.ERROR -> { phase = "Error" }
+                                        Phase.COMPLETED -> { phase = com.mporttech.pro.ui.i18n.Str.get("speed.done", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)); progress = 1f }
+                                        Phase.ERROR -> { phase = com.mporttech.pro.ui.i18n.Str.get("common.error", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)) }
                                     }
                                 }
                             }
@@ -1026,7 +1026,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                             pingMs = result.pingMs
                             jitterMs = result.jitterMs
                             lossPct = result.packetLossPercent
-                            phase = "Selesai"
+                            phase = com.mporttech.pro.ui.i18n.Str.get("speed.done", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                             progress = 1f
                             status = "Selesai • ${result.server} • DL ${String.format(Locale.US, "%.1f", result.downloadMbps)} / UL ${String.format(Locale.US, "%.1f", result.uploadMbps)} Mbps"
                             val ts = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()).format(Date())
@@ -1047,9 +1047,9 @@ fun SpeedTestScreen(nav: NavController? = null) {
                                 )
                             )
                         } catch (e: SpeedTestEngine.SpeedTestCancelledException) {
-                            phase = "Dibatalkan"; status = "Tes dibatalkan"
+                            phase = com.mporttech.pro.ui.i18n.Str.get("speed.cancelled", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)); status = com.mporttech.pro.ui.i18n.Str.get("speed.cancel_status", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                         } catch (e: Exception) {
-                            phase = "Gagal"; status = "Gagal: ${e.message}"
+                            phase = com.mporttech.pro.ui.i18n.Str.get("speed.failed", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)); status = com.mporttech.pro.ui.i18n.Str.get("common.error_prefix", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)) + ": ${e.message}"
                             Toast.makeText(context, e.message ?: "Speed test gagal", Toast.LENGTH_LONG).show()
                         } finally {
                             running = false
@@ -1063,16 +1063,20 @@ fun SpeedTestScreen(nav: NavController? = null) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                     Spacer(Modifier.width(8.dp))
                 }
-                Text(if (running) "TESTING..." else "MULAI TEST")
+                Text(
+                    if (running) t("speed.testing") else t("speed.start"),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
+                )
             }
             if (running) {
                 OutlinedButton(
-                    onClick = { engine.cancel(); phase = "Membatalkan..."; status = "Membatalkan tes..." },
+                    onClick = { engine.cancel(); phase = com.mporttech.pro.ui.i18n.Str.get("speed.cancelling", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)); status = com.mporttech.pro.ui.i18n.Str.get("speed.cancelling", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)) },
                     modifier = Modifier.weight(0.45f)
-                ) { Text("STOP") }
+                ) { Text(t("speed.stop")) }
             }
         }
-        Text("History Test Speed", fontWeight = FontWeight.Bold)
+        Text(t("speed.history"), fontWeight = FontWeight.Bold)
         history.forEach { line ->
             val parts = line.split(" — ")
             HistoryRow(parts.getOrElse(0) { line }, parts.getOrElse(1) { "" })
@@ -1080,8 +1084,8 @@ fun SpeedTestScreen(nav: NavController? = null) {
         OutlinedButton(
             onClick = { nav?.navigate("speedResults") },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Lihat semua hasil Speed Test") }
-        CardBlock("History Test Speed") {
+        ) { Text(t("speed.view_all")) }
+        CardBlock(t("speed.engine_info")) {
             Text(
                 "Katalog: ${catalog.size} server\n" +
                     "Default: ${TestServer.haansiro().displayName} · ${TestServer.haansiro().location}\n" +
@@ -1118,7 +1122,7 @@ fun DeviceManagerScreen(nav: NavController) {
         else -> devices
     }
 
-    Page("Device Manager", Icons.Default.Devices, nav) {
+    Page(t("tools.devices"), Icons.Default.Devices, nav) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             filters.forEachIndexed { i, label ->
                 val count = when (i) {
@@ -1344,13 +1348,13 @@ fun AlertsScreen(nav: NavController) {
 
     val items = buildList {
         devices.filter { !it.online }.forEach { d ->
-            add(AlertUiItem("Device Offline", "${d.name}\n${d.ip}", "Baru saja", Color(0xFFFF2E63), "Critical"))
+            add(AlertUiItem(t("alert.device_offline"), "${d.name}\n${d.ip}", com.mporttech.pro.ui.i18n.Str.get("common.refresh", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)).let { "—" }, Color(0xFFFF2E63), "Critical"))
         }
         gatewayMs?.let { ms ->
             if (ms > 150) {
                 add(
                     AlertUiItem(
-                        "High Latency",
+                        t("alert.high_latency_id"),
                         "Gateway ${link.gateway}\nLatency: $ms ms",
                         "Baru saja",
                         Color(0xFFFFD60A),
@@ -1360,7 +1364,7 @@ fun AlertsScreen(nav: NavController) {
             }
         }
         if (!link.online) {
-            add(AlertUiItem("Network Offline", "Tidak ada koneksi aktif", "Baru saja", Color(0xFFFF2E63), "Critical"))
+            add(AlertUiItem(t("alert.network_offline"), t("net.link_offline"), com.mporttech.pro.ui.i18n.Str.get("common.refresh", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)).let { "—" }, Color(0xFFFF2E63), "Critical"))
         }
     }
     val filtered = when (filter) {
@@ -1369,12 +1373,12 @@ fun AlertsScreen(nav: NavController) {
         else -> items
     }
 
-    Page("Alerts & Problems", Icons.Default.Notifications, nav) {
+    Page(t("tools.alerts"), Icons.Default.Notifications, nav) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(
-                "All (${items.size})",
-                "Critical (${items.count { it.severity == "Critical" }})",
-                "Warning (${items.count { it.severity == "Warning" }})"
+                t("alert.filter_all") + " (${items.size})",
+                t("alert.filter_critical") + " (${items.count { it.severity == "Critical" }})",
+                t("alert.filter_warning") + " (${items.count { it.severity == "Warning" }})"
             ).forEachIndexed { i, label ->
                 val selected = filter == i
                 Box(
@@ -1401,7 +1405,7 @@ fun AlertsScreen(nav: NavController) {
             }
         }
         if (filtered.isEmpty()) {
-            Text("Tidak ada alert aktif — jaringan sehat", fontSize = 12.sp, color = Color(0xFF39FF14))
+            Text(t("alert.none"), fontSize = 12.sp, color = Color(0xFF39FF14))
         }
         filtered.forEach { a ->
             AlertCard(a.title, a.detail, a.time, a.color) {
@@ -1447,7 +1451,7 @@ fun AlertDetailScreen(nav: NavController? = null) {
                 color = Color(0xFFE8FBFF)
             )
         }
-        CardBlock("Konteks jaringan saat ini") {
+        CardBlock(t("alert.context")) {
             Text(
                 "Transport  ${link.transport}\n" +
                     "IP lokal  ${link.ip ?: "—"}\n" +
@@ -1457,7 +1461,7 @@ fun AlertDetailScreen(nav: NavController? = null) {
                 lineHeight = 20.sp
             )
         }
-        CardBlock("Tindakan disarankan") {
+        CardBlock(t("alert.actions")) {
             Text(
                 "1. Pastikan Wi‑Fi/ethernet tersambung\n" +
                     "2. Probe gateway dari Device Manager\n" +
@@ -1470,7 +1474,7 @@ fun AlertDetailScreen(nav: NavController? = null) {
         Button(
             onClick = { nav?.navigate("diagnostic") },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("BUKA DIAGNOSTIC") }
+        ) { Text(t("alert.open_diag")) }
     }
 }
 
@@ -1502,12 +1506,12 @@ fun JobsScreen(nav: NavController) {
         }
         else -> tickets
     }
-    Page("Jobs / Tickets", Icons.Default.ConfirmationNumber, nav) {
+    Page(t("tools.jobs"), Icons.Default.ConfirmationNumber, nav) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(
-                "All (${tickets.size})",
-                "Urgent (${tickets.count { it.priority.equals("high", true) || it.priority.equals("urgent", true) }})",
-                "Open (${tickets.count { it.status.equals("OPEN", true) }})"
+                t("jobs.filter_all") + " (${tickets.size})",
+                t("jobs.filter_urgent") + " (${tickets.count { it.priority.equals("high", true) || it.priority.equals("urgent", true) }})",
+                t("jobs.filter_open") + " (${tickets.count { it.status.equals("OPEN", true) }})"
             ).forEachIndexed { i, label ->
                 val selected = filter == i
                 Box(
@@ -1528,7 +1532,7 @@ fun JobsScreen(nav: NavController) {
         }
         if (filtered.isEmpty()) {
             Text(
-                "Belum ada tiket di database lokal. Buat tiket di halaman Tickets atau sinkron dari server.",
+                t("jobs.empty"),
                 fontSize = 12.sp,
                 color = Color(0xFF5EC8E8)
             )
@@ -1566,8 +1570,8 @@ fun JobsScreen(nav: NavController) {
                 Icon(Icons.Default.ConfirmationNumber, null, tint = Color(0xFF00F0FF))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Kelola Tickets", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
-                    Text("Buat / sinkron tiket dari Room + API", fontSize = 11.sp, color = Color(0xFF5EC8E8))
+                    Text(t("jobs.manage"), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFE8FBFF))
+                    Text(t("jobs.manage_sub"), fontSize = 11.sp, color = Color(0xFF5EC8E8))
                 }
                 Text("→", color = Color(0xFF00F0FF), fontSize = 18.sp)
             }
