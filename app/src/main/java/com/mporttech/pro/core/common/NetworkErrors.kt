@@ -10,8 +10,8 @@ object NetworkErrors {
         if (t == null) return "Terjadi kesalahan. Coba lagi."
         return when (t) {
             is SocketTimeoutException -> "Koneksi timeout. Periksa jaringan lalu coba lagi."
-            is UnknownHostException -> "Server tidak ditemukan. Periksa URL atau koneksi internet."
-            is ConnectException -> "Tidak dapat terhubung ke server."
+            is UnknownHostException -> "Server tidak ditemukan (${Constants.API_BASE_URL}). Pastikan HP satu WiFi dengan server."
+            is ConnectException -> "Tidak dapat terhubung ke ${Constants.API_BASE_URL}. Cek server online & firewall."
             is HttpException -> httpMessage(t.code())
             else -> {
                 val msg = t.message.orEmpty()

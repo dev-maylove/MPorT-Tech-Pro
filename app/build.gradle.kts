@@ -57,7 +57,7 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         // Default production API (override per buildType)
-        buildConfigField("String", "API_BASE_URL", "\"https://api.mport.tech/\"")
+        buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.102:8000/\"")
         buildConfigField("boolean", "ALLOW_OFFLINE_DEMO_LOGIN", "false")
         buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")
     }
@@ -134,7 +134,7 @@ android {
             isMinifyEnabled = false
             isDebuggable = true
             // Emulator → host machine. Device LAN: change to http://192.168.x.x:8000/
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.102:8000/\"")
             buildConfigField("boolean", "ALLOW_OFFLINE_DEMO_LOGIN", "true")
             buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")
         }
@@ -142,7 +142,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = false
-            buildConfigField("String", "API_BASE_URL", "\"https://api.mport.tech/\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://192.168.1.102:8000/\"")
             buildConfigField("boolean", "ALLOW_OFFLINE_DEMO_LOGIN", "false")
             // Enable when production cert pins are configured in NetworkModule
             buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")

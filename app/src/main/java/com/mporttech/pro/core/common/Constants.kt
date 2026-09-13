@@ -18,14 +18,15 @@ object Constants {
     const val PREFS_LANG = "mport_lang"
 
     /**
-     * Backend base URL from BuildConfig (debug vs release).
-     * debug  → http://10.0.2.2:8000/ (emulator)
-     * release → https://api.mport.tech/
+     * Backend base URL — LAN server MPorT.
      * Must end with trailing slash for Retrofit.
+     * Override per build via BuildConfig if needed.
      */
-    val API_BASE_URL: String = BuildConfig.API_BASE_URL
+    val API_BASE_URL: String = BuildConfig.API_BASE_URL.ifBlank {
+        "http://192.168.1.102:8000/"
+    }
 
-    /** Offline demo login only on debug builds unless overridden. */
+    /** Offline demo login (debug). */
     val ALLOW_OFFLINE_DEMO_LOGIN: Boolean = BuildConfig.ALLOW_OFFLINE_DEMO_LOGIN
 
     val ENABLE_CERT_PINNING: Boolean = BuildConfig.ENABLE_CERT_PINNING

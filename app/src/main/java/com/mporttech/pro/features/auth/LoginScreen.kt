@@ -177,6 +177,12 @@ fun LoginScreen(
                 fontSize = 11.sp,
                 lineHeight = 16.sp
             )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Server: ${Constants.API_BASE_URL}",
+                color = Color(0xFF4A6070),
+                fontSize = 10.sp
+            )
         }
     }
 }
