@@ -16,16 +16,16 @@ bin/
 gen/
 out/
 .kotlin/
-*.keystore
-*.jks
-release.keystore
-app/release/
-app/build/
 *.log
 *.hprof
 
-# Signing – never commit real secrets
+# Signing – never commit real secrets / keystores
 keystore.properties
 *.keystore
 *.jks
+*.p12
 release.keystore
+keystore/
+!keystore/.gitkeep
+app/release/
+app/build/

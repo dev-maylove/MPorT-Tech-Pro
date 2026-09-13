@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -140,7 +142,7 @@ fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()
                 )
             }
         }
-        item { TechnicianIdentityCard(nav) }
+        item { TechnicianIdentityCard(nav, context) }
         item { NetworkHealthCard(dash) }
         item { DashboardOverview(nav) }
         item {
@@ -154,7 +156,7 @@ fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()
         item { BandwidthCard(dash) }
         item {
             Text(
-                t("dash.quick_access"),
+                t("dash.quick_actions"),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
@@ -177,7 +179,7 @@ fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()
 }
 
 @Composable
-private fun TechnicianIdentityCard(nav: NavController) {
+private fun TechnicianIdentityCard(nav: NavController, context: android.content.Context) {
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)

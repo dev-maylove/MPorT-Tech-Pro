@@ -28,8 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mporttech.pro.R
 import com.mporttech.pro.core.auth.SessionManager
-import com.mporttech.pro.ui.i18n.t
 import com.mporttech.pro.core.auth.UserRole
+import com.mporttech.pro.ui.i18n.loadSavedLanguage
+import com.mporttech.pro.ui.i18n.t
+import com.mporttech.pro.ui.i18n.tr
 
 @Composable
 fun LoginScreen(onLoggedIn: () -> Unit) {
@@ -106,7 +108,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
                         Toast.makeText(context, "Selamat datang, ${user.name} ($role)", Toast.LENGTH_SHORT).show()
                         onLoggedIn()
                     } else {
-                        Toast.makeText(context, t("login.failed"), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, tr("login.failed", loadSavedLanguage(context)), Toast.LENGTH_SHORT).show()
                     }
                 },
                 enabled = !loading && username.isNotBlank() && password.isNotBlank(),
