@@ -70,7 +70,7 @@ object WifiConnector {
             openWifiSettings(context)
             return
         }
-        mainHandler.postDelayed {
+        mainHandler.postDelayed({
             if (activeCallback === callback) cleanup(cm, callback)
         }, 45_000)
     }
