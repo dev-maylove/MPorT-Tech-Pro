@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
+    <!--
+      Cleartext (HTTP) is required for Ookla-compatible speed-test servers.
+      Most ISP / regional servers in the catalog (port 8080) only expose HTTP.
+      This is intentional for a network diagnostic tool; traffic is limited to
+      the user-selected test endpoints and is not used for general browsing.
+    -->
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

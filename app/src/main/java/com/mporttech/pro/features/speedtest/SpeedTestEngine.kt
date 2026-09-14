@@ -53,8 +53,8 @@ object ServerConfig {
     const val readTimeoutMs = 25_000
     const val sampleIntervalMs = 250L
     /** Ping probe timeouts (cellular RTT can be 50–200 ms+). */
-    const val pingConnectTimeoutMs = 5_000
-    const val pingReadTimeoutMs = 4_000
+    const val pingConnectTimeoutMs = 8_000
+    const val pingReadTimeoutMs = 6_000
 
     fun downloadUrlBusted(): String {
         val n = System.nanoTime()
@@ -191,7 +191,7 @@ class SpeedTestEngine {
         }
 
         if (samplesMs.isEmpty()) {
-            throw IllegalStateException("Ping timed out — server did not respond")
+            throw IllegalStateException("Ping timed out — server did not respond (${ServerConfig.serverName} @ ${ServerConfig.baseUrl})")
         }
 
         val sorted = samplesMs.sorted()
