@@ -219,12 +219,22 @@ class SpeedTestEngine {
     }
 
     private fun onePing(): Double? {
-        val url = "${ServerConfig.pingUrl()}?n=${System.nanoTime()}"
-        // Prefer lightweight GET of latency.txt (Ookla). HEAD first can hang on some CGNAT paths.
-        onePingAttempt(url, "GET")?.let { return it }
-        onePingAttempt(url, "HEAD")?.let { return it }
-        // Ranged GET fallback
-        return onePingAttempt(url, "GET_RANGE")
+        // Not every Ookla-compatible server exposes latency.txt. Probe the
+        // configured endpoint first, then safe compatibility fallbacks.
+        val paths = linkedSetOf(
+            ServerConfig.pingPath.ifBlank { "/speedtest/latency.txt" },
+            "/speedtest/latency.txt",
+            "/"
+        )
+        for (path in paths) {
+            val normalizedPath = if (path.startsWith('/')) path else "/$path"
+            val url = "${ServerConfig.baseUrl}$normalizedPath?n=${System.nanoTime()}"
+            // Prefer GET; some HTTP paths/servers do not implement HEAD.
+            onePingAttempt(url, "GET")?.let { return it }
+            onePingAttempt(url, "HEAD")?.let { return it }
+            onePingAttempt(url, "GET_RANGE")?.let { return it }
+        }
+        return null
     }
 
     private fun onePingAttempt(url: String, mode: String): Double? {

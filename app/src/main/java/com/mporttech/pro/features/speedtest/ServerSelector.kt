@@ -61,8 +61,7 @@ object ServerSelector {
     }
 
     private fun probeLatencyFast(server: TestServer): Double? {
-        val resolved = TestServer.resolveHostToIp(server.host)
-        val base = "${server.scheme}://$resolved"
+        val base = server.baseUrl
         val paths = listOf(server.pingPath, "/speedtest/latency.txt", "/").filter { it.isNotBlank() }
         val samples = mutableListOf<Double>()
         repeat(2) {

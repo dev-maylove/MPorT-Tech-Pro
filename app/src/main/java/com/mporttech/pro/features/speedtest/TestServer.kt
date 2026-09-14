@@ -36,22 +36,22 @@ data class TestServer(
         }
 
     /**
-     * Apply this server to [ServerConfig], resolving the host to an **IP address**
-     * so speed tests talk to the IP (not hostname). Original hostname is kept for
-     * the optional HTTP Host header (virtual hosts).
+     * Apply this server without resolving DNS on the UI thread.
+     *
+     * Keeping the original hostname also lets HTTP virtual hosts route the
+     * request normally. DNS is then performed by the network stack when the
+     * actual request runs on Dispatchers.IO.
      */
     fun applyToConfig() {
-        val resolvedHostPort = resolveHostToIp(host)
-        val hostOnly = host.substringBefore(":").trim()
-        // Prefer original DNS name for Host header (virtual hosts). If catalog
-        // already stored a bare IP, keep a sensible default for HaanSirO.
+        val normalizedHost = host.trim()
+        val hostOnly = normalizedHost.substringBefore(":").trim()
         val originalHostname = when {
             hostOnly.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$""")) &&
                 (hostOnly == "165.99.194.173" || name.contains("Haan", ignoreCase = true)) ->
                 "ookla.haansiro.net"
             else -> hostOnly
         }
-        ServerConfig.baseUrl = "$scheme://$resolvedHostPort"
+        ServerConfig.baseUrl = "$scheme://$normalizedHost"
         ServerConfig.originalHostname = originalHostname
         ServerConfig.downloadPath = downloadPath
         ServerConfig.uploadPath = uploadPath
