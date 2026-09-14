@@ -1,5 +1,7 @@
 package com.mporttech.pro.features.speedtest
 
+import com.mporttech.pro.core.network.TcpTuning
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -115,10 +117,7 @@ class SpeedTestEngine {
         resetCancel()
         ensureNotCancelled()
         // HTTP keep-alive + DNS/TCP warm-up (cuts first-byte delay on cellular)
-        try {
-            System.setProperty("http.keepAlive", "true")
-            System.setProperty("http.maxConnections", "8")
-        } catch (_: Exception) { }
+        TcpTuning.applyHttpSystemProperties()
         warmConnection()
 
         onProgress(PhaseProgress(Phase.PING))
@@ -256,9 +255,13 @@ class SpeedTestEngine {
                 // Drain tiny body so connection can be reused (keep-alive)
                 if (mode != "HEAD") {
                     try {
-                        conn.inputStream?.use { ins ->
-                            val buf = ByteArray(512)
-                            while (ins.read(buf) > 0) { /* drain */ }
+                        conn.inputStream?.let { ins ->
+                            try {
+                                val buf = ByteArray(512)
+                                while (ins.read(buf) > 0) { /* drain */ }
+                            } finally {
+                                try { ins.close() } catch (_: Exception) {}
+                            }
                         }
                     } catch (_: Exception) { }
                 }
@@ -283,11 +286,10 @@ class SpeedTestEngine {
                 ?: if (ServerConfig.baseUrl.startsWith("https")) 443 else 80
             // DNS
             java.net.InetAddress.getAllByName(host)
-            // TCP connect
+            // TCP connect with congestion-friendly buffer / NODELAY tuning
             java.net.Socket().use { sock ->
-                sock.tcpNoDelay = true
-                sock.keepAlive = true
                 sock.connect(java.net.InetSocketAddress(host, port), ServerConfig.pingConnectTimeoutMs)
+                TcpTuning.apply(sock, lowLatency = true)
             }
             // One cheap HTTP warm request (not counted in samples)
             onePingAttempt("${ServerConfig.pingUrl()}?warm=${System.nanoTime()}", "GET")
@@ -366,7 +368,6 @@ class SpeedTestEngine {
                             instanceFollowRedirects = true
                             useCaches = false
                             doInput = true
-                            // Prefer identity encoding so byte counts match wire size
                             setRequestProperty("Accept-Encoding", "identity")
                             val _hn = ServerConfig.originalHostname.trim()
                             if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
@@ -379,36 +380,44 @@ class SpeedTestEngine {
                         }
                         try {
                             val code = conn.responseCode
-                            // 200 OK or 206 Partial Content are valid for speed payloads
                             if (code !in 200..299) {
                                 failures++
-                                if (failures >= 5) break
-                                delay(80)
-                                continue
-                            }
-                            failures = 0
-                            val stream = try {
-                                conn.inputStream
-                            } catch (_: Exception) {
-                                conn.errorStream
-                            } ?: run {
-                                failures++
-                                continue
-                            }
-                            BufferedInputStream(stream).use { input ->
-                                while (running.get() && !cancelled) {
-                                    if (System.currentTimeMillis() - startMs >= durationMs) {
-                                        running.set(false)
-                                        break
+                                if (failures >= 5) {
+                                    // stop this worker
+                                } else {
+                                    delay(80)
+                                }
+                            } else {
+                                failures = 0
+                                val stream = try {
+                                    conn.inputStream
+                                } catch (_: Exception) {
+                                    conn.errorStream
+                                }
+                                if (stream == null) {
+                                    failures++
+                                } else {
+                                    // Avoid break/continue inside inline use{} (Kotlin experimental)
+                                    val input = BufferedInputStream(stream)
+                                    try {
+                                        while (running.get() && !cancelled && failures < 5) {
+                                            if (System.currentTimeMillis() - startMs >= durationMs) {
+                                                running.set(false)
+                                                break
+                                            }
+                                            val read = input.read(buffer)
+                                            if (read < 0) break
+                                            if (read > 0) totalBytes.addAndGet(read.toLong())
+                                        }
+                                    } finally {
+                                        try { input.close() } catch (_: Exception) {}
                                     }
-                                    val read = input.read(buffer)
-                                    if (read < 0) break
-                                    if (read > 0) totalBytes.addAndGet(read.toLong())
                                 }
                             }
                         } finally {
                             try { conn.disconnect() } catch (_: Exception) {}
                         }
+                        if (failures >= 5) break
                     } catch (_: Exception) {
                         failures++
                         if (failures >= 6) break
@@ -499,12 +508,15 @@ class SpeedTestEngine {
             }
             try {
                 if (conn.responseCode !in 200..299) return TransferResult(0.0, 0)
-                BufferedInputStream(conn.inputStream).use { input ->
+                val input = BufferedInputStream(conn.inputStream)
+                try {
                     while (bytes < limitBytes && System.currentTimeMillis() - t0 < limitMs) {
                         val n = input.read(buffer)
                         if (n < 0) break
                         bytes += n
                     }
+                } finally {
+                    try { input.close() } catch (_: Exception) {}
                 }
             } finally {
                 conn.disconnect()
@@ -581,20 +593,23 @@ class SpeedTestEngine {
                             setFixedLengthStreamingMode(payload.size)
                         }
                         try {
-                            conn.outputStream.use { out: OutputStream ->
+                            val out = conn.outputStream
+                            try {
                                 var offset = 0
                                 val chunk = 64 * 1024
                                 while (offset < payload.size && running.get() && !cancelled) {
-                                    val end = min(offset + chunk, payload.size)
-                                    out.write(payload, offset, end - offset)
-                                    wireBytes.addAndGet((end - offset).toLong())
-                                    offset = end
                                     if (System.currentTimeMillis() - startMs >= durationMs) {
                                         running.set(false)
                                         break
                                     }
+                                    val end = min(offset + chunk, payload.size)
+                                    out.write(payload, offset, end - offset)
+                                    wireBytes.addAndGet((end - offset).toLong())
+                                    offset = end
                                 }
                                 out.flush()
+                            } finally {
+                                try { out.close() } catch (_: Exception) {}
                             }
                             val code = conn.responseCode
                             // Drain response
