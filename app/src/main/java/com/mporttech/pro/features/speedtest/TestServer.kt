@@ -42,7 +42,15 @@ data class TestServer(
      */
     fun applyToConfig() {
         val resolvedHostPort = resolveHostToIp(host)
-        val originalHostname = host.substringBefore(":").trim()
+        val hostOnly = host.substringBefore(":").trim()
+        // Prefer original DNS name for Host header (virtual hosts). If catalog
+        // already stored a bare IP, keep a sensible default for HaanSirO.
+        val originalHostname = when {
+            hostOnly.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$""")) &&
+                (hostOnly == "165.99.194.173" || name.contains("Haan", ignoreCase = true)) ->
+                "ookla.haansiro.net"
+            else -> hostOnly
+        }
         ServerConfig.baseUrl = "$scheme://$resolvedHostPort"
         ServerConfig.originalHostname = originalHostname
         ServerConfig.downloadPath = downloadPath
@@ -54,7 +62,11 @@ data class TestServer(
     fun copyLatency(ms: Double) = copy(latencyMs = ms)
 
     companion object {
-        /** Resolve host or host:port → ip or ip:port (IPv4 preferred). */
+        /**
+         * Resolve host or host:port → ip:port (IPv4 preferred).
+         * Keeps the original port when present; defaults to 8080 for bare hostnames
+         * that look like Ookla-style endpoints (common catalog pattern).
+         */
         fun resolveHostToIp(hostPort: String): String {
             val raw = hostPort.trim()
             if (raw.isEmpty()) return raw
@@ -76,24 +88,26 @@ data class TestServer(
                 }
             }
             if (host.isEmpty()) return raw
-            if (host.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
-                return if (port != null) "$host:$port" else host
+            val resolvedIp: String = if (host.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
+                host
+            } else {
+                try {
+                    val all = java.net.InetAddress.getAllByName(host)
+                    all.firstOrNull { it is java.net.Inet4Address }?.hostAddress
+                        ?: all.firstOrNull()?.hostAddress
+                        ?: host
+                } catch (_: Exception) {
+                    host
+                }
             }
-            return try {
-                val all = java.net.InetAddress.getAllByName(host)
-                val v4 = all.firstOrNull { it is java.net.Inet4Address }?.hostAddress
-                    ?: all.firstOrNull()?.hostAddress
-                    ?: host
-                if (port != null) "$v4:$port" else v4
-            } catch (_: Exception) {
-                raw
-            }
+            val finalPort = port ?: "8080"
+            return "$resolvedIp:$finalPort"
         }
 
         fun haansiro() = TestServer(
             id = "75224",
             name = "HaanSirO Network",
-            host = "165.99.194.173:8080",  // ookla.haansiro.net → IP
+            host = "165.99.194.173:8080",  // ookla.haansiro.net → IP:8080
             location = "Pati",
             latitude = -6.7487,
             longitude = 111.0379,

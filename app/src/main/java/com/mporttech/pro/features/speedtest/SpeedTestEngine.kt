@@ -20,7 +20,7 @@ import kotlin.random.Random
 /**
  * Port of MPorT-Tes-Speed engine (Flutter) to Kotlin.
  *
- * Server default: http://165.99.194.173:8080 (ookla.haansiro.net IP, Ookla-style paths)
+ * Server default: http://165.99.194.173:8080 (ookla.haansiro.net IP)
  * - Download multi-thread with grace period
  * - Upload multi-thread with accepted-byte scoring
  * - HTTP RTT ping (HEAD / ranged GET)
@@ -34,20 +34,25 @@ object ServerConfig {
     @Volatile var pingPath: String = "/speedtest/latency.txt"
     @Volatile var serverName: String = "HaaNSirO"
 
-    const val downloadDurationSeconds = 15
-    const val uploadDurationSeconds = 15
-    const val gracePeriodSeconds = 3
-    const val downloadThreads = 6
-    const val uploadThreads = 2
+    // Tuned for cellular (higher RTT, jitter, intermittent loss) while still
+    // working well on Wi‑Fi.
+    const val downloadDurationSeconds = 12
+    const val uploadDurationSeconds = 12
+    const val gracePeriodSeconds = 1
+    const val downloadThreads = 3
+    const val uploadThreads = 1
     const val uploadPayloadMegabytes = 1
-    const val pingSamples = 12
-    const val pingWarmup = 2
-    const val pingIntervalMs = 20
-    const val pingTrimCount = 4
+    const val pingSamples = 8
+    const val pingWarmup = 1
+    const val pingIntervalMs = 60
+    const val pingTrimCount = 2
     const val overheadAdjustment = 1.04
-    const val connectTimeoutMs = 10_000
-    const val readTimeoutMs = 20_000
-    const val sampleIntervalMs = 200L
+    const val connectTimeoutMs = 12_000
+    const val readTimeoutMs = 25_000
+    const val sampleIntervalMs = 250L
+    /** Ping probe timeouts (cellular RTT can be 50–200 ms+). */
+    const val pingConnectTimeoutMs = 5_000
+    const val pingReadTimeoutMs = 4_000
 
     fun downloadUrlBusted(): String {
         val n = System.nanoTime()
@@ -109,6 +114,12 @@ class SpeedTestEngine {
     ): SpeedResult = withContext(Dispatchers.IO) {
         resetCancel()
         ensureNotCancelled()
+        // HTTP keep-alive + DNS/TCP warm-up (cuts first-byte delay on cellular)
+        try {
+            System.setProperty("http.keepAlive", "true")
+            System.setProperty("http.maxConnections", "8")
+        } catch (_: Exception) { }
+        warmConnection()
 
         onProgress(PhaseProgress(Phase.PING))
         val ping = measurePing()
@@ -210,62 +221,79 @@ class SpeedTestEngine {
 
     private fun onePing(): Double? {
         val url = "${ServerConfig.pingUrl()}?n=${System.nanoTime()}"
-        // Try HEAD first
-        try {
-            val start = System.nanoTime()
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                requestMethod = "HEAD"
-                connectTimeout = 3000
-                readTimeout = 2000
-                instanceFollowRedirects = false
-                setRequestProperty("Cache-Control", "no-cache")
-                setRequestProperty("Connection", "keep-alive")
-                val _hn = ServerConfig.originalHostname.trim()
-                            if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
-                                setRequestProperty("Host", _hn)
-                            }
-                            setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-            }
-            try {
-                val code = conn.responseCode
-                if (code in 200..399) {
-                    return (System.nanoTime() - start) / 1_000_000.0
-                }
-            } finally {
-                conn.disconnect()
-            }
-        } catch (_: Exception) {
-        }
+        // Prefer lightweight GET of latency.txt (Ookla). HEAD first can hang on some CGNAT paths.
+        onePingAttempt(url, "GET")?.let { return it }
+        onePingAttempt(url, "HEAD")?.let { return it }
+        // Ranged GET fallback
+        return onePingAttempt(url, "GET_RANGE")
+    }
 
-        // Fallback: ranged GET
-        try {
+    private fun onePingAttempt(url: String, mode: String): Double? {
+        return try {
             val start = System.nanoTime()
             val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 3000
-                readTimeout = 2000
+                requestMethod = if (mode == "HEAD") "HEAD" else "GET"
+                connectTimeout = ServerConfig.pingConnectTimeoutMs
+                readTimeout = ServerConfig.pingReadTimeoutMs
                 instanceFollowRedirects = false
-                setRequestProperty("Cache-Control", "no-cache")
-                setRequestProperty("Range", "bytes=0-0")
+                useCaches = false
+                doInput = true
+                setRequestProperty("Accept-Encoding", "identity")
                 setRequestProperty("Connection", "keep-alive")
-                val _hn = ServerConfig.originalHostname.trim()
-                            if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
-                                setRequestProperty("Host", _hn)
-                            }
-                            setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+                setRequestProperty("Cache-Control", "no-cache")
+                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+                if (mode == "GET_RANGE") {
+                    setRequestProperty("Range", "bytes=0-0")
+                }
+                val hn = ServerConfig.originalHostname.trim()
+                if (hn.isNotEmpty() && !hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
+                    setRequestProperty("Host", hn)
+                }
             }
             try {
                 val code = conn.responseCode
-                conn.inputStream?.use { it.readBytes() }
-                if (code in 200..399) {
-                    return (System.nanoTime() - start) / 1_000_000.0
+                if (code !in 200..399 && code != 404) return null
+                // Drain tiny body so connection can be reused (keep-alive)
+                if (mode != "HEAD") {
+                    try {
+                        conn.inputStream?.use { ins ->
+                            val buf = ByteArray(512)
+                            while (ins.read(buf) > 0) { /* drain */ }
+                        }
+                    } catch (_: Exception) { }
                 }
+                (System.nanoTime() - start) / 1_000_000.0
             } finally {
                 conn.disconnect()
             }
         } catch (_: Exception) {
+            null
         }
-        return null
+    }
+
+    /** DNS + TCP warm-up so the first timed ping is not dominated by resolve/connect. */
+    private fun warmConnection() {
+        try {
+            val hostPort = ServerConfig.baseUrl
+                .removePrefix("http://")
+                .removePrefix("https://")
+                .substringBefore("/")
+            val host = hostPort.substringBefore(":")
+            val port = hostPort.substringAfter(":", "").toIntOrNull()
+                ?: if (ServerConfig.baseUrl.startsWith("https")) 443 else 80
+            // DNS
+            java.net.InetAddress.getAllByName(host)
+            // TCP connect
+            java.net.Socket().use { sock ->
+                sock.tcpNoDelay = true
+                sock.keepAlive = true
+                sock.connect(java.net.InetSocketAddress(host, port), ServerConfig.pingConnectTimeoutMs)
+            }
+            // One cheap HTTP warm request (not counted in samples)
+            onePingAttempt("${ServerConfig.pingUrl()}?warm=${System.nanoTime()}", "GET")
+        } catch (_: Exception) {
+            // ignore — actual test still runs
+        }
     }
 
     // ── Download ─────────────────────────────────────────────────────────────
@@ -336,22 +364,38 @@ class SpeedTestEngine {
                             connectTimeout = ServerConfig.connectTimeoutMs
                             readTimeout = ServerConfig.readTimeoutMs
                             instanceFollowRedirects = true
+                            useCaches = false
+                            doInput = true
+                            // Prefer identity encoding so byte counts match wire size
+                            setRequestProperty("Accept-Encoding", "identity")
                             val _hn = ServerConfig.originalHostname.trim()
                             if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
                                 setRequestProperty("Host", _hn)
                             }
                             setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
                             setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
+                            setRequestProperty("Pragma", "no-cache")
                             setRequestProperty("Connection", "keep-alive")
                         }
                         try {
-                            if (conn.responseCode != 200) {
+                            val code = conn.responseCode
+                            // 200 OK or 206 Partial Content are valid for speed payloads
+                            if (code !in 200..299) {
                                 failures++
-                                if (failures >= 3) break
+                                if (failures >= 5) break
+                                delay(80)
                                 continue
                             }
                             failures = 0
-                            BufferedInputStream(conn.inputStream).use { input ->
+                            val stream = try {
+                                conn.inputStream
+                            } catch (_: Exception) {
+                                conn.errorStream
+                            } ?: run {
+                                failures++
+                                continue
+                            }
+                            BufferedInputStream(stream).use { input ->
                                 while (running.get() && !cancelled) {
                                     if (System.currentTimeMillis() - startMs >= durationMs) {
                                         running.set(false)
@@ -359,16 +403,16 @@ class SpeedTestEngine {
                                     }
                                     val read = input.read(buffer)
                                     if (read < 0) break
-                                    totalBytes.addAndGet(read.toLong())
+                                    if (read > 0) totalBytes.addAndGet(read.toLong())
                                 }
                             }
                         } finally {
-                            conn.disconnect()
+                            try { conn.disconnect() } catch (_: Exception) {}
                         }
                     } catch (_: Exception) {
                         failures++
-                        if (failures >= 4) break
-                        delay(40)
+                        if (failures >= 6) break
+                        delay(80)
                     }
                 }
             }
@@ -395,14 +439,82 @@ class SpeedTestEngine {
 
         ensureNotCancelled()
         endGraceIfNeeded()
-        val measuredBytes = max(0, totalBytes.get() - graceBytes)
-        val seconds = activeMs / 1000.0
+        val total = totalBytes.get()
+        var measuredBytes = max(0L, total - graceBytes)
+        // If all data arrived during grace window, still score using full transfer
+        if (measuredBytes <= 0 && total > 0) {
+            measuredBytes = total
+            graceBytes = 0L
+        }
+        val wallSec = max(
+            0.001,
+            (System.currentTimeMillis() - startMs - (if (graceBytes > 0) ServerConfig.gracePeriodSeconds * 1000L else 0L))
+                .coerceAtLeast(200L) / 1000.0
+        )
+        val sampleSec = activeMs / 1000.0
+        val seconds = when {
+            sampleSec > 0.2 -> sampleSec
+            measuredBytes > 0 -> wallSec
+            else -> 0.0
+        }
         if (measuredBytes <= 0 || seconds <= 0) {
+            // Last-resort: single sequential download probe (helps flaky multi-thread / cellular)
+            val fallback = sequentialDownloadProbe()
+            if (fallback.bytes > 0) {
+                onProgress(fallback.mbps)
+                return@coroutineScope fallback
+            }
             throw IllegalStateException("Download timed out or no data was received")
         }
         val mbps = measuredMbps(measuredBytes, seconds)
         onProgress(mbps)
         TransferResult(mbps, measuredBytes)
+    }
+
+    /**
+     * Short single-stream download used when multi-thread measurement collected no bytes.
+     * Downloads up to ~8s or ~12MB — enough to compute a valid Mbps figure.
+     */
+    private fun sequentialDownloadProbe(): TransferResult {
+        val buffer = ByteArray(64 * 1024)
+        val t0 = System.currentTimeMillis()
+        var bytes = 0L
+        val limitMs = 8_000L
+        val limitBytes = 12L * 1024 * 1024
+        try {
+            val conn = (URL(ServerConfig.downloadUrlBusted()).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = ServerConfig.connectTimeoutMs
+                readTimeout = ServerConfig.readTimeoutMs
+                useCaches = false
+                doInput = true
+                instanceFollowRedirects = true
+                setRequestProperty("Accept-Encoding", "identity")
+                val hn = ServerConfig.originalHostname.trim()
+                if (hn.isNotEmpty() && !hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
+                    setRequestProperty("Host", hn)
+                }
+                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+                setRequestProperty("Cache-Control", "no-cache")
+            }
+            try {
+                if (conn.responseCode !in 200..299) return TransferResult(0.0, 0)
+                BufferedInputStream(conn.inputStream).use { input ->
+                    while (bytes < limitBytes && System.currentTimeMillis() - t0 < limitMs) {
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        bytes += n
+                    }
+                }
+            } finally {
+                conn.disconnect()
+            }
+        } catch (_: Exception) {
+            return TransferResult(0.0, 0)
+        }
+        val sec = max(0.2, (System.currentTimeMillis() - t0) / 1000.0)
+        if (bytes <= 0) return TransferResult(0.0, 0)
+        return TransferResult(measuredMbps(bytes, sec), bytes)
     }
 
     // ── Upload ───────────────────────────────────────────────────────────────
