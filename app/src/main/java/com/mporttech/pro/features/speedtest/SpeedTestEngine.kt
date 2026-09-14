@@ -580,9 +580,12 @@ class SpeedTestEngine {
                         val conn = (URL(ServerConfig.uploadUrlBusted()).openConnection() as HttpURLConnection).apply {
                             requestMethod = "POST"
                             doOutput = true
+                            doInput = true
+                            useCaches = false
                             connectTimeout = ServerConfig.connectTimeoutMs
                             readTimeout = ServerConfig.readTimeoutMs
                             setRequestProperty("Content-Type", "application/octet-stream")
+                            setRequestProperty("Accept-Encoding", "identity")
                             val _hn = ServerConfig.originalHostname.trim()
                             if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
                                 setRequestProperty("Host", _hn)
@@ -657,8 +660,11 @@ class SpeedTestEngine {
         sampleTick()
 
         ensureNotCancelled()
-        val bytes = max(0, acceptedBytes.get())
-        // Prefer accepted bytes window after grace
+        var bytes = max(0L, acceptedBytes.get())
+        if (bytes <= 0) {
+            // Server may not echo Content-Length; fall back to bytes written on the wire
+            bytes = max(0L, wireBytes.get())
+        }
         val activeSeconds = max(
             0.001,
             (min(System.currentTimeMillis() - startMs, durationMs) - graceMs).coerceAtLeast(1) / 1000.0

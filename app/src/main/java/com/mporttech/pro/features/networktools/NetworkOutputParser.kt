@@ -263,13 +263,16 @@ object NetworkOutputParser {
                 .start()
 
             val output = StringBuilder(512)
-            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            try {
                 val buf = CharArray(256)
                 while (true) {
                     val n = reader.read(buf)
                     if (n < 0) break
                     output.append(buf, 0, n)
                 }
+            } finally {
+                try { reader.close() } catch (_: Exception) {}
             }
             val finished = process.waitFor(timeoutSec * count + 4L, TimeUnit.SECONDS)
             if (!finished) {
