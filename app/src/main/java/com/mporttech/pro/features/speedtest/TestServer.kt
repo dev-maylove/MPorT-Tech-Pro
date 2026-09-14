@@ -35,21 +35,65 @@ data class TestServer(
             return if (loc.isNotBlank()) "$loc$lat" else host.substringBefore(":") + lat
         }
 
+    /**
+     * Apply this server to [ServerConfig], resolving the host to an **IP address**
+     * so speed tests talk to the IP (not hostname). Original hostname is kept for
+     * the optional HTTP Host header (virtual hosts).
+     */
     fun applyToConfig() {
-        ServerConfig.baseUrl = baseUrl
+        val resolvedHostPort = resolveHostToIp(host)
+        val originalHostname = host.substringBefore(":").trim()
+        ServerConfig.baseUrl = "$scheme://$resolvedHostPort"
+        ServerConfig.originalHostname = originalHostname
         ServerConfig.downloadPath = downloadPath
         ServerConfig.uploadPath = uploadPath
         ServerConfig.pingPath = pingPath
-        ServerConfig.serverName = name
+        ServerConfig.serverName = name.ifBlank { originalHostname }
     }
 
     fun copyLatency(ms: Double) = copy(latencyMs = ms)
 
     companion object {
+        /** Resolve host or host:port → ip or ip:port (IPv4 preferred). */
+        fun resolveHostToIp(hostPort: String): String {
+            val raw = hostPort.trim()
+            if (raw.isEmpty()) return raw
+            val host: String
+            val port: String?
+            when {
+                raw.startsWith("[") -> {
+                    val end = raw.indexOf(']')
+                    host = if (end > 0) raw.substring(1, end) else raw
+                    port = raw.substring(end + 1).removePrefix(":").ifBlank { null }
+                }
+                raw.count { it == ':' } == 1 -> {
+                    host = raw.substringBefore(":")
+                    port = raw.substringAfter(":").ifBlank { null }
+                }
+                else -> {
+                    host = raw
+                    port = null
+                }
+            }
+            if (host.isEmpty()) return raw
+            if (host.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
+                return if (port != null) "$host:$port" else host
+            }
+            return try {
+                val all = java.net.InetAddress.getAllByName(host)
+                val v4 = all.firstOrNull { it is java.net.Inet4Address }?.hostAddress
+                    ?: all.firstOrNull()?.hostAddress
+                    ?: host
+                if (port != null) "$v4:$port" else v4
+            } catch (_: Exception) {
+                raw
+            }
+        }
+
         fun haansiro() = TestServer(
             id = "75224",
             name = "HaanSirO Network",
-            host = "ookla.haansiro.net:8080",
+            host = "165.99.194.173:8080",  // ookla.haansiro.net → IP
             location = "Pati",
             latitude = -6.7487,
             longitude = 111.0379,

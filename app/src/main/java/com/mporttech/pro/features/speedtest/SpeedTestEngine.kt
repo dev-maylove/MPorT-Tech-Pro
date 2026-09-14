@@ -20,13 +20,15 @@ import kotlin.random.Random
 /**
  * Port of MPorT-Tes-Speed engine (Flutter) to Kotlin.
  *
- * Server default: http://ookla.haansiro.net:8080 (Ookla-style paths)
+ * Server default: http://165.99.194.173:8080 (ookla.haansiro.net IP, Ookla-style paths)
  * - Download multi-thread with grace period
  * - Upload multi-thread with accepted-byte scoring
  * - HTTP RTT ping (HEAD / ranged GET)
  */
 object ServerConfig {
-    @Volatile var baseUrl: String = "http://ookla.haansiro.net:8080"
+    @Volatile var baseUrl: String = "http://165.99.194.173:8080"
+    /** Original hostname for HTTP Host header when baseUrl uses an IP. */
+    @Volatile var originalHostname: String = "ookla.haansiro.net"
     @Volatile var downloadPath: String = "/speedtest/download"
     @Volatile var uploadPath: String = "/speedtest/upload.php"
     @Volatile var pingPath: String = "/speedtest/latency.txt"
@@ -218,7 +220,11 @@ class SpeedTestEngine {
                 instanceFollowRedirects = false
                 setRequestProperty("Cache-Control", "no-cache")
                 setRequestProperty("Connection", "keep-alive")
-                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+                val _hn = ServerConfig.originalHostname.trim()
+                            if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
+                                setRequestProperty("Host", _hn)
+                            }
+                            setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
             }
             try {
                 val code = conn.responseCode
@@ -242,7 +248,11 @@ class SpeedTestEngine {
                 setRequestProperty("Cache-Control", "no-cache")
                 setRequestProperty("Range", "bytes=0-0")
                 setRequestProperty("Connection", "keep-alive")
-                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+                val _hn = ServerConfig.originalHostname.trim()
+                            if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
+                                setRequestProperty("Host", _hn)
+                            }
+                            setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
             }
             try {
                 val code = conn.responseCode
@@ -326,6 +336,10 @@ class SpeedTestEngine {
                             connectTimeout = ServerConfig.connectTimeoutMs
                             readTimeout = ServerConfig.readTimeoutMs
                             instanceFollowRedirects = true
+                            val _hn = ServerConfig.originalHostname.trim()
+                            if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
+                                setRequestProperty("Host", _hn)
+                            }
                             setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
                             setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
                             setRequestProperty("Connection", "keep-alive")
@@ -445,6 +459,10 @@ class SpeedTestEngine {
                             connectTimeout = ServerConfig.connectTimeoutMs
                             readTimeout = ServerConfig.readTimeoutMs
                             setRequestProperty("Content-Type", "application/octet-stream")
+                            val _hn = ServerConfig.originalHostname.trim()
+                            if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
+                                setRequestProperty("Host", _hn)
+                            }
                             setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
                             setRequestProperty("Cache-Control", "no-cache")
                             setRequestProperty("Connection", "keep-alive")
