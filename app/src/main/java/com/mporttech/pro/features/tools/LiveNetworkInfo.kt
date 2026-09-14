@@ -72,8 +72,11 @@ object LiveNetworkInfo {
 
     @SuppressLint("MissingPermission")
     fun snapshot(context: Context): LiveLinkInfo {
-        val cm = context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val cm = context.applicationContext.getSystemService(ConnectivityManager::class.java)
+        val wm = context.applicationContext.getSystemService(WifiManager::class.java)
+        if (cm == null || wm == null) {
+            return LiveLinkInfo(false, "Offline", null, null, null, null, null, 0L, 0L)
+        }
         val network = cm.activeNetwork
         val caps = network?.let { cm.getNetworkCapabilities(it) }
         val online = caps != null && (

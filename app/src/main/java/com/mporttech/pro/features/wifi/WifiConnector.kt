@@ -7,7 +7,6 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.wifi.WifiNetworkSpecifier
-import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -15,131 +14,82 @@ import android.provider.Settings
 import androidx.annotation.RequiresApi
 
 /**
- * Opens the system Wi‑Fi password / connect sheet for a given SSID
- * (same system UI as Settings → Wi‑Fi → network → Password + CONNECT).
+ * Wi-Fi connection helper.
  *
- * Android 10+ uses [WifiNetworkSpecifier] + [ConnectivityManager.requestNetwork],
- * which shows the native dialog with Password, Advanced options, CANCEL, CONNECT.
+ * Android does not expose a generic API that lets a third-party app submit an
+ * unknown WPA password to the system settings UI. For secured networks we
+ * therefore hand off to Settings. Open networks may use WifiNetworkSpecifier.
  */
 object WifiConnector {
     private var activeCallback: ConnectivityManager.NetworkCallback? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    /**
-     * @param ssid network name
-     * @param isOpen true if network has no password (Open)
-     */
     fun connect(context: Context, ssid: String, isOpen: Boolean = false) {
         val clean = ssid.removePrefix("★ ").trim()
-        if (clean.isEmpty() || clean.startsWith("<")) {
+        if (clean.isEmpty() || clean.startsWith("<") || !isOpen) {
             openWifiSettings(context)
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            requestWithSpecifier(context, clean, isOpen)
+            requestOpenNetwork(context, clean)
         } else {
             openWifiSettings(context)
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
-    private fun requestWithSpecifier(context: Context, ssid: String, isOpen: Boolean) {
+    private fun requestOpenNetwork(context: Context, ssid: String) {
         val cm = context.applicationContext.getSystemService(ConnectivityManager::class.java)
-            ?: run {
-                openWifiSettings(context)
-                return
-            }
+            ?: run { openWifiSettings(context); return }
 
-        // Cancel previous request so only one system sheet is active
-        activeCallback?.let {
-            try {
-                cm.unregisterNetworkCallback(it)
-            } catch (_: Exception) {
-            }
+        activeCallback?.let { previous ->
+            runCatching { cm.unregisterNetworkCallback(previous) }
             activeCallback = null
         }
 
-        val builder = WifiNetworkSpecifier.Builder().setSsid(ssid)
-        // Open networks: do not set passphrase (system sheet may connect immediately)
-        // Secured networks: omit passphrase so system asks user (Password field)
-
+        val specifier = WifiNetworkSpecifier.Builder().setSsid(ssid).build()
         val request = NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
             .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .setNetworkSpecifier(builder.build())
+            .setNetworkSpecifier(specifier)
             .build()
 
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                // Optional: bind process to this network while connected via specifier
-                try {
-                    cm.bindProcessToNetwork(network)
-                } catch (_: Exception) {
-                }
+                // Do not bind the whole process: that can unexpectedly route all
+                // application traffic through a local-only specifier network.
             }
-
-            override fun onUnavailable() {
-                cleanup(cm, this)
-            }
-
-            override fun onLost(network: Network) {
-                cleanup(cm, this)
-            }
+            override fun onUnavailable() = cleanup(cm, this)
+            override fun onLost(network: Network) = cleanup(cm, this)
         }
         activeCallback = callback
         try {
-            // Shows native system dialog (Password / CONNECT) — same as image 2
             cm.requestNetwork(request, callback, mainHandler, 30_000)
         } catch (_: Exception) {
-            // Fallback: suggestions panel / settings
-            trySuggest(context, ssid)
+            cleanup(cm, callback)
+            openWifiSettings(context)
+            return
         }
-
-        // Safety unregister after 45s if still pending
-        mainHandler.postDelayed({
+        mainHandler.postDelayed {
             if (activeCallback === callback) cleanup(cm, callback)
         }, 45_000)
     }
 
     private fun cleanup(cm: ConnectivityManager, callback: ConnectivityManager.NetworkCallback) {
-        try {
-            cm.unregisterNetworkCallback(callback)
-        } catch (_: Exception) {
-        }
-        try {
-            cm.bindProcessToNetwork(null)
-        } catch (_: Exception) {
-        }
+        runCatching { cm.unregisterNetworkCallback(callback) }
         if (activeCallback === callback) activeCallback = null
-    }
-
-    private fun trySuggest(context: Context, ssid: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            try {
-                val suggestion = WifiNetworkSuggestion.Builder()
-                    .setSsid(ssid)
-                    .setIsAppInteractionRequired(true)
-                    .build()
-                val wm = context.applicationContext.getSystemService(android.net.wifi.WifiManager::class.java)
-                wm?.addNetworkSuggestions(listOf(suggestion))
-            } catch (_: Exception) {
-            }
-        }
-        openWifiSettings(context)
     }
 
     fun openWifiSettings(context: Context) {
         val intents = listOf(
-            // Android 10+ quick panel
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-                Intent(Settings.Panel.ACTION_WIFI) else null,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) Intent(Settings.Panel.ACTION_WIFI) else null,
             Intent(Settings.ACTION_WIFI_SETTINGS),
             Intent(android.net.wifi.WifiManager.ACTION_PICK_WIFI_NETWORK)
         )
         for (intent in intents) {
             if (intent == null) continue
             try {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (context !is android.app.Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
                 return
             } catch (_: Exception) {

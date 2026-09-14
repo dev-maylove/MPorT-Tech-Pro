@@ -7,6 +7,7 @@ import com.mporttech.pro.domain.repository.SpeedTestRepository
 import com.mporttech.pro.features.speedtest.SpeedTestHistoryStore
 import com.mporttech.pro.features.speedtest.SpeedTestRecord
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +30,8 @@ class SpeedTestRepositoryImpl @Inject constructor(
             )
         }
         Result.Success(list)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Result.Error(e.message ?: "Load history failed", e)
     }
@@ -48,6 +51,8 @@ class SpeedTestRepositoryImpl @Inject constructor(
             )
         )
         Result.Success(Unit)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Result.Error(e.message ?: "Save failed", e)
     }
@@ -55,6 +60,8 @@ class SpeedTestRepositoryImpl @Inject constructor(
     override suspend fun clearHistory(): Result<Unit> = try {
         SpeedTestHistoryStore.clear(context)
         Result.Success(Unit)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Result.Error(e.message ?: "Clear failed", e)
     }

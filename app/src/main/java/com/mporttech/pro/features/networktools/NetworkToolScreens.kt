@@ -238,8 +238,8 @@ data class PingStats(
 fun PingToolScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var host by remember { mutableStateOf("8.8.8.8") }
-    var count by remember { mutableStateOf(4) }
+    var host by rememberSaveable { mutableStateOf("8.8.8.8") }
+    var count by rememberSaveable { mutableStateOf(4) }
     var running by remember { mutableStateOf(false) }
     val runFlag = remember { AtomicBoolean(false) }
     var samples by remember { mutableStateOf<List<PingSample>>(emptyList()) }
@@ -476,8 +476,8 @@ data class TraceHop(
 fun TracerouteScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var host by remember { mutableStateOf("google.com") }
-    var maxHops by remember { mutableStateOf(12) }
+    var host by rememberSaveable { mutableStateOf("google.com") }
+    var maxHops by rememberSaveable { mutableStateOf(12) }
     var running by remember { mutableStateOf(false) }
     var hops by remember { mutableStateOf<List<TraceHop>>(emptyList()) }
     var resolvedIp by remember { mutableStateOf<String?>(null) }
@@ -676,7 +676,7 @@ data class DnsRecord(
 fun DnsLookupScreen(nav: NavController? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var query by remember { mutableStateOf("google.com") }
+    var query by rememberSaveable { mutableStateOf("google.com") }
     var running by remember { mutableStateOf(false) }
     var records by remember { mutableStateOf<List<DnsRecord>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }

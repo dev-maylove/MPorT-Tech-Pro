@@ -1381,7 +1381,7 @@ fun DeviceDetailScreen(nav: NavController? = null) {
                         online = ok
                         latency = ms
                         pingResult = if (ok) "Reachable ${ms}ms" else "No response"
-                        appendLog(pingResult!!)
+                        pingResult?.let(::appendLog)
                         busy = false
                     }
                 },

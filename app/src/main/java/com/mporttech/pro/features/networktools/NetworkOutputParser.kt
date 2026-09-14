@@ -5,6 +5,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.ExecutorService
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.InetAddress
@@ -12,6 +17,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
 
 /**
@@ -24,6 +30,15 @@ import java.util.regex.Pattern
  *  4. Parallel port checks with early-exit on first open port for ping.
  */
 object NetworkOutputParser {
+
+    /** Dedicated resolver pool so DNS cannot occupy shared Dispatchers.IO workers. */
+    /**
+     * Bounded resolver pool. A cached/unbounded pool can create too many blocked
+     * resolver threads during repeated start/cancel storms on slow DNS networks.
+     */
+    private val dnsExecutor: ExecutorService = Executors.newFixedThreadPool(2, ThreadFactory { r ->
+        Thread(r, "MPorT-DNS").apply { isDaemon = true }
+    })
 
     // ── Compiled patterns (once) ──────────────────────────────────────────
     // Android busybox/toybox ping variants:
@@ -107,12 +122,12 @@ object NetworkOutputParser {
     /**
      * DNS resolve with timing + record classification (A / AAAA / PTR).
      */
-    suspend fun dnsLookup(query: String): DnsParseResult = withContext(Dispatchers.IO) {
+    suspend fun dnsLookup(query: String): DnsParseResult {
         val q = query.trim()
-        if (q.isEmpty()) return@withContext DnsParseResult(emptyList(), 0, "Query kosong")
+        if (q.isEmpty()) return DnsParseResult(emptyList(), 0, "Query kosong")
         val start = System.nanoTime()
-        try {
-            val addresses = InetAddress.getAllByName(q)
+        return try {
+            val addresses = resolveDnsCancellable(q)
             val records = ArrayList<DnsRecordParsed>(addresses.size + 2)
             var canonical: String? = null
             for (addr in addresses) {
@@ -127,17 +142,36 @@ object NetworkOutputParser {
                         canonical = cn
                         records.add(DnsRecordParsed("CNAME/PTR", cn, "canonical"))
                     }
-                } catch (_: Exception) {
-                }
+                } catch (_: Exception) { }
             }
             records.add(DnsRecordParsed("RESOLVER", "System DNS (Android)", "InetAddress"))
             val ms = (System.nanoTime() - start) / 1_000_000
             DnsParseResult(records, ms, null, canonical)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             val ms = (System.nanoTime() - start) / 1_000_000
             DnsParseResult(emptyList(), ms, e.message ?: "Lookup failed")
         }
     }
+
+    /**
+     * Makes the caller cancellable immediately and isolates the platform's blocking
+     * InetAddress resolver from Dispatchers.IO. Cancellation interrupts the worker;
+     * platform DNS itself may still finish in the background on some Android versions.
+     */
+    private suspend fun resolveDnsCancellable(query: String): Array<InetAddress> =
+        suspendCancellableCoroutine { continuation ->
+            val future = dnsExecutor.submit {
+                try {
+                    val result = InetAddress.getAllByName(query)
+                    if (continuation.isActive) continuation.resume(result)
+                } catch (t: Throwable) {
+                    if (continuation.isActive) continuation.resumeWith(Result.failure(t))
+                }
+            }
+            continuation.invokeOnCancellation { future.cancel(true) }
+        }
 
     /**
      * Parallel TCP port scan with structured results.

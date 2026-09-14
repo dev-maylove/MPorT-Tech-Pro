@@ -3,6 +3,10 @@ package com.mporttech.pro.core.auth
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
+import com.mporttech.pro.BuildConfig
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.Base64
 
 enum class UserRole { GUEST, TECHNICIAN, ADMIN }
 
@@ -87,13 +91,15 @@ object SessionManager {
     fun loginOffline(context: Context, username: String, password: String): AppUser? {
         val u = username.trim()
         val p = password
-        if (u.equals("admin", true) && p == "admin123") {
-            val admin = AppUser("admin", "Administrator", "admin", UserRole.ADMIN, "admin123")
+        // Demo credentials are available only in debug/demo builds. They are never
+        // accepted by production builds.
+        if (BuildConfig.ALLOW_OFFLINE_DEMO_LOGIN && u.equals("admin", true) && p == "admin123") {
+            val admin = AppUser("admin", "Administrator", "admin", UserRole.ADMIN)
             saveLocalSession(context, admin)
             return admin
         }
         val tech = listTechnicians(context).firstOrNull {
-            it.username.equals(u, true) && it.password == p
+            it.username.equals(u, true) && verifyPassword(p, it.password)
         } ?: return null
         saveLocalSession(context, tech)
         return tech
@@ -135,7 +141,7 @@ object SessionManager {
                 name = name.trim(),
                 username = username.trim(),
                 role = UserRole.TECHNICIAN,
-                password = password
+                password = hashPassword(password)
             )
         )
         saveTechs(context, list)
@@ -150,8 +156,9 @@ object SessionManager {
     }
 
     private fun saveLocalSession(context: Context, user: AppUser) {
+        val sessionUser = user.copy(password = "")
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(KEY_USER, toJson(user).toString())
+            .putString(KEY_USER, toJson(sessionUser, includePassword = false).toString())
             .putString(KEY_SOURCE, "local")
             .apply()
     }
@@ -160,7 +167,7 @@ object SessionManager {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.contains(KEY_TECHS)) {
             val seed = listOf(
-                AppUser("tech_seed", "Budi Santoso", "budi", UserRole.TECHNICIAN, "budi123")
+                AppUser("tech_seed", "Budi Santoso", "budi", UserRole.TECHNICIAN, hashPassword("budi123"))
             )
             saveTechs(context, seed)
         }
@@ -173,13 +180,38 @@ object SessionManager {
             .edit().putString(KEY_TECHS, arr.toString()).apply()
     }
 
-    private fun toJson(u: AppUser) = JSONObject().apply {
+    private fun toJson(u: AppUser, includePassword: Boolean = true) = JSONObject().apply {
         put("id", u.id)
         put("name", u.name)
         put("username", u.username)
         put("role", u.role.name)
-        put("password", u.password)
+        if (includePassword && u.password.isNotBlank()) put("password", u.password)
     }
+
+    private fun hashPassword(password: String): String {
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val digest = MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest(salt + password.toByteArray(Charsets.UTF_8))
+        return Base64.getEncoder().encodeToString(salt) + ":" + Base64.getEncoder().encodeToString(bytes)
+    }
+
+    private fun verifyPassword(password: String, stored: String): Boolean {
+        // Backward-compatible with existing installs; successful legacy login is
+        // migrated to a hash by add/update flows on future saves.
+        if (!stored.contains(":")) return constantTimeEquals(stored, password)
+        val parts = stored.split(":", limit = 2)
+        if (parts.size != 2) return false
+        return try {
+            val salt = Base64.getDecoder().decode(parts[0])
+            val expected = Base64.getDecoder().decode(parts[1])
+            val actual = MessageDigest.getInstance("SHA-256")
+                .digest(salt + password.toByteArray(Charsets.UTF_8))
+            MessageDigest.isEqual(expected, actual)
+        } catch (_: IllegalArgumentException) { false }
+    }
+
+    private fun constantTimeEquals(a: String, b: String): Boolean =
+        MessageDigest.isEqual(a.toByteArray(Charsets.UTF_8), b.toByteArray(Charsets.UTF_8))
 
     private fun parseUser(raw: String): AppUser? = try {
         parseUserObj(JSONObject(raw))

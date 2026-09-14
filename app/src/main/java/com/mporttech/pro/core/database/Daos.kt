@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -24,6 +25,12 @@ interface CustomerDao {
 
     @Query("DELETE FROM customers")
     suspend fun clear()
+
+    @Transaction
+    suspend fun replaceAll(items: List<CustomerEntity>) {
+        clear()
+        if (items.isNotEmpty()) insertAll(items)
+    }
 
     @Delete
     suspend fun delete(item: CustomerEntity)
@@ -45,6 +52,12 @@ interface TicketDao {
 
     @Query("DELETE FROM tickets")
     suspend fun clear()
+
+    @Transaction
+    suspend fun replaceAll(items: List<TicketEntity>) {
+        clear()
+        if (items.isNotEmpty()) insertAll(items)
+    }
 
     @Update
     suspend fun update(item: TicketEntity)

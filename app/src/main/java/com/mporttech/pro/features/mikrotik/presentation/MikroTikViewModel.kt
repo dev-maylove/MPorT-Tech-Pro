@@ -7,6 +7,7 @@ import com.mporttech.pro.core.security.RouterCredentials
 import com.mporttech.pro.features.mikrotik.connection.RouterSession
 import com.mporttech.pro.features.mikrotik.model.RouterInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -66,17 +67,19 @@ class MikroTikViewModel @Inject constructor(
                     host = state.host.trim(),
                     username = state.username.trim().ifBlank { "admin" },
                     password = state.password,
-                    port = state.port.toIntOrNull() ?: 8728
+                    port = (state.port.toIntOrNull() ?: 8728).also { require(it in 1..65535) { "Port tidak valid" } }
                 )
-                credentials.saveRouter(c)
                 val info = session.connect(c)
+                credentials.saveRouter(c)
                 _ui.update {
                     it.copy(
                         connecting = false,
                         info = info,
-                        message = "Session siap · API RouterOS menyusul"
+                        message = "Terhubung ke RouterOS"
                     )
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _ui.update {
                     it.copy(connecting = false, error = e.message ?: "Connect failed")

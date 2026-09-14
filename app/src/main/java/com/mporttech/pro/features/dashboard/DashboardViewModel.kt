@@ -7,6 +7,7 @@ import com.mporttech.pro.domain.usecase.network.GetNetworkInfoUseCase
 import com.mporttech.pro.features.tools.LiveNetworkInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,10 @@ class DashboardViewModel @Inject constructor(
                     refreshOnce()
                     val (rx, tx) = LiveNetworkInfo.measureTrafficDeltaMbps(1200)
                     _ui.update { it.copy(rxMbps = rx, txMbps = tx) }
+                    // Avoid a tight continuous polling loop when the dashboard stays open.
+                    delay(800)
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     _ui.update { it.copy(error = e.message, loading = false) }
                     delay(2000)
@@ -49,6 +54,8 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 refreshOnce()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _ui.update { it.copy(error = e.message, loading = false) }
             }

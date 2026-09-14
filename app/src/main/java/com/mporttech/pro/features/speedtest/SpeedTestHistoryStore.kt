@@ -16,11 +16,12 @@ data class SpeedTestRecord(
 )
 
 object SpeedTestHistoryStore {
+    private val lock = Any()
     private const val PREFS = "mport_speed_history"
     private const val KEY = "records"
     private const val MAX = 30
 
-    fun add(context: Context, record: SpeedTestRecord) {
+    fun add(context: Context, record: SpeedTestRecord) = synchronized(lock) {
         val list = load(context).toMutableList()
         list.add(0, record)
         save(context, list.take(MAX))
@@ -49,8 +50,8 @@ object SpeedTestHistoryStore {
         }
     }
 
-    fun clear(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).apply()
+    fun clear(context: Context) = synchronized(lock) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).commit()
     }
 
     private fun save(context: Context, list: List<SpeedTestRecord>) {
@@ -68,6 +69,6 @@ object SpeedTestHistoryStore {
             })
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString(KEY, arr.toString()).apply()
+            .edit().putString(KEY, arr.toString()).commit()
     }
 }

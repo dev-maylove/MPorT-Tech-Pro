@@ -69,7 +69,8 @@ data class WifiScanSnapshot(
 @SuppressLint("MissingPermission")
 class WifiAnalyzer(private val context: Context) {
     private val wifi: WifiManager =
-        context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        context.applicationContext.getSystemService(WifiManager::class.java)
+            ?: throw IllegalStateException("Wi-Fi service unavailable")
 
 
     private fun hasScanPermission(): Boolean {

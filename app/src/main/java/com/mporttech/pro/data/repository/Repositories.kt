@@ -12,6 +12,7 @@ import com.mporttech.pro.data.remote.MportApi
 import com.mporttech.pro.data.remote.dto.CreateTicketRequest
 import com.mporttech.pro.data.remote.dto.RemoteCustomerDto
 import com.mporttech.pro.data.remote.dto.RemoteTicketDto
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -51,11 +52,12 @@ class CustomerRepository @Inject constructor(
             }
             val list = response.body()?.data.orEmpty()
             val entities = list.map { it.toEntity() }
-            // Only replace local cache after a successful response
-            dao.clear()
-            if (entities.isNotEmpty()) dao.insertAll(entities)
+            // Replace atomically so observers never see a partially synced cache.
+            dao.replaceAll(entities)
             lastSyncAtMs = System.currentTimeMillis()
             Result.Success(entities.size)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             // Keep existing local data on failure
             Result.Error(NetworkErrors.userMessage(e))
@@ -115,10 +117,11 @@ class TicketRepository @Inject constructor(
             }
             val list = response.body()?.data.orEmpty()
             val entities = list.map { it.toEntity() }
-            dao.clear()
-            if (entities.isNotEmpty()) dao.insertAll(entities)
+            dao.replaceAll(entities)
             lastSyncAtMs = System.currentTimeMillis()
             Result.Success(entities.size)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.Error(NetworkErrors.userMessage(e))
         }

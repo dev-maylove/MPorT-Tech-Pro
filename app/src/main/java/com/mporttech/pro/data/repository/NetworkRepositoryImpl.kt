@@ -7,6 +7,7 @@ import com.mporttech.pro.domain.model.NetworkInfo
 import com.mporttech.pro.domain.repository.NetworkRepository
 import com.mporttech.pro.features.tools.LiveNetworkInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,6 +31,8 @@ class NetworkRepositoryImpl @Inject constructor(
                 rssiDbm = null
             )
         )
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Result.Error(e.message ?: "Network info failed", e)
     }
@@ -47,6 +50,8 @@ class NetworkRepositoryImpl @Inject constructor(
                 )
             }
         )
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Result.Error(e.message ?: "Scan failed", e)
     }

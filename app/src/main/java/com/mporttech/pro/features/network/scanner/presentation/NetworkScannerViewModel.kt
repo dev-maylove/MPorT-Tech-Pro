@@ -6,6 +6,7 @@ import com.mporttech.pro.core.common.Result
 import com.mporttech.pro.domain.usecase.network.ScanNetworkUseCase
 import com.mporttech.pro.features.network.scanner.model.ScanUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,12 +22,15 @@ class NetworkScannerViewModel @Inject constructor(
     private val _ui = MutableStateFlow(ScanUiState())
     val uiState: StateFlow<ScanUiState> = _ui.asStateFlow()
 
+    private var scanJob: Job? = null
+
     fun setAuthorized(value: Boolean) {
         _ui.update { it.copy(authorized = value) }
     }
 
     fun scan(authorized: Boolean = _ui.value.authorized) {
-        viewModelScope.launch {
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch {
             _ui.update { it.copy(loading = true, status = "Searching network…", error = null) }
             when (val r = scanNetwork(authorized)) {
                 is Result.Success -> {
@@ -49,7 +53,8 @@ class NetworkScannerViewModel @Inject constructor(
     }
 
     fun quickScan() {
-        viewModelScope.launch {
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch {
             _ui.update { it.copy(loading = true, status = "Searching nearby…", error = null) }
             when (val quick = scanNetwork(false)) {
                 is Result.Success -> {
@@ -67,7 +72,11 @@ class NetworkScannerViewModel @Inject constructor(
                 Result.Loading -> Unit
             }
             if (_ui.value.authorized) {
-                scan(true)
+                when (val full = scanNetwork(true)) {
+                    is Result.Success -> _ui.update { it.copy(loading = false, devices = full.data, status = "${full.data.size} devices found") }
+                    is Result.Error -> _ui.update { it.copy(loading = false, error = full.message, status = full.message) }
+                    Result.Loading -> Unit
+                }
             } else {
                 _ui.update { it.copy(loading = false) }
             }
