@@ -64,6 +64,7 @@ data class TestServer(
 
         ServerConfig.baseUrl = "$finalScheme://$normalizedHost"
         ServerConfig.originalHostname = originalHostname
+        ServerConfig.resolvedBaseUrl = null // clear sticky origin from previous server
         ServerConfig.downloadPath = downloadPath
         ServerConfig.uploadPath = uploadPath
         ServerConfig.pingPath = pingPath

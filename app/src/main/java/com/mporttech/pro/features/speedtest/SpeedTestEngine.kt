@@ -31,6 +31,8 @@ object ServerConfig {
     @Volatile var baseUrl: String = "http://165.99.194.173:8080"
     /** Original hostname for HTTP Host header when baseUrl uses an IP. */
     @Volatile var originalHostname: String = "ookla.haansiro.net"
+    /** After first HTTP→HTTPS redirect, stick to this origin for the rest of the test. */
+    @Volatile var resolvedBaseUrl: String? = null
     @Volatile var downloadPath: String = "/speedtest/download"
     @Volatile var uploadPath: String = "/speedtest/upload.php"
     @Volatile var pingPath: String = "/speedtest/latency.txt"
@@ -56,9 +58,11 @@ object ServerConfig {
     const val pingConnectTimeoutMs = 8_000
     const val pingReadTimeoutMs = 6_000
 
+    fun effectiveBase(): String = resolvedBaseUrl?.takeIf { it.isNotBlank() } ?: baseUrl
+
     fun downloadUrlBusted(): String {
         val n = System.nanoTime()
-        val base = "$baseUrl$downloadPath"
+        val base = "${effectiveBase()}$downloadPath"
         return if (downloadPath.contains("speedtest")) {
             "$base?size=35000000&n=$n"
         } else {
@@ -68,10 +72,10 @@ object ServerConfig {
 
     fun uploadUrlBusted(): String {
         val n = System.nanoTime()
-        return "$baseUrl$uploadPath?n=$n"
+        return "${effectiveBase()}$uploadPath?n=$n"
     }
 
-    fun pingUrl(): String = "$baseUrl$pingPath"
+    fun pingUrl(): String = "${effectiveBase()}$pingPath"
 }
 
 data class SpeedResult(
@@ -114,6 +118,22 @@ class SpeedTestEngine {
      * Open GET/POST connection for speed-test payloads.
      * Manually follows HTTP→HTTPS redirects (Android does not auto-follow those).
      */
+    /** Probe download URL once to capture HTTP→HTTPS final origin into resolvedBaseUrl. */
+    private fun resolveOriginViaRedirect() {
+        try {
+            val conn = openSpeedConnection(ServerConfig.downloadUrlBusted(), "GET")
+            try {
+                // Touch response to complete redirect chain
+                conn.responseCode
+                conn.inputStream?.close()
+            } finally {
+                conn.disconnect()
+            }
+        } catch (_: Exception) {
+            // leave resolvedBaseUrl as-is; transfers still try baseUrl
+        }
+    }
+
     private fun openSpeedConnection(
         urlStr: String,
         method: String = "GET",
@@ -145,6 +165,11 @@ class SpeedTestEngine {
                     setRequestProperty("Host", hn)
                 }
             }
+            // POST must not call responseCode before the body is written.
+            // Origin should already be resolved via GET (resolveOriginViaRedirect / ping).
+            if (method == "POST") {
+                return conn
+            }
             val code = try { conn.responseCode } catch (e: Exception) {
                 conn.disconnect()
                 throw e
@@ -159,6 +184,14 @@ class SpeedTestEngine {
                 }
                 redirects++
                 continue
+            }
+            // Stick subsequent requests to the final origin (skip redirect storm)
+            if (redirects > 0) {
+                try {
+                    val u = URL(current)
+                    val port = if (u.port != -1) ":${u.port}" else ""
+                    ServerConfig.resolvedBaseUrl = "${u.protocol}://${u.host}$port"
+                } catch (_: Exception) { }
             }
             return conn
         }
@@ -191,6 +224,10 @@ class SpeedTestEngine {
         val ping = measurePing()
         ensureNotCancelled()
         onProgress(PhaseProgress(Phase.PING, pingMs = ping.ping))
+        // Ensure sticky HTTPS origin is set before multi-thread transfer
+        if (ServerConfig.resolvedBaseUrl.isNullOrBlank()) {
+            resolveOriginViaRedirect()
+        }
 
         onProgress(PhaseProgress(Phase.DOWNLOAD))
         val dlThreads = if (multiConnection) ServerConfig.downloadThreads else 1
@@ -295,7 +332,7 @@ class SpeedTestEngine {
         )
         for (path in paths) {
             val normalizedPath = if (path.startsWith('/')) path else "/$path"
-            val url = "${ServerConfig.baseUrl}$normalizedPath?n=${System.nanoTime()}"
+            val url = "${ServerConfig.effectiveBase()}$normalizedPath?n=${System.nanoTime()}"
             // Prefer GET; some HTTP paths/servers do not implement HEAD.
             onePingAttempt(url, "GET")?.let { return it }
             onePingAttempt(url, "HEAD")?.let { return it }
@@ -351,6 +388,13 @@ class SpeedTestEngine {
                 break
             }
             val finalConn = conn ?: return null
+            if (redirects > 0) {
+                try {
+                    val u = URL(current)
+                    val port = if (u.port != -1) ":${u.port}" else ""
+                    ServerConfig.resolvedBaseUrl = "${u.protocol}://${u.host}$port"
+                } catch (_: Exception) { }
+            }
             try {
                 val code = finalConn.responseCode
                 if (code !in 200..399 && code != 404) return null
