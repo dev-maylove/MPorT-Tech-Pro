@@ -1005,8 +1005,17 @@ fun SpeedTestScreen(nav: NavController? = null) {
                 Modifier.fillMaxWidth().padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val resolvedIp = remember(selected.host) {
-                    try { TestServer.resolveHostToIp(selected.host).substringBefore(":") } catch (_: Exception) { selected.host.substringBefore(":") }
+                val resolvedIp = remember(selected.id, selected.host) {
+                    try {
+                        // Prefer actual endpoint host after applyToConfig (Ookla CDN / IP)
+                        val fromConfig = ServerConfig.baseUrl
+                            .removePrefix("https://").removePrefix("http://")
+                            .substringBefore("/")
+                        TestServer.resolveHostToIp(fromConfig).substringBefore(":")
+                    } catch (_: Exception) {
+                        try { TestServer.resolveHostToIp(selected.host).substringBefore(":") }
+                        catch (_: Exception) { selected.host.substringBefore(":") }
+                    }
                 }
                 Text("${selected.displayName}  •  $resolvedIp", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (selected.sponsor.isNotBlank() && selected.sponsor != selected.displayName) {

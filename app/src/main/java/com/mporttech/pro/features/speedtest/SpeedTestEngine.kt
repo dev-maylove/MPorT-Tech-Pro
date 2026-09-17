@@ -110,6 +110,73 @@ class SpeedTestEngine {
         cancelFlag.set(false)
     }
 
+    /**
+     * Open GET/POST connection for speed-test payloads.
+     * Manually follows HTTP→HTTPS redirects (Android does not auto-follow those).
+     */
+    private fun openSpeedConnection(
+        urlStr: String,
+        method: String = "GET",
+        maxRedirects: Int = 4
+    ): HttpURLConnection {
+        var current = urlStr
+        var redirects = 0
+        while (true) {
+            val conn = (URL(current).openConnection() as HttpURLConnection).apply {
+                requestMethod = method
+                connectTimeout = ServerConfig.connectTimeoutMs
+                readTimeout = ServerConfig.readTimeoutMs
+                instanceFollowRedirects = false // we handle ourselves
+                useCaches = false
+                doInput = true
+                if (method == "POST") doOutput = true
+                setRequestProperty("Accept-Encoding", "identity")
+                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+                setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
+                setRequestProperty("Pragma", "no-cache")
+                setRequestProperty("Connection", "keep-alive")
+                // Only set Host when baseUrl is IP but we need virtual-host routing
+                val hn = ServerConfig.originalHostname.trim()
+                val urlHost = try { URL(current).host } catch (_: Exception) { "" }
+                if (hn.isNotEmpty()
+                    && !hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
+                    && urlHost.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
+                ) {
+                    setRequestProperty("Host", hn)
+                }
+            }
+            val code = try { conn.responseCode } catch (e: Exception) {
+                conn.disconnect()
+                throw e
+            }
+            if (code in 300..399 && redirects < maxRedirects) {
+                val loc = conn.getHeaderField("Location")
+                conn.disconnect()
+                if (loc.isNullOrBlank()) break
+                current = if (loc.startsWith("http")) loc else {
+                    val base = URL(current)
+                    URL(base, loc).toString()
+                }
+                redirects++
+                continue
+            }
+            return conn
+        }
+        // Fallback last URL with default follow
+        return (URL(current).openConnection() as HttpURLConnection).apply {
+            requestMethod = method
+            connectTimeout = ServerConfig.connectTimeoutMs
+            readTimeout = ServerConfig.readTimeoutMs
+            instanceFollowRedirects = true
+            useCaches = false
+            doInput = true
+            if (method == "POST") doOutput = true
+            setRequestProperty("Accept-Encoding", "identity")
+            setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+        }
+    }
+
+
     suspend fun run(
         multiConnection: Boolean = true,
         onProgress: (PhaseProgress) -> Unit = {}
@@ -371,23 +438,7 @@ class SpeedTestEngine {
                         break
                     }
                     try {
-                        val conn = (URL(ServerConfig.downloadUrlBusted()).openConnection() as HttpURLConnection).apply {
-                            requestMethod = "GET"
-                            connectTimeout = ServerConfig.connectTimeoutMs
-                            readTimeout = ServerConfig.readTimeoutMs
-                            instanceFollowRedirects = true
-                            useCaches = false
-                            doInput = true
-                            setRequestProperty("Accept-Encoding", "identity")
-                            val _hn = ServerConfig.originalHostname.trim()
-                            if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
-                                setRequestProperty("Host", _hn)
-                            }
-                            setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-                            setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
-                            setRequestProperty("Pragma", "no-cache")
-                            setRequestProperty("Connection", "keep-alive")
-                        }
+                        val conn = openSpeedConnection(ServerConfig.downloadUrlBusted(), "GET")
                         try {
                             val code = conn.responseCode
                             if (code !in 200..299) {
@@ -501,21 +552,7 @@ class SpeedTestEngine {
         val limitMs = 8_000L
         val limitBytes = 12L * 1024 * 1024
         try {
-            val conn = (URL(ServerConfig.downloadUrlBusted()).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = ServerConfig.connectTimeoutMs
-                readTimeout = ServerConfig.readTimeoutMs
-                useCaches = false
-                doInput = true
-                instanceFollowRedirects = true
-                setRequestProperty("Accept-Encoding", "identity")
-                val hn = ServerConfig.originalHostname.trim()
-                if (hn.isNotEmpty() && !hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
-                    setRequestProperty("Host", hn)
-                }
-                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-                setRequestProperty("Cache-Control", "no-cache")
-            }
+            val conn = openSpeedConnection(ServerConfig.downloadUrlBusted(), "GET")
             try {
                 if (conn.responseCode !in 200..299) return TransferResult(0.0, 0)
                 val input = BufferedInputStream(conn.inputStream)
@@ -587,22 +624,8 @@ class SpeedTestEngine {
                 var failures = 0
                 while (running.get() && !cancelled && System.currentTimeMillis() - startMs < durationMs) {
                     try {
-                        val conn = (URL(ServerConfig.uploadUrlBusted()).openConnection() as HttpURLConnection).apply {
-                            requestMethod = "POST"
-                            doOutput = true
-                            doInput = true
-                            useCaches = false
-                            connectTimeout = ServerConfig.connectTimeoutMs
-                            readTimeout = ServerConfig.readTimeoutMs
+                        val conn = openSpeedConnection(ServerConfig.uploadUrlBusted(), "POST").apply {
                             setRequestProperty("Content-Type", "application/octet-stream")
-                            setRequestProperty("Accept-Encoding", "identity")
-                            val _hn = ServerConfig.originalHostname.trim()
-                            if (_hn.isNotEmpty() && !_hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
-                                setRequestProperty("Host", _hn)
-                            }
-                            setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-                            setRequestProperty("Cache-Control", "no-cache")
-                            setRequestProperty("Connection", "keep-alive")
                             setFixedLengthStreamingMode(payload.size)
                         }
                         try {
