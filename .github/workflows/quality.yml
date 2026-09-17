@@ -1,0 +1,11 @@
+name: Quality
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  lint-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tree check
+        run: bash scripts/check-project.sh || true

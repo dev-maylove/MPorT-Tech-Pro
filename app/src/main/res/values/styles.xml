@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MPorTTechPro" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#03060F</item>
+        <item name="android:navigationBarColor">#03060F</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+
+    <!-- Android 11 and below fallback splash. Android 12+ uses values-v31. -->
+    <style name="Theme.MPorTTechPro.Splash" parent="Theme.MPorTTechPro">
+        <item name="android:windowBackground">@drawable/legacy_splash_background</item>
+    </style>
+</resources>
