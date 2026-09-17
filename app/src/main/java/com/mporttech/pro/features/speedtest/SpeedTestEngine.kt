@@ -118,97 +118,136 @@ class SpeedTestEngine {
      * Open GET/POST connection for speed-test payloads.
      * Manually follows HTTP→HTTPS redirects (Android does not auto-follow those).
      */
-    /** Probe download URL once to capture HTTP→HTTPS final origin into resolvedBaseUrl. */
+    // ── Connection layer ─────────────────────────────────────────────────────
+
+    private fun isIpv4(host: String): Boolean =
+        host.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
+
+    private fun originOf(urlStr: String): String {
+        val u = URL(urlStr)
+        // Keep non-default ports (Ookla uses :8080 even on HTTPS)
+        val portPart = when {
+            u.port != -1 && !(u.protocol == "https" && u.port == 443) &&
+                !(u.protocol == "http" && u.port == 80) -> ":${u.port}"
+            else -> ""
+        }
+        return "${u.protocol}://${u.host}$portPart"
+    }
+
+    private fun applyCommonHeaders(conn: HttpURLConnection, urlStr: String) {
+        conn.connectTimeout = ServerConfig.connectTimeoutMs
+        conn.readTimeout = ServerConfig.readTimeoutMs
+        conn.instanceFollowRedirects = false
+        conn.useCaches = false
+        conn.doInput = true
+        conn.setRequestProperty("Accept-Encoding", "identity")
+        conn.setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+        conn.setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
+        conn.setRequestProperty("Pragma", "no-cache")
+        conn.setRequestProperty("Connection", "keep-alive")
+        // Virtual-host only when connecting by raw IP (Haansiro)
+        val hn = ServerConfig.originalHostname.trim()
+        val urlHost = try { URL(urlStr).host } catch (_: Exception) { "" }
+        if (hn.isNotEmpty() && !isIpv4(hn) && isIpv4(urlHost)) {
+            conn.setRequestProperty("Host", hn)
+        }
+    }
+
+    /**
+     * Resolve the real origin before the timed test.
+     * Handles servers that answer on HTTP and those that 307 → HTTPS Ookla CDN.
+     */
     private fun resolveOriginViaRedirect() {
-        try {
-            val conn = openSpeedConnection(ServerConfig.downloadUrlBusted(), "GET")
+        val candidates = linkedSetOf<String>()
+        val primary = ServerConfig.baseUrl.trimEnd('/')
+        candidates += primary
+        // Also try https on same host:port (some ISPs only expose TLS)
+        if (primary.startsWith("http://")) {
+            candidates += "https://" + primary.removePrefix("http://")
+        }
+        for (base in candidates) {
+            val probeUrl = "$base${ServerConfig.downloadPath}?size=65536&n=${System.nanoTime()}"
             try {
-                // Touch response to complete redirect chain
-                conn.responseCode
-                conn.inputStream?.close()
-            } finally {
-                conn.disconnect()
+                val finalUrl = followRedirects(probeUrl, method = "GET", drainBody = true)
+                if (finalUrl != null) {
+                    ServerConfig.resolvedBaseUrl = originOf(finalUrl)
+                    return
+                }
+            } catch (_: Exception) {
+                // try next candidate
             }
-        } catch (_: Exception) {
-            // leave resolvedBaseUrl as-is; transfers still try baseUrl
         }
     }
 
-    private fun openSpeedConnection(
-        urlStr: String,
+    /**
+     * Follow redirects (including HTTP→HTTPS). Returns the final URL that yielded 2xx,
+     * or null if none. Optionally drains a small body so keep-alive is happy.
+     */
+    private fun followRedirects(
+        startUrl: String,
         method: String = "GET",
-        maxRedirects: Int = 4
-    ): HttpURLConnection {
-        var current = urlStr
+        maxRedirects: Int = 5,
+        drainBody: Boolean = false
+    ): String? {
+        var current = startUrl
         var redirects = 0
-        while (true) {
-            val conn = (URL(current).openConnection() as HttpURLConnection).apply {
-                requestMethod = method
-                connectTimeout = ServerConfig.connectTimeoutMs
-                readTimeout = ServerConfig.readTimeoutMs
-                instanceFollowRedirects = false // we handle ourselves
-                useCaches = false
-                doInput = true
-                if (method == "POST") doOutput = true
-                setRequestProperty("Accept-Encoding", "identity")
-                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-                setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate")
-                setRequestProperty("Pragma", "no-cache")
-                setRequestProperty("Connection", "keep-alive")
-                // Only set Host when baseUrl is IP but we need virtual-host routing
-                val hn = ServerConfig.originalHostname.trim()
-                val urlHost = try { URL(current).host } catch (_: Exception) { "" }
-                if (hn.isNotEmpty()
-                    && !hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
-                    && urlHost.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
-                ) {
-                    setRequestProperty("Host", hn)
+        while (redirects <= maxRedirects) {
+            val conn = (URL(current).openConnection() as HttpURLConnection)
+            try {
+                conn.requestMethod = method
+                applyCommonHeaders(conn, current)
+                val code = conn.responseCode
+                if (code in 300..399) {
+                    val loc = conn.getHeaderField("Location") ?: return null
+                    current = if (loc.startsWith("http://") || loc.startsWith("https://")) {
+                        loc
+                    } else {
+                        URL(URL(current), loc).toString()
+                    }
+                    redirects++
+                    continue
                 }
-            }
-            // POST must not call responseCode before the body is written.
-            // Origin should already be resolved via GET (resolveOriginViaRedirect / ping).
-            if (method == "POST") {
-                return conn
-            }
-            val code = try { conn.responseCode } catch (e: Exception) {
-                conn.disconnect()
-                throw e
-            }
-            if (code in 300..399 && redirects < maxRedirects) {
-                val loc = conn.getHeaderField("Location")
-                conn.disconnect()
-                if (loc.isNullOrBlank()) break
-                current = if (loc.startsWith("http")) loc else {
-                    val base = URL(current)
-                    URL(base, loc).toString()
+                if (code in 200..299) {
+                    if (drainBody) {
+                        try {
+                            conn.inputStream?.use { ins ->
+                                val buf = ByteArray(8 * 1024)
+                                var total = 0
+                                while (total < 64 * 1024) {
+                                    val n = ins.read(buf)
+                                    if (n < 0) break
+                                    total += n
+                                }
+                            }
+                        } catch (_: Exception) { }
+                    }
+                    return current
                 }
-                redirects++
-                continue
+                return null
+            } finally {
+                try { conn.disconnect() } catch (_: Exception) { }
             }
-            // Stick subsequent requests to the final origin (skip redirect storm)
-            if (redirects > 0) {
-                try {
-                    val u = URL(current)
-                    val port = if (u.port != -1) ":${u.port}" else ""
-                    ServerConfig.resolvedBaseUrl = "${u.protocol}://${u.host}$port"
-                } catch (_: Exception) { }
-            }
-            return conn
         }
-        // Fallback last URL with default follow
-        return (URL(current).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
-            connectTimeout = ServerConfig.connectTimeoutMs
-            readTimeout = ServerConfig.readTimeoutMs
-            instanceFollowRedirects = true
-            useCaches = false
-            doInput = true
-            if (method == "POST") doOutput = true
-            setRequestProperty("Accept-Encoding", "identity")
-            setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-        }
+        return null
     }
 
+    /** Open GET/POST against urlStr. GET follows redirects once if origin not yet sticky. */
+    private fun openSpeedConnection(urlStr: String, method: String = "GET"): HttpURLConnection {
+        val target = when {
+            method != "GET" -> urlStr
+            // Already on sticky origin — no redirect chase
+            ServerConfig.resolvedBaseUrl != null &&
+                urlStr.startsWith(ServerConfig.resolvedBaseUrl!!) -> urlStr
+            else -> followRedirects(urlStr, method = "GET", drainBody = false) ?: urlStr
+        }
+        val conn = (URL(target).openConnection() as HttpURLConnection)
+        conn.requestMethod = method
+        applyCommonHeaders(conn, target)
+        if (method == "POST") {
+            conn.doOutput = true
+        }
+        return conn
+    }
 
     suspend fun run(
         multiConnection: Boolean = true,
@@ -218,16 +257,14 @@ class SpeedTestEngine {
         ensureNotCancelled()
         // HTTP keep-alive + DNS/TCP warm-up (cuts first-byte delay on cellular)
         TcpTuning.applyHttpSystemProperties()
+        // Resolve final origin first (HTTP or HTTPS after 307) so ping/dl/ul share one base
+        resolveOriginViaRedirect()
         warmConnection()
 
         onProgress(PhaseProgress(Phase.PING))
         val ping = measurePing()
         ensureNotCancelled()
         onProgress(PhaseProgress(Phase.PING, pingMs = ping.ping))
-        // Ensure sticky HTTPS origin is set before multi-thread transfer
-        if (ServerConfig.resolvedBaseUrl.isNullOrBlank()) {
-            resolveOriginViaRedirect()
-        }
 
         onProgress(PhaseProgress(Phase.DOWNLOAD))
         val dlThreads = if (multiConnection) ServerConfig.downloadThreads else 1
@@ -323,20 +360,20 @@ class SpeedTestEngine {
     }
 
     private fun onePing(): Double? {
-        // Not every Ookla-compatible server exposes latency.txt. Probe the
-        // configured endpoint first, then safe compatibility fallbacks.
         val paths = linkedSetOf(
             ServerConfig.pingPath.ifBlank { "/speedtest/latency.txt" },
             "/speedtest/latency.txt",
+            "/speedtest/download?size=0",
             "/"
         )
-        for (path in paths) {
-            val normalizedPath = if (path.startsWith('/')) path else "/$path"
-            val url = "${ServerConfig.effectiveBase()}$normalizedPath?n=${System.nanoTime()}"
-            // Prefer GET; some HTTP paths/servers do not implement HEAD.
-            onePingAttempt(url, "GET")?.let { return it }
-            onePingAttempt(url, "HEAD")?.let { return it }
-            onePingAttempt(url, "GET_RANGE")?.let { return it }
+        val bases = linkedSetOf(ServerConfig.effectiveBase(), ServerConfig.baseUrl)
+        for (base in bases) {
+            for (path in paths) {
+                val normalizedPath = if (path.startsWith('/')) path else "/$path"
+                val url = "$base$normalizedPath${if ('?' in normalizedPath) "&" else "?"}n=${System.nanoTime()}"
+                onePingAttempt(url, "GET")?.let { return it }
+                onePingAttempt(url, "HEAD")?.let { return it }
+            }
         }
         return null
     }
@@ -346,76 +383,41 @@ class SpeedTestEngine {
             val start = System.nanoTime()
             var current = url
             var redirects = 0
-            var conn: HttpURLConnection? = null
-            while (redirects <= 4) {
-                val c = (URL(current).openConnection() as HttpURLConnection).apply {
-                    requestMethod = if (mode == "HEAD") "HEAD" else "GET"
-                    connectTimeout = ServerConfig.pingConnectTimeoutMs
-                    readTimeout = ServerConfig.pingReadTimeoutMs
-                    instanceFollowRedirects = false
-                    useCaches = false
-                    doInput = true
-                    setRequestProperty("Accept-Encoding", "identity")
-                    setRequestProperty("Connection", "keep-alive")
-                    setRequestProperty("Cache-Control", "no-cache")
-                    setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-                    if (mode == "GET_RANGE") {
-                        setRequestProperty("Range", "bytes=0-0")
-                    }
-                    // Host header only when connecting by IP (Haansiro-style)
-                    val hn = ServerConfig.originalHostname.trim()
-                    val urlHost = try { URL(current).host } catch (_: Exception) { "" }
-                    if (hn.isNotEmpty()
-                        && !hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
-                        && urlHost.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
-                    ) {
-                        setRequestProperty("Host", hn)
-                    }
-                }
-                val code = try { c.responseCode } catch (e: Exception) {
-                    c.disconnect()
-                    throw e
-                }
-                if (code in 300..399 && redirects < 4) {
-                    val loc = c.getHeaderField("Location")
-                    c.disconnect()
-                    if (loc.isNullOrBlank()) return null
-                    current = if (loc.startsWith("http")) loc else URL(URL(current), loc).toString()
-                    redirects++
-                    continue
-                }
-                conn = c
-                break
-            }
-            val finalConn = conn ?: return null
-            if (redirects > 0) {
+            while (redirects <= 5) {
+                val conn = (URL(current).openConnection() as HttpURLConnection)
                 try {
-                    val u = URL(current)
-                    val port = if (u.port != -1) ":${u.port}" else ""
-                    ServerConfig.resolvedBaseUrl = "${u.protocol}://${u.host}$port"
-                } catch (_: Exception) { }
-            }
-            try {
-                val code = finalConn.responseCode
-                if (code !in 200..399 && code != 404) return null
-                if (mode != "HEAD") {
-                    try {
-                        finalConn.inputStream?.let { ins ->
-                            try {
+                    conn.requestMethod = if (mode == "HEAD") "HEAD" else "GET"
+                    applyCommonHeaders(conn, current)
+                    conn.connectTimeout = ServerConfig.pingConnectTimeoutMs
+                    conn.readTimeout = ServerConfig.pingReadTimeoutMs
+                    if (mode == "GET_RANGE") {
+                        conn.setRequestProperty("Range", "bytes=0-0")
+                    }
+                    val code = conn.responseCode
+                    if (code in 300..399) {
+                        val loc = conn.getHeaderField("Location") ?: return null
+                        current = if (loc.startsWith("http")) loc else URL(URL(current), loc).toString()
+                        redirects++
+                        continue
+                    }
+                    if (code !in 200..399 && code != 404) return null
+                    if (mode != "HEAD") {
+                        try {
+                            conn.inputStream?.use { ins ->
                                 val buf = ByteArray(512)
                                 while (ins.read(buf) > 0) { /* drain */ }
-                            } finally {
-                                try { ins.close() } catch (_: Exception) {}
                             }
-                        }
-                    } catch (_: Exception) {
-                        try { finalConn.errorStream?.close() } catch (_: Exception) {}
+                        } catch (_: Exception) { }
                     }
+                    if (redirects > 0) {
+                        try { ServerConfig.resolvedBaseUrl = originOf(current) } catch (_: Exception) { }
+                    }
+                    return (System.nanoTime() - start) / 1_000_000.0
+                } finally {
+                    try { conn.disconnect() } catch (_: Exception) { }
                 }
-                (System.nanoTime() - start) / 1_000_000.0
-            } finally {
-                finalConn.disconnect()
             }
+            null
         } catch (_: Exception) {
             null
         }
@@ -424,13 +426,14 @@ class SpeedTestEngine {
 
     private fun warmConnection() {
         try {
-            val hostPort = ServerConfig.baseUrl
+            val base = ServerConfig.effectiveBase()
+            val hostPort = base
                 .removePrefix("http://")
                 .removePrefix("https://")
                 .substringBefore("/")
             val host = hostPort.substringBefore(":")
             val port = hostPort.substringAfter(":", "").toIntOrNull()
-                ?: if (ServerConfig.baseUrl.startsWith("https")) 443 else 80
+                ?: if (base.startsWith("https")) 443 else 80
             // DNS
             java.net.InetAddress.getAllByName(host)
             // TCP connect with congestion-friendly buffer / NODELAY tuning
@@ -513,11 +516,8 @@ class SpeedTestEngine {
                             val code = conn.responseCode
                             if (code !in 200..299) {
                                 failures++
-                                if (failures >= 5) {
-                                    // stop this worker
-                                } else {
-                                    delay(80)
-                                }
+                                if (failures >= 5) break
+                                delay(80)
                             } else {
                                 failures = 0
                                 val stream = try {

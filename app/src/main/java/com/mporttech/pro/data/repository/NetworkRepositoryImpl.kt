@@ -44,6 +44,8 @@ class NetworkRepositoryImpl @Inject constructor(
                 NetworkDevice(
                     name = it.name,
                     ip = it.ip,
+                    mac = it.mac,
+                    vendor = it.vendor,
                     online = it.online,
                     latencyMs = it.latencyMs,
                     kind = it.kind

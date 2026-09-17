@@ -874,6 +874,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
     var running by remember { mutableStateOf(false) }
     var probing by remember { mutableStateOf(false) }
     var phase by remember { mutableStateOf("Siap") }
+    var currentPhase by remember { mutableStateOf<Phase?>(null) }
     var downloadMbps by remember { mutableStateOf(0.0) }
     var uploadMbps by remember { mutableStateOf(0.0) }
     var pingMs by remember { mutableStateOf(0.0) }
@@ -1032,8 +1033,8 @@ fun SpeedTestScreen(nav: NavController? = null) {
                     )
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         val main = when {
-                            running && phase.contains("Upload", true) -> uploadMbps
-                            running && phase.contains("Download", true) -> downloadMbps
+                            running && currentPhase == Phase.UPLOAD -> uploadMbps
+                            running && currentPhase == Phase.DOWNLOAD -> downloadMbps
                             downloadMbps > 0 -> downloadMbps
                             else -> 0.0
                         }
@@ -1075,7 +1076,10 @@ fun SpeedTestScreen(nav: NavController? = null) {
                     phase = com.mporttech.pro.ui.i18n.Str.get("speed.phase_ping", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                     progress = 0.05f
                     ServerSelector.select(selected)
-                    status = "${selected.displayName} · ${selected.host.substringBefore(":")}"
+                    val ipHint = try {
+                        TestServer.resolveHostToIp(selected.host).substringBefore(":")
+                    } catch (_: Exception) { selected.host.substringBefore(":") }
+                    status = "${selected.displayName} · $ipHint"
                     downloadMbps = 0.0; uploadMbps = 0.0; pingMs = 0.0; jitterMs = 0.0; lossPct = 0.0
                     scope.launch {
                         try {
@@ -1083,22 +1087,32 @@ fun SpeedTestScreen(nav: NavController? = null) {
                                 engine.run(multiConnection = true) { p ->
                                     when (p.phase) {
                                         Phase.PING -> {
+                                            currentPhase = Phase.PING
                                             phase = com.mporttech.pro.ui.i18n.Str.get("speed.phase_ping", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                                             progress = 0.1f
                                             if (p.pingMs > 0) pingMs = p.pingMs
                                         }
                                         Phase.DOWNLOAD -> {
+                                            currentPhase = Phase.DOWNLOAD
                                             phase = com.mporttech.pro.ui.i18n.Str.get("speed.phase_download", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                                             progress = (0.15f + (p.mbps / 300.0).toFloat() * 0.4f).coerceIn(0.15f, 0.55f)
                                             if (p.mbps > 0) downloadMbps = p.mbps
                                         }
                                         Phase.UPLOAD -> {
+                                            currentPhase = Phase.UPLOAD
                                             phase = com.mporttech.pro.ui.i18n.Str.get("speed.phase_upload", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
                                             progress = (0.55f + (p.mbps / 150.0).toFloat() * 0.4f).coerceIn(0.55f, 0.95f)
                                             if (p.mbps > 0) uploadMbps = p.mbps
                                         }
-                                        Phase.COMPLETED -> { phase = com.mporttech.pro.ui.i18n.Str.get("speed.done", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)); progress = 1f }
-                                        Phase.ERROR -> { phase = com.mporttech.pro.ui.i18n.Str.get("common.error", com.mporttech.pro.ui.i18n.loadSavedLanguage(context)) }
+                                        Phase.COMPLETED -> {
+                                            currentPhase = Phase.COMPLETED
+                                            phase = com.mporttech.pro.ui.i18n.Str.get("speed.done", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
+                                            progress = 1f
+                                        }
+                                        Phase.ERROR -> {
+                                            currentPhase = Phase.ERROR
+                                            phase = com.mporttech.pro.ui.i18n.Str.get("common.error", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))
+                                        }
                                     }
                                 }
                             }
