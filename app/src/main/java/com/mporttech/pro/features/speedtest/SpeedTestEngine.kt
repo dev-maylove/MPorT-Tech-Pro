@@ -307,32 +307,56 @@ class SpeedTestEngine {
     private fun onePingAttempt(url: String, mode: String): Double? {
         return try {
             val start = System.nanoTime()
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                requestMethod = if (mode == "HEAD") "HEAD" else "GET"
-                connectTimeout = ServerConfig.pingConnectTimeoutMs
-                readTimeout = ServerConfig.pingReadTimeoutMs
-                instanceFollowRedirects = false
-                useCaches = false
-                doInput = true
-                setRequestProperty("Accept-Encoding", "identity")
-                setRequestProperty("Connection", "keep-alive")
-                setRequestProperty("Cache-Control", "no-cache")
-                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-                if (mode == "GET_RANGE") {
-                    setRequestProperty("Range", "bytes=0-0")
+            var current = url
+            var redirects = 0
+            var conn: HttpURLConnection? = null
+            while (redirects <= 4) {
+                val c = (URL(current).openConnection() as HttpURLConnection).apply {
+                    requestMethod = if (mode == "HEAD") "HEAD" else "GET"
+                    connectTimeout = ServerConfig.pingConnectTimeoutMs
+                    readTimeout = ServerConfig.pingReadTimeoutMs
+                    instanceFollowRedirects = false
+                    useCaches = false
+                    doInput = true
+                    setRequestProperty("Accept-Encoding", "identity")
+                    setRequestProperty("Connection", "keep-alive")
+                    setRequestProperty("Cache-Control", "no-cache")
+                    setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+                    if (mode == "GET_RANGE") {
+                        setRequestProperty("Range", "bytes=0-0")
+                    }
+                    // Host header only when connecting by IP (Haansiro-style)
+                    val hn = ServerConfig.originalHostname.trim()
+                    val urlHost = try { URL(current).host } catch (_: Exception) { "" }
+                    if (hn.isNotEmpty()
+                        && !hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
+                        && urlHost.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
+                    ) {
+                        setRequestProperty("Host", hn)
+                    }
                 }
-                val hn = ServerConfig.originalHostname.trim()
-                if (hn.isNotEmpty() && !hn.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))) {
-                    setRequestProperty("Host", hn)
+                val code = try { c.responseCode } catch (e: Exception) {
+                    c.disconnect()
+                    throw e
                 }
+                if (code in 300..399 && redirects < 4) {
+                    val loc = c.getHeaderField("Location")
+                    c.disconnect()
+                    if (loc.isNullOrBlank()) return null
+                    current = if (loc.startsWith("http")) loc else URL(URL(current), loc).toString()
+                    redirects++
+                    continue
+                }
+                conn = c
+                break
             }
+            val finalConn = conn ?: return null
             try {
-                val code = conn.responseCode
+                val code = finalConn.responseCode
                 if (code !in 200..399 && code != 404) return null
-                // Drain tiny body so connection can be reused (keep-alive)
                 if (mode != "HEAD") {
                     try {
-                        conn.inputStream?.let { ins ->
+                        finalConn.inputStream?.let { ins ->
                             try {
                                 val buf = ByteArray(512)
                                 while (ins.read(buf) > 0) { /* drain */ }
@@ -340,18 +364,20 @@ class SpeedTestEngine {
                                 try { ins.close() } catch (_: Exception) {}
                             }
                         }
-                    } catch (_: Exception) { }
+                    } catch (_: Exception) {
+                        try { finalConn.errorStream?.close() } catch (_: Exception) {}
+                    }
                 }
                 (System.nanoTime() - start) / 1_000_000.0
             } finally {
-                conn.disconnect()
+                finalConn.disconnect()
             }
         } catch (_: Exception) {
             null
         }
     }
 
-    /** DNS + TCP warm-up so the first timed ping is not dominated by resolve/connect. */
+
     private fun warmConnection() {
         try {
             val hostPort = ServerConfig.baseUrl

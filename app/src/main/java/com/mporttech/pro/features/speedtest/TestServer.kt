@@ -45,40 +45,24 @@ data class TestServer(
     fun applyToConfig() {
         val normalizedHost = host.trim()
         val hostOnly = normalizedHost.substringBefore(":").trim()
-        val portPart = normalizedHost.substringAfter(":", missingDelimiterValue = "").ifBlank { null }
         val isIp = hostOnly.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
         val isHaansiro = isIp && (hostOnly == "165.99.194.173" || name.contains("Haan", ignoreCase = true))
 
-        // Most catalog entries are Ookla-hosted: HTTP on the branded hostname
-        // redirects to https://server-{id}.prod.hosts.ooklaserver.net:8080.
-        // Android HttpURLConnection does NOT follow HTTP→HTTPS redirects, so
-        // downloads hang / return zero bytes. Prefer the final Ookla HTTPS origin.
-        val numericId = id.takeIf { it.all { c -> c.isDigit() } }
-        val useOoklaHost = numericId != null && !isHaansiro && !isIp
-
-        val finalScheme: String
-        val finalHostPort: String
-        val originalHostname: String
-
-        when {
-            isHaansiro -> {
-                finalScheme = scheme
-                finalHostPort = normalizedHost
-                originalHostname = "ookla.haansiro.net"
-            }
-            useOoklaHost -> {
-                finalScheme = "https"
-                finalHostPort = "server-$numericId.prod.hosts.ooklaserver.net:8080"
-                originalHostname = "server-$numericId.prod.hosts.ooklaserver.net"
-            }
-            else -> {
-                finalScheme = scheme
-                finalHostPort = normalizedHost
-                originalHostname = hostOnly
-            }
+        // Keep branded hostname (or IP). Engine follows HTTP→HTTPS redirects.
+        // Do NOT rewrite to server-{id}.prod.hosts.ooklaserver.net — many IDs
+        // are offline or mismatched and cause false "server did not respond".
+        val finalScheme = when {
+            isHaansiro -> scheme
+            isIp -> scheme
+            // Prefer https for branded Ookla hosts; redirect handler still works for http
+            else -> "http"
+        }
+        val originalHostname = when {
+            isHaansiro -> "ookla.haansiro.net"
+            else -> hostOnly
         }
 
-        ServerConfig.baseUrl = "$finalScheme://$finalHostPort"
+        ServerConfig.baseUrl = "$finalScheme://$normalizedHost"
         ServerConfig.originalHostname = originalHostname
         ServerConfig.downloadPath = downloadPath
         ServerConfig.uploadPath = uploadPath

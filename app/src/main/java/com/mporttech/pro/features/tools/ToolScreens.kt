@@ -58,8 +58,6 @@ import com.mporttech.pro.features.wifi.Band
 import com.mporttech.pro.features.wifi.WifiAnalyzer
 import com.mporttech.pro.features.wifi.WifiScanSnapshot
 import com.mporttech.pro.features.wifi.WifiNetworkInfo
-import com.mporttech.pro.ui.theme.LocalThemeMode
-import com.mporttech.pro.ui.theme.ThemeMode
 import com.mporttech.pro.ui.i18n.AppLanguage
 import com.mporttech.pro.ui.i18n.LocalAppLanguage
 import com.mporttech.pro.ui.i18n.saveLanguage
@@ -1005,16 +1003,11 @@ fun SpeedTestScreen(nav: NavController? = null) {
                 Modifier.fillMaxWidth().padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val resolvedIp = remember(selected.id, selected.host) {
+                val resolvedIp = remember(selected.host) {
                     try {
-                        // Prefer actual endpoint host after applyToConfig (Ookla CDN / IP)
-                        val fromConfig = ServerConfig.baseUrl
-                            .removePrefix("https://").removePrefix("http://")
-                            .substringBefore("/")
-                        TestServer.resolveHostToIp(fromConfig).substringBefore(":")
+                        TestServer.resolveHostToIp(selected.host).substringBefore(":")
                     } catch (_: Exception) {
-                        try { TestServer.resolveHostToIp(selected.host).substringBefore(":") }
-                        catch (_: Exception) { selected.host.substringBefore(":") }
+                        selected.host.substringBefore(":")
                     }
                 }
                 Text("${selected.displayName}  •  $resolvedIp", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1753,15 +1746,6 @@ fun ReportsScreen(nav: NavController? = null) {
 fun ProfileScreen(nav: NavController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val themeModeState = LocalThemeMode.current
-    // Keep switch in sync with app-wide theme without stale local state
-    var darkMode by remember {
-        mutableStateOf(themeModeState.value != ThemeMode.LIGHT)
-    }
-    // Re-sync if theme changed elsewhere
-    LaunchedEffect(themeModeState.value) {
-        darkMode = themeModeState.value != ThemeMode.LIGHT
-    }
     var notifications by remember { mutableStateOf(true) }
     var biometrics by remember { mutableStateOf(false) }
     val sessionUser = remember { com.mporttech.pro.core.auth.SessionManager.currentUser(context) }
@@ -1866,10 +1850,6 @@ fun ProfileScreen(nav: NavController) {
                     )
                 }
             }
-        }
-        SwitchRow(t("common.dark_mode"), Icons.Default.DarkMode, darkMode) {
-            darkMode = it
-            themeModeState.value = if (it) ThemeMode.DARK else ThemeMode.LIGHT
         }
         val langState = LocalAppLanguage.current
         CardBlock(t("profile.language")) {

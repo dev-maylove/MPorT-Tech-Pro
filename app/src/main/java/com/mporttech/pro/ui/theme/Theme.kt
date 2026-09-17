@@ -257,21 +257,13 @@ private val NeonTypography = Typography(
 
 @Composable
 fun MPorTTechTheme(
-    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    themeMode: ThemeMode = ThemeMode.DARK,
     content: @Composable () -> Unit
 ) {
-    val systemDark = isSystemInDarkTheme()
-    val darkTheme = when (themeMode) {
-        ThemeMode.SYSTEM -> systemDark
-        ThemeMode.DARK -> true
-        ThemeMode.LIGHT -> false
-    }
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    val extended = if (darkTheme) DarkExtended else LightExtended
-
-    CompositionLocalProvider(LocalMPorTColors provides extended) {
+    // App is dark-only — light mode removed
+    CompositionLocalProvider(LocalMPorTColors provides DarkExtended) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = DarkColorScheme,
             typography = NeonTypography,
             content = content
         )

@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Debug only: required for HTTP Ookla-compatible speed-test servers. -->
-    <base-config cleartextTrafficPermitted="true" />
+    <!-- Debug: allow cleartext for local API + speed-test HTTP servers -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <!-- Uncomment to trust user-installed CAs (Charles/mitmproxy) while debugging -->
+            <!-- <certificates src="user" /> -->
+        </trust-anchors>
+    </base-config>
 </network-security-config>

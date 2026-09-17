@@ -78,46 +78,49 @@ object ServerSelector {
 
     private fun oneShot(base: String, path: String): Double? {
         val url = "$base$path${if (path.contains("?")) "&" else "?"}n=${System.nanoTime()}"
-        // HEAD
-        try {
+        return timedRequest(url, "HEAD") ?: timedRequest(url, "GET")
+    }
+
+    /** Follows HTTP→HTTPS redirects (Android does not auto-follow those). */
+    private fun timedRequest(urlStr: String, method: String): Double? {
+        return try {
             val start = System.nanoTime()
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                requestMethod = "HEAD"
-                connectTimeout = 1500
-                readTimeout = 1500
-                instanceFollowRedirects = false
-                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-                setRequestProperty("Cache-Control", "no-cache")
-                setRequestProperty("Connection", "close")
+            var current = urlStr
+            var redirects = 0
+            while (redirects <= 4) {
+                val conn = (URL(current).openConnection() as HttpURLConnection).apply {
+                    requestMethod = method
+                    connectTimeout = 2500
+                    readTimeout = 2500
+                    instanceFollowRedirects = false
+                    setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
+                    setRequestProperty("Cache-Control", "no-cache")
+                    setRequestProperty("Connection", "close")
+                }
+                try {
+                    val code = conn.responseCode
+                    if (code in 300..399 && redirects < 4) {
+                        val loc = conn.getHeaderField("Location")
+                        conn.disconnect()
+                        if (loc.isNullOrBlank()) return null
+                        current = if (loc.startsWith("http")) loc else URL(URL(current), loc).toString()
+                        redirects++
+                        continue
+                    }
+                    if (code in 200..399) {
+                        if (method == "GET") {
+                            try { conn.inputStream?.use { it.readBytes() } } catch (_: Exception) {}
+                        }
+                        return (System.nanoTime() - start) / 1_000_000.0
+                    }
+                    return null
+                } finally {
+                    try { conn.disconnect() } catch (_: Exception) {}
+                }
             }
-            try {
-                val code = conn.responseCode
-                if (code in 200..399) return (System.nanoTime() - start) / 1_000_000.0
-            } finally {
-                conn.disconnect()
-            }
+            null
         } catch (_: Exception) {
+            null
         }
-        // GET fallback
-        try {
-            val start = System.nanoTime()
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 1500
-                readTimeout = 1500
-                instanceFollowRedirects = false
-                setRequestProperty("User-Agent", "MPorT-TesSpeed/1.0")
-                setRequestProperty("Connection", "close")
-            }
-            try {
-                val code = conn.responseCode
-                conn.inputStream?.use { it.readBytes() }
-                if (code in 200..399) return (System.nanoTime() - start) / 1_000_000.0
-            } finally {
-                conn.disconnect()
-            }
-        } catch (_: Exception) {
-        }
-        return null
     }
 }
