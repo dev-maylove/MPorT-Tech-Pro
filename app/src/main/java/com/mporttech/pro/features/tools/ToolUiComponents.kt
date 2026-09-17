@@ -323,7 +323,14 @@ internal fun DeviceRow(name: String, ip: String, online: Boolean) {
 }
 
 @Composable
-internal fun DeviceCard(name: String, ip: String, online: Boolean, onClick: () -> Unit) {
+internal fun DeviceCard(
+    name: String,
+    ip: String,
+    online: Boolean,
+    mac: String? = null,
+    vendor: String? = null,
+    onClick: () -> Unit
+) {
     val color = if (online) Color(0xFF39FF14) else Color(0xFFFF2E63)
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -336,6 +343,12 @@ internal fun DeviceCard(name: String, ip: String, online: Boolean, onClick: () -
             Column(Modifier.weight(1f)) {
                 Text(name, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 Text(ip, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!mac.isNullOrBlank()) {
+                    Text("MAC  $mac", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (!vendor.isNullOrBlank()) {
+                    Text(vendor, fontSize = 9.sp, color = MaterialTheme.colorScheme.primary)
+                }
             }
             Text(if (online) "Online" else "Offline", color = color, fontSize = 9.sp)
             Spacer(Modifier.width(6.dp))

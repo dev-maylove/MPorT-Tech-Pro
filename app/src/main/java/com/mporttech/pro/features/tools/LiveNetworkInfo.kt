@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.SystemClock
 import com.mporttech.pro.features.scanner.AuthorizedNetworkScanner
 import com.mporttech.pro.features.scanner.ScanHost
+import com.mporttech.pro.features.discovery.VendorLookup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.Inet4Address
@@ -36,7 +37,9 @@ data class LiveDevice(
     val ip: String,
     val online: Boolean,
     val latencyMs: Long?,
-    val kind: String // router | ap | switch | host | gateway
+    val kind: String, // router | ap | switch | host | gateway
+    val mac: String? = null,
+    val vendor: String? = null
 )
 
 /** Holds last selected device for detail screen (simple in-process store). */
@@ -44,6 +47,8 @@ object SelectedDeviceStore {
     @Volatile var ip: String = "192.168.1.1"
     @Volatile var name: String = "Gateway"
     @Volatile var kind: String = "gateway"
+    @Volatile var mac: String? = null
+    @Volatile var vendor: String? = null
 }
 
 /** Last alert tapped for AlertDetailScreen (real payload, not dummy). */
@@ -174,12 +179,16 @@ object LiveNetworkInfo {
             val found = LinkedHashMap<String, LiveDevice>()
             if (!gateway.isNullOrBlank()) {
                 val (ok, ms) = probe(gateway, 600)
+                val arpMapEarly = readArpTable(gateway.substringBeforeLast('.'))
+                val gwMac = arpMapEarly[gateway]
                 found[gateway] = LiveDevice(
                     name = "Gateway",
                     ip = gateway,
                     online = ok,
                     latencyMs = ms,
-                    kind = "gateway"
+                    kind = "gateway",
+                    mac = gwMac,
+                    vendor = VendorLookup.fromMac(gwMac) ?: VendorLookup.guessFromName("Gateway")
                 )
             }
 
@@ -201,20 +210,35 @@ object LiveNetworkInfo {
                 emptyList()
             }
 
+            val arpMap = readArpTable(base)
             for (h in hosts) {
                 if (found.containsKey(h.address)) continue
                 val kind = guessKind(h.address, gateway)
+                val mac = arpMap[h.address]
+                val vendor = VendorLookup.fromMac(mac) ?: VendorLookup.guessFromName(defaultName(kind, h.address))
                 found[h.address] = LiveDevice(
                     name = defaultName(kind, h.address),
                     ip = h.address,
                     online = h.reachable,
                     latencyMs = h.latencyMs,
-                    kind = kind
+                    kind = kind,
+                    mac = mac,
+                    vendor = vendor
                 )
             }
             // ARP neighbors (local segment) even if TCP probe missed them
-            for (ip in readArpTable(base)) {
-                if (found.containsKey(ip)) continue
+            for ((ip, mac) in arpMap) {
+                if (found.containsKey(ip)) {
+                    // enrich existing with MAC if missing
+                    val existing = found[ip]!!
+                    if (existing.mac.isNullOrBlank()) {
+                        found[ip] = existing.copy(
+                            mac = mac,
+                            vendor = existing.vendor ?: VendorLookup.fromMac(mac)
+                        )
+                    }
+                    continue
+                }
                 val (_, ms) = probe(ip, 400)
                 val kind = guessKind(ip, gateway)
                 found[ip] = LiveDevice(
@@ -222,28 +246,32 @@ object LiveNetworkInfo {
                     ip = ip,
                     online = true, // present in ARP cache
                     latencyMs = ms,
-                    kind = kind
+                    kind = kind,
+                    mac = mac,
+                    vendor = VendorLookup.fromMac(mac) ?: VendorLookup.guessFromName(defaultName(kind, ip))
                 )
             }
             found.values.sortedWith(compareByDescending<LiveDevice> { it.online }.thenBy { it.ip })
         }
 
 
-    /** Linux ARP cache — devices seen recently on local L2 segment */
-    private fun readArpTable(base: String): List<String> {
+    /** Linux ARP cache — devices seen recently on local L2 segment (ip -> mac) */
+    private fun readArpTable(base: String): Map<String, String> {
         return try {
-            val out = mutableListOf<String>()
+            val out = linkedMapOf<String, String>()
             java.io.File("/proc/net/arp").forEachLine { line ->
                 val parts = line.trim().split(Regex("\\s+"))
                 if (parts.size >= 4 && parts[0].startsWith("$base.")) {
                     val ip = parts[0]
-                    val mac = parts[3]
-                    if (mac != "00:00:00:00:00:00" && mac.contains(":")) out.add(ip)
+                    val mac = parts[3].uppercase()
+                    if (mac != "00:00:00:00:00:00" && mac.contains(":")) {
+                        out[ip] = mac
+                    }
                 }
             }
-            out.distinct()
+            out
         } catch (_: Exception) {
-            emptyList()
+            emptyMap()
         }
     }
 

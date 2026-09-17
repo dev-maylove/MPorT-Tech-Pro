@@ -194,6 +194,8 @@ fun DiscoveryHubScreen(nav: NavController) {
                                 SelectedDeviceStore.ip = node.ip
                                 SelectedDeviceStore.name = node.name
                                 SelectedDeviceStore.kind = node.kind
+                                SelectedDeviceStore.mac = null
+                                SelectedDeviceStore.vendor = node.vendor
                                 nav.navigate("deviceDetailRich")
                             }
                             HorizontalDivider(color = Color(0xFF1F2937), thickness = 0.5.dp)

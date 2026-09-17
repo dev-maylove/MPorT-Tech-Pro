@@ -76,6 +76,8 @@ fun NetworkScannerScreen(
                             SelectedDeviceStore.ip = d.ip
                             SelectedDeviceStore.name = d.name
                             SelectedDeviceStore.kind = d.kind
+                            SelectedDeviceStore.mac = d.mac
+                            SelectedDeviceStore.vendor = d.vendor
                             nav.navigate("deviceDetailRich")
                         }
                 ) {
@@ -88,6 +90,12 @@ fun NetworkScannerScreen(
                         Column(Modifier.weight(1f)) {
                             Text(d.name, fontWeight = FontWeight.Bold)
                             Text(d.ip, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (!d.mac.isNullOrBlank()) {
+                                Text("MAC ${d.mac}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (!d.vendor.isNullOrBlank()) {
+                                Text(d.vendor!!, fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+                            }
                         }
                         Text(
                             d.latencyMs?.let { "$it ms" } ?: if (d.online) "online" else "offline",

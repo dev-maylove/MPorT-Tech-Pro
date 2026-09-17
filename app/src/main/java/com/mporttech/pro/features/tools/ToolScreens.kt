@@ -230,10 +230,12 @@ fun NetworkMonitorScreen(nav: NavController) {
                     }
                 }
                 devices.forEach { d ->
-                    DeviceCard(d.name, d.ip, d.online) {
+                    DeviceCard(d.name, d.ip, d.online, d.mac, d.vendor) {
                         SelectedDeviceStore.ip = d.ip
                         SelectedDeviceStore.name = d.name
                         SelectedDeviceStore.kind = d.kind
+                        SelectedDeviceStore.mac = d.mac
+                        SelectedDeviceStore.vendor = d.vendor
                         nav.navigate("deviceDetailRich")
                     }
                 }
@@ -980,7 +982,12 @@ fun SpeedTestScreen(nav: NavController? = null) {
                             Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text(s.name, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                    Text("${s.location} • ${s.distanceKm ?: "-"} km", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    val ipHint = try {
+                                        TestServer.resolveHostToIp(s.host).substringBefore(":")
+                                    } catch (_: Exception) {
+                                        s.host.substringBefore(":")
+                                    }
+                                    Text("${s.location} • $ipHint • ${s.distanceKm ?: "-"} km", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 if (active) Text("●", color = Color(0xFF39FF14))
                             }
@@ -998,7 +1005,13 @@ fun SpeedTestScreen(nav: NavController? = null) {
                 Modifier.fillMaxWidth().padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("${selected.displayName}  •  ${selected.host.substringBefore(":")}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val resolvedIp = remember(selected.host) {
+                    try { TestServer.resolveHostToIp(selected.host).substringBefore(":") } catch (_: Exception) { selected.host.substringBefore(":") }
+                }
+                Text("${selected.displayName}  •  $resolvedIp", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (selected.sponsor.isNotBlank() && selected.sponsor != selected.displayName) {
+                    Text(selected.sponsor, fontSize = 9.sp, color = MaterialTheme.colorScheme.primary)
+                }
                 Text(phase, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(10.dp))
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.size(180.dp)) {
@@ -1237,6 +1250,8 @@ fun DeviceManagerScreen(nav: NavController) {
                         SelectedDeviceStore.ip = d.ip
                         SelectedDeviceStore.name = d.name
                         SelectedDeviceStore.kind = d.kind
+                        SelectedDeviceStore.mac = d.mac
+                        SelectedDeviceStore.vendor = d.vendor
                         nav.navigate("deviceDetail")
                     }
             ) {
@@ -1280,6 +1295,8 @@ fun DeviceDetailScreen(nav: NavController? = null) {
     val ip = SelectedDeviceStore.ip
     val name = SelectedDeviceStore.name
     val kind = SelectedDeviceStore.kind
+    val mac = SelectedDeviceStore.mac
+    val vendor = SelectedDeviceStore.vendor
     var pingResult by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
@@ -1323,6 +1340,12 @@ fun DeviceDetailScreen(nav: NavController? = null) {
     Page(t("screen.device_detail"), Icons.Default.Router, nav) {
         CardBlock("$name     ${if (online) "Online" else "Offline"}") {
             Text(ip, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+            if (!mac.isNullOrBlank()) {
+                Text("MAC  $mac", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (!vendor.isNullOrBlank()) {
+                Text(vendor, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+            }
             Text(
                 "Jenis  $kind${latency?.let { "  ·  ${it} ms" } ?: ""}",
                 fontSize = 11.sp,
@@ -1334,6 +1357,8 @@ fun DeviceDetailScreen(nav: NavController? = null) {
             0 -> CardBlock("Live probe") {
                 Text(
                     "IP             $ip\n" +
+                        "MAC            ${mac ?: "—"}\n" +
+                        "Manufacturer   ${vendor ?: "—"}\n" +
                         "Status         ${if (online) "Reachable" else "Unreachable"}\n" +
                         "Latency        ${latency?.let { "$it ms" } ?: "—"}\n" +
                         "Kind           $kind\n" +
