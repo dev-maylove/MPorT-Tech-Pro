@@ -22,13 +22,14 @@ import kotlin.random.Random
 /**
  * Port of MPorT-Tes-Speed engine (Flutter) to Kotlin.
  *
- * Server default: http://165.99.194.173:8080 (ookla.haansiro.net IP)
+ * Server default: http://ookla.haansiro.net:8080 (aligned with MPorT-Tes-Speed)
  * - Download multi-thread with grace period
  * - Upload multi-thread with accepted-byte scoring
  * - HTTP RTT ping (HEAD / ranged GET)
  */
 object ServerConfig {
-    @Volatile var baseUrl: String = "http://165.99.194.173:8080"
+    // Defaults aligned with MPorT-Tes-Speed (Flutter) ServerConfig
+    @Volatile var baseUrl: String = "http://ookla.haansiro.net:8080"
     /** Original hostname for HTTP Host header when baseUrl uses an IP. */
     @Volatile var originalHostname: String = "ookla.haansiro.net"
     /** After first HTTP→HTTPS redirect, stick to this origin for the rest of the test. */
@@ -38,22 +39,21 @@ object ServerConfig {
     @Volatile var pingPath: String = "/speedtest/latency.txt"
     @Volatile var serverName: String = "HaaNSirO"
 
-    // Tuned for cellular (higher RTT, jitter, intermittent loss) while still
-    // working well on Wi‑Fi.
-    const val downloadDurationSeconds = 12
-    const val uploadDurationSeconds = 12
-    const val gracePeriodSeconds = 1
-    const val downloadThreads = 3
-    const val uploadThreads = 1
+    // Matched to MPorT-Tes-Speed lib/core/constants/server_config.dart
+    const val downloadDurationSeconds = 15
+    const val uploadDurationSeconds = 15
+    const val gracePeriodSeconds = 3
+    const val downloadThreads = 6
+    const val uploadThreads = 2
     const val uploadPayloadMegabytes = 1
-    const val pingSamples = 8
-    const val pingWarmup = 1
-    const val pingIntervalMs = 60
-    const val pingTrimCount = 2
+    const val pingSamples = 12
+    const val pingWarmup = 2
+    const val pingIntervalMs = 20
+    const val pingTrimCount = 4
     const val overheadAdjustment = 1.04
-    const val connectTimeoutMs = 12_000
-    const val readTimeoutMs = 25_000
-    const val sampleIntervalMs = 250L
+    const val connectTimeoutMs = 10_000
+    const val readTimeoutMs = 20_000
+    const val sampleIntervalMs = 200L
     /** Ping probe timeouts (cellular RTT can be 50–200 ms+). */
     const val pingConnectTimeoutMs = 8_000
     const val pingReadTimeoutMs = 6_000

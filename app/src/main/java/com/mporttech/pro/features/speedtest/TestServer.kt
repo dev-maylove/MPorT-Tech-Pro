@@ -43,32 +43,35 @@ data class TestServer(
      * actual request runs on Dispatchers.IO.
      */
     fun applyToConfig() {
-        val normalizedHost = host.trim()
-        val hostOnly = normalizedHost.substringBefore(":").trim()
-        val isIp = hostOnly.matches(Regex("""^\d{1,3}(\.\d{1,3}){3}$"""))
-        val isHaansiro = isIp && (hostOnly == "165.99.194.173" || name.contains("Haan", ignoreCase = true))
+        val raw = host.trim()
+            .removePrefix("http://")
+            .removePrefix("https://")
+            .substringBefore("/")
+        val hostOnly = raw.substringBefore(":").trim()
+        val hasPort = raw.contains(":") && raw.substringAfter(":").all { it.isDigit() }
 
-        // Keep branded hostname (or IP). Engine follows HTTP→HTTPS redirects.
-        // Do NOT rewrite to server-{id}.prod.hosts.ooklaserver.net — many IDs
-        // are offline or mismatched and cause false "server did not respond".
-        val finalScheme = when {
-            isHaansiro -> scheme
-            isIp -> scheme
-            // Prefer https for branded Ookla hosts; redirect handler still works for http
-            else -> "http"
+        // Catalog servers use :8080; HTTPS OpenSpeedTest (legacy) has no port in host
+        val normalizedHost = when {
+            hasPort -> raw
+            scheme == "https" -> hostOnly
+            else -> "$hostOnly:8080"
         }
-        val originalHostname = when {
-            isHaansiro -> "ookla.haansiro.net"
-            else -> hostOnly
-        }
+
+        val isHaansiro = name.contains("Haan", ignoreCase = true) ||
+            hostOnly.contains("haansiro", ignoreCase = true) ||
+            hostOnly == "165.99.194.173" ||
+            hostOnly.equals("ookla.haansiro.net", ignoreCase = true)
+
+        val finalScheme = scheme.ifBlank { "http" }
+        val originalHostname = if (isHaansiro) "ookla.haansiro.net" else hostOnly
 
         ServerConfig.baseUrl = "$finalScheme://$normalizedHost"
         ServerConfig.originalHostname = originalHostname
-        ServerConfig.resolvedBaseUrl = null // clear sticky origin from previous server
-        ServerConfig.downloadPath = downloadPath
-        ServerConfig.uploadPath = uploadPath
-        ServerConfig.pingPath = pingPath
-        ServerConfig.serverName = name.ifBlank { originalHostname }
+        ServerConfig.resolvedBaseUrl = null
+        ServerConfig.downloadPath = downloadPath.ifBlank { "/speedtest/download" }
+        ServerConfig.uploadPath = uploadPath.ifBlank { "/speedtest/upload.php" }
+        ServerConfig.pingPath = pingPath.ifBlank { "/speedtest/latency.txt" }
+        ServerConfig.serverName = name.ifBlank { sponsor }.ifBlank { originalHostname }
     }
 
     fun copyLatency(ms: Double) = copy(latencyMs = ms)
@@ -119,7 +122,7 @@ data class TestServer(
         fun haansiro() = TestServer(
             id = "75224",
             name = "HaanSirO Network",
-            host = "165.99.194.173:8080",  // ookla.haansiro.net → IP:8080
+            host = "ookla.haansiro.net:8080", // same as MPorT-Tes-Speed
             location = "Pati",
             latitude = -6.7487,
             longitude = 111.0379,
