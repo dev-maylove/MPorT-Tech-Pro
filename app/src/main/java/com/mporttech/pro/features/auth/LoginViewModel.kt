@@ -3,9 +3,11 @@ package com.mporttech.pro.features.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mporttech.pro.core.auth.AppUser
+import com.mporttech.pro.core.common.NetworkErrors
 import com.mporttech.pro.core.common.Result
 import com.mporttech.pro.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,16 +32,25 @@ class LoginViewModel @Inject constructor(
         if (_ui.value.loading) return
         viewModelScope.launch {
             _ui.value = LoginUiState(loading = true)
-            when (val result = authRepository.login(identity, password)) {
-                is Result.Success -> {
-                    _ui.value = LoginUiState(loading = false, successUser = result.data)
+            try {
+                when (val result = authRepository.login(identity, password)) {
+                    is Result.Success -> {
+                        _ui.value = LoginUiState(loading = false, successUser = result.data)
+                    }
+                    is Result.Error -> {
+                        _ui.value = LoginUiState(loading = false, error = result.message)
+                    }
+                    Result.Loading -> {
+                        _ui.value = LoginUiState(loading = true)
+                    }
                 }
-                is Result.Error -> {
-                    _ui.value = LoginUiState(loading = false, error = result.message)
-                }
-                Result.Loading -> {
-                    _ui.value = LoginUiState(loading = true)
-                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _ui.value = LoginUiState(
+                    loading = false,
+                    error = NetworkErrors.userMessage(e)
+                )
             }
         }
     }

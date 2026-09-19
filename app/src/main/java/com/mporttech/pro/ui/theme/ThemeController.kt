@@ -13,7 +13,7 @@ import com.mporttech.pro.core.common.Constants
  * Survives recomposition via CompositionLocal and process death via SharedPreferences.
  */
 val LocalThemeMode = staticCompositionLocalOf<MutableState<ThemeMode>> {
-    error("LocalThemeMode not provided")
+    error("LocalThemeMode not provided — wrap content in CompositionLocalProvider in MainActivity")
 }
 
 private const val KEY_THEME = "theme_mode"

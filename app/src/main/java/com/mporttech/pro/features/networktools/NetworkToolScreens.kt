@@ -330,6 +330,7 @@ fun PingToolScreen(nav: NavController? = null) {
                         samples = emptyList()
                         stats = PingStats()
                         scope.launch {
+                            try {
                             var seq = 0
                             val streamed = mutableListOf<PingSample>()
                             // Continuous ping until STOP
@@ -361,6 +362,14 @@ fun PingToolScreen(nav: NavController? = null) {
                                 lastRunAt = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) +
                                     " • continuous"
                                 delay(800)
+                            }
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                Toast.makeText(context, e.message ?: "Ping gagal", Toast.LENGTH_LONG).show()
+                            } finally {
+                                runFlag.set(false)
+                                running = false
                             }
                         }
                     },
@@ -541,34 +550,42 @@ fun TracerouteScreen(nav: NavController? = null) {
                 resolvedIp = null
                 summary = null
                 scope.launch {
-                    val result = NetworkOutputParser.traceroute(host, maxHops)
-                    resolvedIp = result.resolvedIp
-                    if (result.error != null) {
-                        summary = result.error
+                    try {
+                        val result = NetworkOutputParser.traceroute(host, maxHops)
+                        resolvedIp = result.resolvedIp
+                        if (result.error != null) {
+                            summary = result.error
+                        }
+                        val list = result.hops.map { h ->
+                            TraceHop(
+                                hop = h.hop,
+                                host = h.host,
+                                ip = h.ip,
+                                latencyMs = h.latencyMs?.toLong(),
+                                status = when {
+                                    h.timedOut -> "timeout"
+                                    h.latencyMs != null -> "ok"
+                                    else -> "error"
+                                }
+                            )
+                        }
+                        val streamed = mutableListOf<TraceHop>()
+                        for (h in list) {
+                            streamed.add(h)
+                            hops = streamed.toList()
+                            delay(80)
+                        }
+                        val okHops = list.count { it.status == "ok" }
+                        summary = "Completed • $okHops/${list.size} hops reachable" +
+                            (resolvedIp?.let { " • dest $it" } ?: "")
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        summary = e.message ?: "Traceroute gagal"
+                        Toast.makeText(context, summary, Toast.LENGTH_LONG).show()
+                    } finally {
+                        running = false
                     }
-                    val list = result.hops.map { h ->
-                        TraceHop(
-                            hop = h.hop,
-                            host = h.host,
-                            ip = h.ip,
-                            latencyMs = h.latencyMs?.toLong(),
-                            status = when {
-                                h.timedOut -> "timeout"
-                                h.latencyMs != null -> "ok"
-                                else -> "error"
-                            }
-                        )
-                    }
-                    val streamed = mutableListOf<TraceHop>()
-                    for (h in list) {
-                        streamed.add(h)
-                        hops = streamed.toList()
-                        delay(80)
-                    }
-                    val okHops = list.count { it.status == "ok" }
-                    summary = "Completed • $okHops/${list.size} hops reachable" +
-                        (resolvedIp?.let { " • dest $it" } ?: "")
-                    running = false
                 }
             }
         }
@@ -774,6 +791,8 @@ fun DnsLookupScreen(nav: NavController? = null) {
                             canonical = result.canonical
                                 ?: result.records.firstOrNull()?.value
                         }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         error = e.message ?: "Lookup failed"
                     } finally {
@@ -981,16 +1000,23 @@ fun PortCheckerScreen(nav: NavController? = null) {
                 results = emptyList()
                 progress = 0f
                 scope.launch {
-                    // Parallel scan via optimized parser
-                    val scanned = NetworkOutputParser.portScan(host, ports)
-                    val out = mutableListOf<PortResult>()
-                    scanned.forEachIndexed { index, r ->
-                        out.add(PortResult(r.port, r.open, r.latencyMs, r.service))
-                        results = out.toList()
-                        progress = (index + 1).toFloat() / scanned.size.coerceAtLeast(1)
-                        delay(30)
+                    try {
+                        // Parallel scan via optimized parser
+                        val scanned = NetworkOutputParser.portScan(host, ports)
+                        val out = mutableListOf<PortResult>()
+                        scanned.forEachIndexed { index, r ->
+                            out.add(PortResult(r.port, r.open, r.latencyMs, r.service))
+                            results = out.toList()
+                            progress = (index + 1).toFloat() / scanned.size.coerceAtLeast(1)
+                            delay(30)
+                        }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Toast.makeText(context, e.message ?: "Port scan gagal", Toast.LENGTH_LONG).show()
+                    } finally {
+                        running = false
                     }
-                    running = false
                 }
             }
 
