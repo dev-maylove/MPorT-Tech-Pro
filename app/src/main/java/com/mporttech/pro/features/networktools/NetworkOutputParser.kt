@@ -286,6 +286,7 @@ object NetworkOutputParser {
 
     private fun runNativePing(host: String, count: Int, timeoutSec: Int): ParsedPingSummary? {
         return try {
+            // Android toybox: -W is timeout in seconds for the whole wait per probe.
             val cmd = arrayOf(
                 "ping",
                 "-c", count.toString(),
@@ -297,22 +298,39 @@ object NetworkOutputParser {
                 .start()
 
             val output = StringBuilder(512)
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            try {
-                val buf = CharArray(256)
-                while (true) {
-                    val n = reader.read(buf)
-                    if (n < 0) break
-                    output.append(buf, 0, n)
+            // Read stdout on a worker so a hung ping cannot block the caller forever.
+            val readerThread = Thread({
+                try {
+                    process.inputStream.bufferedReader().use { reader ->
+                        val buf = CharArray(256)
+                        while (true) {
+                            val n = reader.read(buf)
+                            if (n < 0) break
+                            synchronized(output) { output.append(buf, 0, n) }
+                        }
+                    }
+                } catch (_: Exception) {
                 }
-            } finally {
-                try { reader.close() } catch (_: Exception) {}
+            }, "MPorT-ping-reader").apply {
+                isDaemon = true
+                start()
             }
-            val finished = process.waitFor(timeoutSec * count + 4L, TimeUnit.SECONDS)
+
+            val finished = process.waitFor(
+                (timeoutSec * count + 4L).coerceAtLeast(5L),
+                TimeUnit.SECONDS
+            )
             if (!finished) {
                 process.destroyForcibly()
             }
-            val text = output.toString()
+            // Give reader a brief moment to drain after process exit
+            readerThread.join(500)
+            if (readerThread.isAlive) {
+                // last resort — abandon; process already killed
+                try { process.inputStream.close() } catch (_: Exception) {}
+            }
+
+            val text = synchronized(output) { output.toString() }
             if (text.isBlank()) return null
             parsePingOutput(text, count)
         } catch (_: Exception) {

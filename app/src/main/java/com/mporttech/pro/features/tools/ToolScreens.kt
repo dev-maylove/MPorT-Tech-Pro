@@ -888,6 +888,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
     var downloadMbps by remember { mutableStateOf(0.0) }
     var uploadMbps by remember { mutableStateOf(0.0) }
     var pingMs by remember { mutableStateOf(0.0) }
+    var avgPingMs by remember { mutableStateOf(0.0) }
     var jitterMs by remember { mutableStateOf(0.0) }
     var lossPct by remember { mutableStateOf(0.0) }
     var progress by remember { mutableStateOf(0f) }
@@ -1036,9 +1037,9 @@ fun SpeedTestScreen(nav: NavController? = null) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             SpeedChip("Ping", if (pingMs > 0) String.format(Locale.US, "%.0f", pingMs) else "—", "ms", Modifier.weight(1f))
-            SpeedChip("Avg", if (pingMs > 0 && jitterMs >= 0) String.format(Locale.US, "%.0f", pingMs) else "—", "ms", Modifier.weight(1f))
+            SpeedChip("Avg", if (avgPingMs > 0) String.format(Locale.US, "%.0f", avgPingMs) else "—", "ms", Modifier.weight(1f))
             SpeedChip("Jitter", if (jitterMs > 0) String.format(Locale.US, "%.0f", jitterMs) else "—", "ms", Modifier.weight(1f))
-            SpeedChip("Loss", if (pingMs > 0) String.format(Locale.US, "%.0f", lossPct) else "—", "%", Modifier.weight(1f))
+            SpeedChip("Loss", if (pingMs > 0 || lossPct > 0) String.format(Locale.US, "%.0f", lossPct) else "—", "%", Modifier.weight(1f))
         }
         Spacer(Modifier.height(16.dp))
         // ── Neon dial gauge (no center logo) ──
@@ -1103,7 +1104,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                         TestServer.resolveHostToIp(selected.host).substringBefore(":")
                     } catch (_: Exception) { selected.host.substringBefore(":") }
                     status = "${selected.displayName} · $ipHint"
-                    downloadMbps = 0.0; uploadMbps = 0.0; pingMs = 0.0; jitterMs = 0.0; lossPct = 0.0
+                    downloadMbps = 0.0; uploadMbps = 0.0; pingMs = 0.0; avgPingMs = 0.0; jitterMs = 0.0; lossPct = 0.0
                     scope.launch {
                         try {
                             val result = withContext(Dispatchers.IO) {
@@ -1142,6 +1143,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                             downloadMbps = result.downloadMbps
                             uploadMbps = result.uploadMbps
                             pingMs = result.pingMs
+                            avgPingMs = result.avgPingMs
                             jitterMs = result.jitterMs
                             lossPct = result.packetLossPercent
                             phase = com.mporttech.pro.ui.i18n.Str.get("speed.done", com.mporttech.pro.ui.i18n.loadSavedLanguage(context))

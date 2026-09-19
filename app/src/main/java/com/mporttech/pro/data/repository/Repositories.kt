@@ -23,6 +23,32 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
+
+/** Parse Laravel/ISO timestamps; falls back to now on failure. */
+private fun parseRemoteTimestamp(raw: String?): Long {
+    if (raw.isNullOrBlank()) return System.currentTimeMillis()
+    val t = raw.trim()
+    // Instant.parse handles "...Z" and offset forms
+    try {
+        return java.time.Instant.parse(t).toEpochMilli()
+    } catch (_: Exception) { }
+    // "2024-01-01 12:00:00" or with fractional seconds
+    val normalized = t.replace(' ', 'T').let { s ->
+        when {
+            s.endsWith("Z") || s.contains('+') || Regex("""[+-]\d{2}:\d{2}$""").containsMatchIn(s) -> s
+            else -> s + "Z"
+        }
+    }
+    try {
+        return java.time.Instant.parse(normalized).toEpochMilli()
+    } catch (_: Exception) { }
+    // epoch seconds / millis
+    t.toLongOrNull()?.let { n ->
+        return if (n < 10_000_000_000L) n * 1000L else n
+    }
+    return System.currentTimeMillis()
+}
+
 @Singleton
 class CustomerRepository @Inject constructor(
     private val dao: CustomerDao,
@@ -128,11 +154,7 @@ class TicketRepository @Inject constructor(
     }
 
     private fun RemoteTicketDto.toEntity(): TicketEntity {
-        val createdMs = try {
-            createdAt?.let { Instant.parse(it).toEpochMilli() }
-        } catch (_: Exception) {
-            null
-        } ?: System.currentTimeMillis()
+        val createdMs = parseRemoteTimestamp(createdAt)
         return TicketEntity(
             remoteId = id,
             ticketNumber = ticketNumber.orEmpty(),

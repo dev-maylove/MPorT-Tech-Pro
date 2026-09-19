@@ -60,16 +60,17 @@ import com.mporttech.pro.features.diagnostics.traceroute.TracerouteScreen as Dia
 fun AppNavigation() {
     val nav = rememberNavController()
     val context = LocalContext.current
+    val route = nav.currentBackStackEntryAsState().value?.destination?.route ?: "dashboard"
+    // Re-read session when route changes (e.g. after login) so StaffOnly gates update
     val isStaff = SessionManager.isStaff(context)
     val isGuest = SessionManager.isGuest(context)
-    val route = nav.currentBackStackEntryAsState().value?.destination?.route ?: "dashboard"
     val topLevel = setOf("dashboard", "network", "tools", "alerts", "profile")
     var alertBadge by remember { mutableIntStateOf(AlertBadgeStore.count) }
-    LaunchedEffect(route) {
-        alertBadge = AlertBadgeStore.count
+    // Single long-lived poller — do not key on route (avoids cancel/restart storms)
+    LaunchedEffect(Unit) {
         while (true) {
-            kotlinx.coroutines.delay(3000)
             alertBadge = AlertBadgeStore.count
+            kotlinx.coroutines.delay(3000)
         }
     }
 
