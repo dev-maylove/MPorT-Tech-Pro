@@ -552,26 +552,27 @@ internal fun SpeedMetricCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.heightIn(max = 64.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1B2A))
     ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-            Text(title, fontSize = 12.sp, color = Color(0xFF8BA3B8), fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(6.dp))
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(title, fontSize = 10.sp, color = Color(0xFF8BA3B8), fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     value,
-                    fontSize = 28.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = accent
+                    color = accent,
+                    lineHeight = 22.sp
                 )
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(3.dp))
                 Text(
                     unit,
-                    fontSize = 12.sp,
+                    fontSize = 10.sp,
                     color = Color(0xFF8BA3B8),
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    modifier = Modifier.padding(bottom = 2.dp)
                 )
             }
         }
@@ -586,23 +587,26 @@ internal fun SpeedChip(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier.heightIn(max = 56.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1B2A))
     ) {
         Column(
-            Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(label, fontSize = 10.sp, color = Color(0xFF8BA3B8))
-            Spacer(Modifier.height(4.dp))
+            Text(label, fontSize = 9.sp, color = Color(0xFF8BA3B8), maxLines = 1)
             Text(
                 value,
-                fontSize = 16.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFE8F4FF)
+                color = Color(0xFFE8F4FF),
+                lineHeight = 16.sp,
+                maxLines = 1
             )
-            Text(unit, fontSize = 9.sp, color = Color(0xFF8BA3B8))
+            Text(unit, fontSize = 8.sp, color = Color(0xFF8BA3B8), maxLines = 1)
         }
     }
 }
@@ -765,14 +769,14 @@ internal fun SpeedDialGauge(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = speedText,
-                fontSize = 44.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
-                lineHeight = 44.sp
+                lineHeight = 34.sp
             )
             Text(
                 text = "Mbps",
-                fontSize = 13.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = progressColorLight
             )

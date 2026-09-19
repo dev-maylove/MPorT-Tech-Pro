@@ -1030,7 +1030,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
                 modifier = Modifier.weight(1f)
             )
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(6.dp))
         // ── Ping / Avg / Jitter / Loss chips ──
         Row(
             Modifier.fillMaxWidth(),
@@ -1041,7 +1041,7 @@ fun SpeedTestScreen(nav: NavController? = null) {
             SpeedChip("Jitter", if (jitterMs > 0) String.format(Locale.US, "%.0f", jitterMs) else "—", "ms", Modifier.weight(1f))
             SpeedChip("Loss", if (pingMs > 0 || lossPct > 0) String.format(Locale.US, "%.0f", lossPct) else "—", "%", Modifier.weight(1f))
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
         // ── Neon dial gauge (no center logo) ──
         val gaugeValue = when {
             running && currentPhase == Phase.UPLOAD -> uploadMbps
@@ -1060,12 +1060,12 @@ fun SpeedTestScreen(nav: NavController? = null) {
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 2.dp)
         ) {
             SpeedDialGauge(
                 fraction = animatedFraction,
                 displayMbps = gaugeValue,
-                modifier = Modifier.size(280.dp)
+                modifier = Modifier.size(200.dp)
             )
         }
         Text(
