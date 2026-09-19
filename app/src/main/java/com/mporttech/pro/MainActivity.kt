@@ -61,6 +61,7 @@ import com.mporttech.pro.ui.navigation.AppNavigation
 import com.mporttech.pro.ui.theme.LocalThemeMode
 import com.mporttech.pro.ui.theme.MPorTTechTheme
 import com.mporttech.pro.ui.theme.ThemeMode
+import com.mporttech.pro.ui.theme.loadSavedThemeMode
 import com.mporttech.pro.ui.theme.rememberThemeModeState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -79,7 +80,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             SideEffect { keepSplash.set(false) }
             val context = this
-            val themeModeState = rememberThemeModeState(ThemeMode.DARK)
+            val themeModeState = rememberThemeModeState(loadSavedThemeMode(context))
             val languageState = rememberAppLanguageState(loadSavedLanguage(context))
             val themeMode by themeModeState
             CompositionLocalProvider(

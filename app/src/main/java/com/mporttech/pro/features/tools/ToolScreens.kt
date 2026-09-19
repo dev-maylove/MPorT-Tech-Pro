@@ -62,6 +62,9 @@ import com.mporttech.pro.ui.i18n.AppLanguage
 import com.mporttech.pro.ui.i18n.LocalAppLanguage
 import com.mporttech.pro.ui.i18n.saveLanguage
 import com.mporttech.pro.ui.i18n.t
+import com.mporttech.pro.ui.theme.saveThemeMode
+import com.mporttech.pro.ui.theme.ThemeMode
+import com.mporttech.pro.ui.theme.LocalThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -139,7 +142,7 @@ fun NetworkMonitorScreen(nav: NavController) {
         }
     }
 
-    Page(t("screen.network_monitor"), Icons.Default.NetworkCheck, nav) {
+    Page(t("screen.network_monitor"), Icons.Default.NetworkCheck, nav, onRefresh = { refreshLink() }) {
         InteractiveTabStrip(tabs, selectedTab) { selectedTab = it }
         when (selectedTab) {
             0 -> {
@@ -1911,6 +1914,35 @@ fun ProfileScreen(nav: NavController) {
                 )
             }
         }
+        val themeState = LocalThemeMode.current
+        CardBlock(t("common.theme")) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                FilterChip(
+                    selected = themeState.value == ThemeMode.DARK,
+                    onClick = {
+                        themeState.value = ThemeMode.DARK
+                        saveThemeMode(context, ThemeMode.DARK)
+                    },
+                    label = { Text(t("common.dark_mode")) }
+                )
+                FilterChip(
+                    selected = themeState.value == ThemeMode.LIGHT,
+                    onClick = {
+                        themeState.value = ThemeMode.LIGHT
+                        saveThemeMode(context, ThemeMode.LIGHT)
+                    },
+                    label = { Text("Light") }
+                )
+                FilterChip(
+                    selected = themeState.value == ThemeMode.SYSTEM,
+                    onClick = {
+                        themeState.value = ThemeMode.SYSTEM
+                        saveThemeMode(context, ThemeMode.SYSTEM)
+                    },
+                    label = { Text("System") }
+                )
+            }
+        }
         SwitchRow(t("common.notifications"), Icons.Default.Notifications, notifications) {
             notifications = it
         }
@@ -2221,8 +2253,10 @@ fun ActivityScreen(nav: NavController? = null) {
 @Composable
 fun SettingsScreen(nav: NavController? = null) {
     val context = LocalContext.current
-    val link = remember { LiveNetworkInfo.snapshot(context) }
-    Page(t("screen.settings"), Icons.Default.Settings, nav) {
+    var link by remember { mutableStateOf(LiveNetworkInfo.snapshot(context)) }
+    Page(t("screen.settings"), Icons.Default.Settings, nav, onRefresh = {
+        link = LiveNetworkInfo.snapshot(context)
+    }) {
         CardBlock(t("settings.app")) {
             Text("MPorT Tech Pro", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
             Text(t("settings.app_desc"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

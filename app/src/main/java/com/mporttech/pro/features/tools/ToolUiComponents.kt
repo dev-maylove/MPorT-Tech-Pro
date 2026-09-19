@@ -42,6 +42,7 @@ internal fun Page(
     title: String,
     icon: ImageVector,
     nav: NavController?,
+    onRefresh: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val pageContext = LocalContext.current
@@ -77,6 +78,34 @@ internal fun Page(
                             text = { Text(t("common.refresh")) },
                             onClick = {
                                 menuOpen = false
+                                if (onRefresh != null) {
+                                    onRefresh.invoke()
+                                    Toast.makeText(
+                                        pageContext,
+                                        t("common.refresh"),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    // Generic: reopen current route to force recomposition of data
+                                    val route = nav?.currentDestination?.route
+                                    if (nav != null && !route.isNullOrBlank()) {
+                                        nav.navigate(route) {
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                        Toast.makeText(
+                                            pageContext,
+                                            t("common.refresh"),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        Toast.makeText(
+                                            pageContext,
+                                            t("common.refresh"),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
                             },
                             leadingIcon = { Icon(Icons.Default.Refresh, null) }
                         )

@@ -58,11 +58,10 @@ val isPureDebugOrMeta = taskNamesLower.isEmpty() || taskNamesLower.all { t ->
 val requiresReleaseSigning = !isPureDebugOrMeta
 
 
-// ── Certificate pinning (CI: -PenableCertPinning=true) ──
-// Requires real SPKI pins in CertificatePinning.HOST_PINS before enabling.
-// Cert pinning disabled for now — set true later when real SPKI pins are in CertificatePinning.HOST_PINS
-val appEnableCertPinning: Boolean = false
-// (project.findProperty("enableCertPinning") as String?)?.equals("true", ignoreCase = true) == true
+// ── Certificate pinning (CI / local: -PenableCertPinning=true) ──
+// Requires real SPKI pins in CertificatePinning.HOST_PINS; otherwise runtime skips pinning.
+val appEnableCertPinning: Boolean =
+    (project.findProperty("enableCertPinning") as String?)?.equals("true", ignoreCase = true) == true
 
 android {
     namespace = "com.mporttech.pro"
@@ -77,7 +76,7 @@ android {
         // API base — overridable via -PapiBaseUrl=... (CI workflow)
         buildConfigField("String", "API_BASE_URL", "\"${appApiBaseUrl}\"")
         buildConfigField("boolean", "ALLOW_OFFLINE_DEMO_LOGIN", "false")
-        buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")
+        buildConfigField("boolean", "ENABLE_CERT_PINNING", "$appEnableCertPinning")
     }
 
     // AGP 8+ recommended way for output name prefix
@@ -166,8 +165,8 @@ android {
             isDebuggable = false
             buildConfigField("String", "API_BASE_URL", "\"${appApiBaseUrl}\"")
             buildConfigField("boolean", "ALLOW_OFFLINE_DEMO_LOGIN", "false")
-            // Enable when production cert pins are configured in NetworkModule
-            buildConfigField("boolean", "ENABLE_CERT_PINNING", "false")
+            // Honour -PenableCertPinning=true when HOST_PINS are filled
+            buildConfigField("boolean", "ENABLE_CERT_PINNING", "$appEnableCertPinning")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

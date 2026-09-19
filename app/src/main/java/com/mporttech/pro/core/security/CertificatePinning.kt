@@ -28,40 +28,37 @@ import java.net.URI
  */
 object CertificatePinning {
 
-    /** Master switch — keep false until production pins are filled and tested. */
-    private const val PINNING_TEMPORARILY_DISABLED = true
-
-
     /**
      * Host → list of SPKI pins (`sha256/...`).
      *
-     * Replace placeholder values with output of `scripts/fetch-cert-pins.sh`
-     * before setting `ENABLE_CERT_PINNING=true` on release builds.
+     * Fill via: `./scripts/fetch-cert-pins.sh api.mandalanet.id`
+     * Then enable release pinning: `-PenableCertPinning=true`
      *
-     * Example after fetching real pins:
-     * ```
-     * "api.mandalanet.id" to listOf(
-     *     "sha256/AbCdEf...=",  // leaf
-     *     "sha256/XyZ...=",     // intermediate / backup
-     * )
-     * ```
+     * Pinning activates only when **all** of the following are true:
+     * 1. BuildConfig.ENABLE_CERT_PINNING == true
+     * 2. At least one host has a real `sha256/...` pin (not a placeholder)
+     *
+     * Empty list = pinning stays off (safe default for debug / pre-prod).
      */
     private val HOST_PINS: Map<String, List<String>> = mapOf(
-        // Production API host — pins MUST be real SPKI hashes before enabling.
         "api.mandalanet.id" to listOf(
-            // TODO: paste leaf pin from scripts/fetch-cert-pins.sh
-            // "sha256/LEAF_PIN_HERE=",
-            // TODO: paste intermediate or backup leaf pin
-            // "sha256/BACKUP_PIN_HERE=",
+            // Paste leaf + backup pins from scripts/fetch-cert-pins.sh, e.g.:
+            // "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            // "sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
         )
     )
 
+    private fun isRealPin(pin: String): Boolean =
+        pin.startsWith("sha256/") &&
+            pin.length > 20 &&
+            !pin.contains("PIN_HERE") &&
+            !pin.contains("AAAA") &&
+            !pin.contains("BBBB")
+
     /** True when flag is on and at least one host has a real pin. */
     fun isConfigured(): Boolean {
-        if (PINNING_TEMPORARILY_DISABLED || !Constants.ENABLE_CERT_PINNING) return false
-        return HOST_PINS.values.any { pins ->
-            pins.any { it.startsWith("sha256/") && !it.contains("PIN_HERE") && it.length > 20 }
-        }
+        if (!Constants.ENABLE_CERT_PINNING) return false
+        return HOST_PINS.values.any { pins -> pins.any(::isRealPin) }
     }
 
     /**
@@ -69,17 +66,14 @@ object CertificatePinning {
      * Returns null if pinning should not be applied (flag off or no pins).
      */
     fun buildPinnerOrNull(baseUrl: String = Constants.API_BASE_URL): CertificatePinner? {
-        if (PINNING_TEMPORARILY_DISABLED || !Constants.ENABLE_CERT_PINNING) return null
+        if (!isConfigured()) return null
 
         val primaryHost = hostOf(baseUrl) ?: "api.mandalanet.id"
         val builder = CertificatePinner.Builder()
         var added = 0
 
         fun addHost(host: String) {
-            val pins = HOST_PINS[host].orEmpty().filter { pin ->
-                pin.startsWith("sha256/") && pin.length > 20 && !pin.contains("PIN_HERE") &&
-                    !pin.contains("AAAA")
-            }
+            val pins = HOST_PINS[host].orEmpty().filter(::isRealPin)
             if (pins.isEmpty()) return
             // OkHttp vararg overload
             builder.add(host, *pins.toTypedArray())
