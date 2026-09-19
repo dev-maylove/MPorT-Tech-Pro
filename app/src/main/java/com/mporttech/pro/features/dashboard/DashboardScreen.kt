@@ -116,7 +116,7 @@ fun DashboardScreen(nav: NavController, vm: DashboardViewModel = hiltViewModel()
     }
     val healthSub = when {
         !dash.online -> "Offline"
-        dash.gatewayReachable -> "Perangkat terdeteksi"
+        dash.gatewayReachable -> "Devices detected"
         else -> "Gateway tidak merespons"
     }
 
