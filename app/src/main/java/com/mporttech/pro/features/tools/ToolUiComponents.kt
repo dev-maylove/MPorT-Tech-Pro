@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -608,125 +609,169 @@ internal fun SpeedChip(
 
 /**
  * Neon circular speed gauge — ported from MPorT-Tes-Speed (Flutter speed_gauge.dart).
- * Center shows only speed + unit — no logo.
  *
- * [fraction] is 0..1 (speed / maxSpeed). Needle sweeps 270° from 135° (bottom-left).
+ * Rendering strategy (optimized):
+ * - [drawWithCache] builds tick geometry + brushes once per size/color change
+ * - Needle is the only path that re-draws on [fraction] animation frames
+ * - No per-frame Color allocations or listOf() for gradients
+ * - Precomputed sin/cos for 60 ticks
+ *
+ * Center shows speed + unit only (no logo).
+ * [fraction] 0..1 maps to a 270° needle sweep from 135°.
  */
 @Composable
 internal fun SpeedDialGauge(
     fraction: Float,
     displayMbps: Double,
     modifier: Modifier = Modifier,
-    progressColor: Color = Color(0xFF00E5A0),
-    progressColorLight: Color = Color(0xFF5CFFC9),
+    progressColor: Color = GaugeColors.Gold,
+    progressColorLight: Color = GaugeColors.GoldLight,
 ) {
     val frac = fraction.coerceIn(0f, 1f)
-    val gold = progressColor
-    val goldLight = progressColorLight
-    val purple = Color(0xFF9B7BFF)
-    val purpleMid = Color(0xFF7B5CFF)
+    // Format once; avoid String.format every frame of the needle animation
+    val speedText = if (displayMbps > 0.0) {
+        String.format(Locale.US, "%.1f", displayMbps)
+    } else {
+        "0.0"
+    }
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val cx = size.width / 2f
-            val cy = size.height / 2f
-            val center = Offset(cx, cy)
-            val outerR = size.minDimension / 2f - 6.dp.toPx()
-            val trackR = outerR - 30.dp.toPx()
+        // Cached static face + cheap needle overlay
+        Box(
+            Modifier
+                .fillMaxSize()
+                .drawWithCache {
+                    val w = size.width
+                    val h = size.height
+                    val cx = w * 0.5f
+                    val cy = h * 0.5f
+                    val center = Offset(cx, cy)
+                    val outerR = size.minDimension * 0.5f - 6.dp.toPx()
+                    val trackR = outerR - 30.dp.toPx()
+                    val majorInner = outerR - 20.dp.toPx()
+                    val minorInner = outerR - 12.dp.toPx()
+                    val outerTick = outerR - 4.dp.toPx()
+                    val majorStroke = 2.4.dp.toPx()
+                    val minorStroke = 1.15.dp.toPx()
+                    val ringStroke = 3.4.dp.toPx()
+                    val needleGlow = 5.dp.toPx()
+                    val needleStroke = 2.6.dp.toPx()
+                    val hubR = 8.dp.toPx()
+                    val hubStroke = 2.dp.toPx()
+                    val tipInset = 8.dp.toPx()
 
-            // Radial fill background (dark core)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF0C1524), Color(0xFF05070E)),
-                    center = center,
-                    radius = outerR
-                ),
-                radius = outerR - 1.dp.toPx(),
-                center = center
-            )
+                    val gold = progressColor
+                    val goldLight = progressColorLight
+                    val purple = GaugeColors.Purple
+                    val purpleMid = GaugeColors.PurpleMid
+                    val hubFill = GaugeColors.HubFill
+                    val bgInner = GaugeColors.BgInner
+                    val bgOuter = GaugeColors.BgOuter
 
-            // 60 tick marks around full circle; major every 5
-            val tickCount = 60
-            for (i in 0 until tickCount) {
-                val t = i / tickCount.toFloat()
-                // Flutter: angle = -pi/2 + t * 2pi  →  start at top, clockwise in standard math
-                // Compose: 0° = east, positive = clockwise. Convert:
-                // math angle from +x axis: same as Flutter (cos/sin of math angle)
-                val angle = (-Math.PI / 2.0 + t * Math.PI * 2.0)
-                val isMajor = i % 5 == 0
-                val purpleBlend = if (t > 0.5f && t < 0.92f) {
-                    ((t - 0.5f) / 0.42f).coerceIn(0f, 1f)
-                } else 0f
-                val base = lerpColor(gold, purple, purpleBlend * 0.85f)
-                val color = base.copy(alpha = if (isMajor) 0.95f else 0.4f)
-                val inner = outerR - if (isMajor) 20.dp.toPx() else 12.dp.toPx()
-                val outerTick = outerR - 4.dp.toPx()
-                val cosA = cos(angle).toFloat()
-                val sinA = sin(angle).toFloat()
-                drawLine(
-                    color = color,
-                    start = Offset(cx + cosA * inner, cy + sinA * inner),
-                    end = Offset(cx + cosA * outerTick, cy + sinA * outerTick),
-                    strokeWidth = if (isMajor) 2.4.dp.toPx() else 1.15.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            }
+                    // Precompute 60 ticks (geometry + color) — runs only when size/colors change
+                    val tickCount = 60
+                    val tickSx = FloatArray(tickCount)
+                    val tickSy = FloatArray(tickCount)
+                    val tickEx = FloatArray(tickCount)
+                    val tickEy = FloatArray(tickCount)
+                    val tickW = FloatArray(tickCount)
+                    val tickColors = Array(tickCount) { gold }
+                    val twoPi = (Math.PI * 2.0).toFloat()
+                    val startAng = (-Math.PI / 2.0).toFloat()
+                    for (i in 0 until tickCount) {
+                        val t = i / tickCount.toFloat()
+                        val angle = startAng + t * twoPi
+                        val cosA = kotlin.math.cos(angle)
+                        val sinA = kotlin.math.sin(angle)
+                        val isMajor = i % 5 == 0
+                        val inner = if (isMajor) majorInner else minorInner
+                        tickSx[i] = cx + cosA * inner
+                        tickSy[i] = cy + sinA * inner
+                        tickEx[i] = cx + cosA * outerTick
+                        tickEy[i] = cy + sinA * outerTick
+                        tickW[i] = if (isMajor) majorStroke else minorStroke
+                        val purpleBlend = if (t > 0.5f && t < 0.92f) {
+                            ((t - 0.5f) / 0.42f).coerceIn(0f, 1f)
+                        } else 0f
+                        val base = lerpColor(gold, purple, purpleBlend * 0.85f)
+                        tickColors[i] = base.copy(alpha = if (isMajor) 0.95f else 0.4f)
+                    }
 
-            // Outer sweep-gradient ring
-            drawCircle(
-                brush = Brush.sweepGradient(
-                    colors = listOf(gold, goldLight, purpleMid, gold),
-                    center = center
-                ),
-                radius = outerR,
-                center = center,
-                style = Stroke(width = 3.4.dp.toPx())
-            )
+                    val bgBrush = Brush.radialGradient(
+                        colors = listOf(bgInner, bgOuter),
+                        center = center,
+                        radius = outerR
+                    )
+                    val ringBrush = Brush.sweepGradient(
+                        colors = listOf(gold, goldLight, purpleMid, gold),
+                        center = center
+                    )
 
-            // Needle: arcStart = 0.75*pi (135°), arcSweep = 1.5*pi (270°)
-            val arcStart = Math.PI * 0.75
-            val arcSweep = Math.PI * 1.5
-            val angle = arcStart + arcSweep * frac
-            val tip = Offset(
-                cx + cos(angle).toFloat() * (trackR - 8.dp.toPx()),
-                cy + sin(angle).toFloat() * (trackR - 8.dp.toPx())
-            )
-            // soft glow under needle
-            drawLine(
-                color = gold.copy(alpha = 0.3f),
-                start = center,
-                end = tip,
-                strokeWidth = 5.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-            drawLine(
-                color = gold,
-                start = center,
-                end = tip,
-                strokeWidth = 2.6.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-            // hub
-            drawCircle(color = Color(0xFF0A1628), radius = 8.dp.toPx(), center = center)
-            drawCircle(
-                color = gold,
-                radius = 8.dp.toPx(),
-                center = center,
-                style = Stroke(width = 2.dp.toPx())
-            )
-        }
+                    // Needle constants (radians)
+                    val arcStart = Math.PI * 0.75
+                    val arcSweep = Math.PI * 1.5
+                    val needleLen = trackR - tipInset
+                    val goldGlow = gold.copy(alpha = 0.3f)
 
-        // Center value only — no MPorT GO logo
+                    onDrawBehind {
+                        // Static face
+                        drawCircle(brush = bgBrush, radius = outerR - 1.dp.toPx(), center = center)
+                        for (i in 0 until tickCount) {
+                            drawLine(
+                                color = tickColors[i],
+                                start = Offset(tickSx[i], tickSy[i]),
+                                end = Offset(tickEx[i], tickEy[i]),
+                                strokeWidth = tickW[i],
+                                cap = StrokeCap.Round
+                            )
+                        }
+                        drawCircle(
+                            brush = ringBrush,
+                            radius = outerR,
+                            center = center,
+                            style = Stroke(width = ringStroke)
+                        )
+
+                        // Dynamic needle (frac read here → redraw only this lambda, cache kept)
+                        val angle = arcStart + arcSweep * frac
+                        val cosN = kotlin.math.cos(angle).toFloat()
+                        val sinN = kotlin.math.sin(angle).toFloat()
+                        val tip = Offset(cx + cosN * needleLen, cy + sinN * needleLen)
+                        drawLine(
+                            color = goldGlow,
+                            start = center,
+                            end = tip,
+                            strokeWidth = needleGlow,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            color = gold,
+                            start = center,
+                            end = tip,
+                            strokeWidth = needleStroke,
+                            cap = StrokeCap.Round
+                        )
+                        drawCircle(color = hubFill, radius = hubR, center = center)
+                        drawCircle(
+                            color = gold,
+                            radius = hubR,
+                            center = center,
+                            style = Stroke(width = hubStroke)
+                        )
+                    }
+                }
+        )
+
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                if (displayMbps > 0) String.format(Locale.US, "%.1f", displayMbps) else "0.0",
+                text = speedText,
                 fontSize = 44.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
                 lineHeight = 44.sp
             )
             Text(
-                "Mbps",
+                text = "Mbps",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = progressColorLight
@@ -735,7 +780,18 @@ internal fun SpeedDialGauge(
     }
 }
 
-/** Linear color blend (same idea as Flutter Color.lerp). */
+/** Shared constants so brushes/colors are not re-allocated as literals every composition. */
+private object GaugeColors {
+    val Gold = Color(0xFF00E5A0)
+    val GoldLight = Color(0xFF5CFFC9)
+    val Purple = Color(0xFF9B7BFF)
+    val PurpleMid = Color(0xFF7B5CFF)
+    val HubFill = Color(0xFF0A1628)
+    val BgInner = Color(0xFF0C1524)
+    val BgOuter = Color(0xFF05070E)
+}
+
+/** Linear color blend (Flutter Color.lerp equivalent). */
 private fun lerpColor(a: Color, b: Color, t: Float): Color {
     val x = t.coerceIn(0f, 1f)
     return Color(
@@ -745,3 +801,4 @@ private fun lerpColor(a: Color, b: Color, t: Float): Color {
         alpha = a.alpha + (b.alpha - a.alpha) * x
     )
 }
+
