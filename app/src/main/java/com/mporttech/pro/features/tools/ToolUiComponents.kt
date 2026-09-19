@@ -35,6 +35,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.Canvas
 import androidx.navigation.NavController
+import com.mporttech.pro.ui.i18n.Str
+import com.mporttech.pro.ui.i18n.loadSavedLanguage
 import com.mporttech.pro.ui.i18n.t
 
 @Composable
@@ -69,22 +71,20 @@ internal fun Page(
                 Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                 Spacer(Modifier.weight(1f))
                 var menuOpen by remember { mutableStateOf(false) }
+                // Resolve outside onClick — t() is @Composable and cannot run in callbacks
+                val refreshToast = t("common.refresh")
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
-                            text = { Text(t("common.refresh")) },
+                            text = { Text(refreshToast) },
                             onClick = {
                                 menuOpen = false
                                 if (onRefresh != null) {
                                     onRefresh.invoke()
-                                    Toast.makeText(
-                                        pageContext,
-                                        t("common.refresh"),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(pageContext, refreshToast, Toast.LENGTH_SHORT).show()
                                 } else {
                                     // Generic: reopen current route to force recomposition of data
                                     val route = nav?.currentDestination?.route
@@ -93,18 +93,8 @@ internal fun Page(
                                             launchSingleTop = true
                                             restoreState = true
                                         }
-                                        Toast.makeText(
-                                            pageContext,
-                                            t("common.refresh"),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    } else {
-                                        Toast.makeText(
-                                            pageContext,
-                                            t("common.refresh"),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
                                     }
+                                    Toast.makeText(pageContext, refreshToast, Toast.LENGTH_SHORT).show()
                                 }
                             },
                             leadingIcon = { Icon(Icons.Default.Refresh, null) }
