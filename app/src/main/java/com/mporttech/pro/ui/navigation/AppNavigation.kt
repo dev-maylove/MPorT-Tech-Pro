@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -78,12 +79,15 @@ fun AppNavigation() {
         containerColor = Color.Transparent,
         bottomBar = {
             if (route in topLevel) {
-                Surface(tonalElevation = 8.dp) {
+                Surface(
+                    tonalElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp)
-                            .background(Color(0xFF08111F)),
+                            .background(MaterialTheme.colorScheme.surface),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         BottomItem(
@@ -234,7 +238,7 @@ private fun BottomItem(
     modifier: Modifier,
     badgeCount: Int = 0
 ) {
-    val tint = if (selected) Color(0xFF00F0FF) else Color(0xFF5EC8E8)
+    val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .fillMaxHeight()

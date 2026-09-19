@@ -260,10 +260,18 @@ fun MPorTTechTheme(
     themeMode: ThemeMode = ThemeMode.DARK,
     content: @Composable () -> Unit
 ) {
-    // App is dark-only — light mode removed
-    CompositionLocalProvider(LocalMPorTColors provides DarkExtended) {
+    val systemDark = isSystemInDarkTheme()
+    val darkTheme = when (themeMode) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> systemDark
+    }
+    val colors = if (darkTheme) DarkExtended else LightExtended
+    val scheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
+    CompositionLocalProvider(LocalMPorTColors provides colors) {
         MaterialTheme(
-            colorScheme = DarkColorScheme,
+            colorScheme = scheme,
             typography = NeonTypography,
             content = content
         )

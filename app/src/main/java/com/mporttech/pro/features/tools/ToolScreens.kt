@@ -886,7 +886,8 @@ fun SpeedTestScreen(nav: NavController? = null) {
 
     var running by remember { mutableStateOf(false) }
     var probing by remember { mutableStateOf(false) }
-    var phase by remember { mutableStateOf("Siap") }
+    val readyLabel = t("speed.ready")
+    var phase by remember(readyLabel) { mutableStateOf(readyLabel) }
     var currentPhase by remember { mutableStateOf<Phase?>(null) }
     var downloadMbps by remember { mutableStateOf(0.0) }
     var uploadMbps by remember { mutableStateOf(0.0) }
@@ -1019,17 +1020,17 @@ fun SpeedTestScreen(nav: NavController? = null) {
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             SpeedMetricCard(
-                title = "Download",
+                title = t("speed.download"),
                 value = if (downloadMbps > 0) String.format(Locale.US, "%.1f", downloadMbps) else "0.0",
-                unit = "Mbps",
-                accent = Color(0xFF00E5FF),
+                unit = t("speed.mbps"),
+                accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
             SpeedMetricCard(
-                title = "Upload",
+                title = t("speed.upload"),
                 value = if (uploadMbps > 0) String.format(Locale.US, "%.1f", uploadMbps) else "—",
-                unit = "Mbps",
-                accent = Color(0xFF00E5FF),
+                unit = t("speed.mbps"),
+                accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1039,10 +1040,10 @@ fun SpeedTestScreen(nav: NavController? = null) {
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SpeedChip("Ping", if (pingMs > 0) String.format(Locale.US, "%.0f", pingMs) else "—", "ms", Modifier.weight(1f))
-            SpeedChip("Avg", if (avgPingMs > 0) String.format(Locale.US, "%.0f", avgPingMs) else "—", "ms", Modifier.weight(1f))
-            SpeedChip("Jitter", if (jitterMs > 0) String.format(Locale.US, "%.0f", jitterMs) else "—", "ms", Modifier.weight(1f))
-            SpeedChip("Loss", if (pingMs > 0 || lossPct > 0) String.format(Locale.US, "%.0f", lossPct) else "—", "%", Modifier.weight(1f))
+            SpeedChip(t("speed.ping"), if (pingMs > 0) String.format(Locale.US, "%.0f", pingMs) else "—", t("speed.ms"), Modifier.weight(1f))
+            SpeedChip(t("speed.avg"), if (avgPingMs > 0) String.format(Locale.US, "%.0f", avgPingMs) else "—", t("speed.ms"), Modifier.weight(1f))
+            SpeedChip(t("speed.jitter"), if (jitterMs > 0) String.format(Locale.US, "%.0f", jitterMs) else "—", t("speed.ms"), Modifier.weight(1f))
+            SpeedChip(t("speed.loss"), if (pingMs > 0 || lossPct > 0) String.format(Locale.US, "%.0f", lossPct) else "—", "%", Modifier.weight(1f))
         }
         Spacer(Modifier.height(8.dp))
         // ── Neon dial gauge (no center logo) ──
@@ -1923,7 +1924,7 @@ fun ProfileScreen(nav: NavController) {
                         themeState.value = ThemeMode.DARK
                         saveThemeMode(context, ThemeMode.DARK)
                     },
-                    label = { Text(t("common.dark_mode")) }
+                    label = { Text(t("theme.dark")) }
                 )
                 FilterChip(
                     selected = themeState.value == ThemeMode.LIGHT,
@@ -1931,7 +1932,7 @@ fun ProfileScreen(nav: NavController) {
                         themeState.value = ThemeMode.LIGHT
                         saveThemeMode(context, ThemeMode.LIGHT)
                     },
-                    label = { Text("Light") }
+                    label = { Text(t("theme.light")) }
                 )
                 FilterChip(
                     selected = themeState.value == ThemeMode.SYSTEM,
@@ -1939,7 +1940,7 @@ fun ProfileScreen(nav: NavController) {
                         themeState.value = ThemeMode.SYSTEM
                         saveThemeMode(context, ThemeMode.SYSTEM)
                     },
-                    label = { Text("System") }
+                    label = { Text(t("theme.system")) }
                 )
             }
         }

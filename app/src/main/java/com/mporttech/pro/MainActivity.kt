@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import com.mporttech.pro.core.auth.SessionManager
 import com.mporttech.pro.ui.i18n.LocalAppLanguage
 import com.mporttech.pro.ui.i18n.loadSavedLanguage
@@ -83,6 +84,16 @@ class MainActivity : ComponentActivity() {
             val themeModeState = rememberThemeModeState(loadSavedThemeMode(context))
             val languageState = rememberAppLanguageState(loadSavedLanguage(context))
             val themeMode by themeModeState
+            val darkBars = when (themeMode) {
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
+                ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+            SideEffect {
+                val controller = WindowCompat.getInsetsController(window, window.decorView)
+                controller.isAppearanceLightStatusBars = !darkBars
+                controller.isAppearanceLightNavigationBars = !darkBars
+            }
             CompositionLocalProvider(
                 LocalThemeMode provides themeModeState,
                 LocalAppLanguage provides languageState
