@@ -24,6 +24,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
+import kotlin.math.sin
+import kotlin.math.cos
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.Canvas
 import androidx.navigation.NavController
 import com.mporttech.pro.ui.i18n.t
 
@@ -533,3 +542,206 @@ internal fun openWifiConnectDialog(context: android.content.Context, ssid: Strin
 }
 
 
+@Composable
+internal fun SpeedMetricCard(
+    title: String,
+    value: String,
+    unit: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1B2A))
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+            Text(title, fontSize = 12.sp, color = Color(0xFF8BA3B8), fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    value,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accent
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    unit,
+                    fontSize = 12.sp,
+                    color = Color(0xFF8BA3B8),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SpeedChip(
+    label: String,
+    value: String,
+    unit: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1B2A))
+    ) {
+        Column(
+            Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(label, fontSize = 10.sp, color = Color(0xFF8BA3B8))
+            Spacer(Modifier.height(4.dp))
+            Text(
+                value,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFE8F4FF)
+            )
+            Text(unit, fontSize = 9.sp, color = Color(0xFF8BA3B8))
+        }
+    }
+}
+
+/**
+ * Neon circular speed gauge — ported from MPorT-Tes-Speed (Flutter speed_gauge.dart).
+ * Center shows only speed + unit — no logo.
+ *
+ * [fraction] is 0..1 (speed / maxSpeed). Needle sweeps 270° from 135° (bottom-left).
+ */
+@Composable
+internal fun SpeedDialGauge(
+    fraction: Float,
+    displayMbps: Double,
+    modifier: Modifier = Modifier,
+    progressColor: Color = Color(0xFF00E5A0),
+    progressColorLight: Color = Color(0xFF5CFFC9),
+) {
+    val frac = fraction.coerceIn(0f, 1f)
+    val gold = progressColor
+    val goldLight = progressColorLight
+    val purple = Color(0xFF9B7BFF)
+    val purpleMid = Color(0xFF7B5CFF)
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cx = size.width / 2f
+            val cy = size.height / 2f
+            val center = Offset(cx, cy)
+            val outerR = size.minDimension / 2f - 6.dp.toPx()
+            val trackR = outerR - 30.dp.toPx()
+
+            // Radial fill background (dark core)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF0C1524), Color(0xFF05070E)),
+                    center = center,
+                    radius = outerR
+                ),
+                radius = outerR - 1.dp.toPx(),
+                center = center
+            )
+
+            // 60 tick marks around full circle; major every 5
+            val tickCount = 60
+            for (i in 0 until tickCount) {
+                val t = i / tickCount.toFloat()
+                // Flutter: angle = -pi/2 + t * 2pi  →  start at top, clockwise in standard math
+                // Compose: 0° = east, positive = clockwise. Convert:
+                // math angle from +x axis: same as Flutter (cos/sin of math angle)
+                val angle = (-Math.PI / 2.0 + t * Math.PI * 2.0)
+                val isMajor = i % 5 == 0
+                val purpleBlend = if (t > 0.5f && t < 0.92f) {
+                    ((t - 0.5f) / 0.42f).coerceIn(0f, 1f)
+                } else 0f
+                val base = lerpColor(gold, purple, purpleBlend * 0.85f)
+                val color = base.copy(alpha = if (isMajor) 0.95f else 0.4f)
+                val inner = outerR - if (isMajor) 20.dp.toPx() else 12.dp.toPx()
+                val outerTick = outerR - 4.dp.toPx()
+                val cosA = cos(angle).toFloat()
+                val sinA = sin(angle).toFloat()
+                drawLine(
+                    color = color,
+                    start = Offset(cx + cosA * inner, cy + sinA * inner),
+                    end = Offset(cx + cosA * outerTick, cy + sinA * outerTick),
+                    strokeWidth = if (isMajor) 2.4.dp.toPx() else 1.15.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            }
+
+            // Outer sweep-gradient ring
+            drawCircle(
+                brush = Brush.sweepGradient(
+                    colors = listOf(gold, goldLight, purpleMid, gold),
+                    center = center
+                ),
+                radius = outerR,
+                center = center,
+                style = Stroke(width = 3.4.dp.toPx())
+            )
+
+            // Needle: arcStart = 0.75*pi (135°), arcSweep = 1.5*pi (270°)
+            val arcStart = Math.PI * 0.75
+            val arcSweep = Math.PI * 1.5
+            val angle = arcStart + arcSweep * frac
+            val tip = Offset(
+                cx + cos(angle).toFloat() * (trackR - 8.dp.toPx()),
+                cy + sin(angle).toFloat() * (trackR - 8.dp.toPx())
+            )
+            // soft glow under needle
+            drawLine(
+                color = gold.copy(alpha = 0.3f),
+                start = center,
+                end = tip,
+                strokeWidth = 5.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                color = gold,
+                start = center,
+                end = tip,
+                strokeWidth = 2.6.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            // hub
+            drawCircle(color = Color(0xFF0A1628), radius = 8.dp.toPx(), center = center)
+            drawCircle(
+                color = gold,
+                radius = 8.dp.toPx(),
+                center = center,
+                style = Stroke(width = 2.dp.toPx())
+            )
+        }
+
+        // Center value only — no MPorT GO logo
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                if (displayMbps > 0) String.format(Locale.US, "%.1f", displayMbps) else "0.0",
+                fontSize = 44.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White,
+                lineHeight = 44.sp
+            )
+            Text(
+                "Mbps",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = progressColorLight
+            )
+        }
+    }
+}
+
+/** Linear color blend (same idea as Flutter Color.lerp). */
+private fun lerpColor(a: Color, b: Color, t: Float): Color {
+    val x = t.coerceIn(0f, 1f)
+    return Color(
+        red = a.red + (b.red - a.red) * x,
+        green = a.green + (b.green - a.green) * x,
+        blue = a.blue + (b.blue - a.blue) * x,
+        alpha = a.alpha + (b.alpha - a.alpha) * x
+    )
+}

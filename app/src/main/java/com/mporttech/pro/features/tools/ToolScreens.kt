@@ -71,6 +71,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.io.File
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import kotlin.math.sin
+import kotlin.math.cos
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Size
+import androidx.compose.foundation.Canvas
 
 internal data class Tile(val title: String, val subtitle: String, val icon: ImageVector, val route: String = "")
 
@@ -999,73 +1009,86 @@ fun SpeedTestScreen(nav: NavController? = null) {
             }
         }
 
-        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(
-                Modifier.fillMaxWidth().padding(22.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val resolvedIp = remember(selected.host) {
-                    try {
-                        TestServer.resolveHostToIp(selected.host).substringBefore(":")
-                    } catch (_: Exception) {
-                        selected.host.substringBefore(":")
-                    }
-                }
-                Text("${selected.displayName}  •  $resolvedIp", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (selected.sponsor.isNotBlank() && selected.sponsor != selected.displayName) {
-                    Text(selected.sponsor, fontSize = 9.sp, color = MaterialTheme.colorScheme.primary)
-                }
-                Text(phase, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(10.dp))
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(180.dp)) {
-                    CircularProgressIndicator(
-                        progress = {
-                            when {
-                                running -> progress.coerceIn(0.05f, 1f)
-                                downloadMbps > 0 -> (downloadMbps / 200.0).toFloat().coerceIn(0.05f, 1f)
-                                else -> 0.05f
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                        strokeWidth = 12.dp,
-                        color = Color(0xFF00F0FF),
-                        trackColor = Color(0xFF0A2840)
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        val main = when {
-                            running && currentPhase == Phase.UPLOAD -> uploadMbps
-                            running && currentPhase == Phase.DOWNLOAD -> downloadMbps
-                            downloadMbps > 0 -> downloadMbps
-                            else -> 0.0
-                        }
-                        Text(
-                            if (main > 0) String.format(Locale.US, "%.1f", main) else "—",
-                            fontSize = 34.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text("Mbps", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Spacer(Modifier.height(14.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                    Text(
-                        "Download\n${if (downloadMbps > 0) String.format(Locale.US, "%.1f", downloadMbps) else "—"} Mbps",
-                        color = Color(0xFF4EDCFF),
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        "Upload\n${if (uploadMbps > 0) String.format(Locale.US, "%.1f", uploadMbps) else "—"} Mbps",
-                        color = Color(0xFFB680FF),
-                        textAlign = TextAlign.Center
-                    )
-                }
+        // ── Download / Upload cards (screenshot style) ──
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SpeedMetricCard(
+                title = "Download",
+                value = if (downloadMbps > 0) String.format(Locale.US, "%.1f", downloadMbps) else "0.0",
+                unit = "Mbps",
+                accent = Color(0xFF00E5FF),
+                modifier = Modifier.weight(1f)
+            )
+            SpeedMetricCard(
+                title = "Upload",
+                value = if (uploadMbps > 0) String.format(Locale.US, "%.1f", uploadMbps) else "—",
+                unit = "Mbps",
+                accent = Color(0xFF00E5FF),
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        // ── Ping / Avg / Jitter / Loss chips ──
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SpeedChip("Ping", if (pingMs > 0) String.format(Locale.US, "%.0f", pingMs) else "—", "ms", Modifier.weight(1f))
+            SpeedChip("Avg", if (pingMs > 0 && jitterMs >= 0) String.format(Locale.US, "%.0f", pingMs) else "—", "ms", Modifier.weight(1f))
+            SpeedChip("Jitter", if (jitterMs > 0) String.format(Locale.US, "%.0f", jitterMs) else "—", "ms", Modifier.weight(1f))
+            SpeedChip("Loss", if (pingMs > 0) String.format(Locale.US, "%.0f", lossPct) else "—", "%", Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(16.dp))
+        // ── Neon dial gauge (no center logo) ──
+        val gaugeValue = when {
+            running && currentPhase == Phase.UPLOAD -> uploadMbps
+            running && currentPhase == Phase.DOWNLOAD -> downloadMbps
+            downloadMbps > 0 -> downloadMbps
+            else -> 0.0
+        }
+        // MPorT-Tes-Speed default maxSpeed = 1000 Mbps
+        val gaugeFraction = (gaugeValue / 1000.0).toFloat().coerceIn(0f, 1f)
+        val animatedFraction by animateFloatAsState(
+            targetValue = gaugeFraction,
+            animationSpec = tween(450, easing = FastOutSlowInEasing),
+            label = "gaugeFrac"
+        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            SpeedDialGauge(
+                fraction = animatedFraction,
+                displayMbps = gaugeValue,
+                modifier = Modifier.size(280.dp)
+            )
+        }
+        Text(
+            phase,
+            fontSize = 12.sp,
+            color = Color(0xFF00E5A0),
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+        val resolvedIp = remember(selected.host) {
+            try {
+                TestServer.resolveHostToIp(selected.host).substringBefore(":")
+            } catch (_: Exception) {
+                selected.host.substringBefore(":")
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            MetricBox("Ping", if (pingMs > 0) String.format(Locale.US, "%.0f ms", pingMs) else "—", Color(0xFF4EDCFF), Modifier.weight(1f))
-            MetricBox("Jitter", if (jitterMs > 0) String.format(Locale.US, "%.1f ms", jitterMs) else "—", Color(0xFFB680FF), Modifier.weight(1f))
-            MetricBox("Loss", if (pingMs > 0) String.format(Locale.US, "%.0f%%", lossPct) else "—", Color(0xFF39FF14), Modifier.weight(1f))
-        }
+        Text(
+            "${selected.displayName}  •  $resolvedIp",
+            fontSize = 10.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
         Text(status, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             Button(
