@@ -34,10 +34,11 @@ object NetworkModule {
     @Singleton
     fun provideAuthInterceptor(tokenStore: TokenStore): Interceptor = Interceptor { chain ->
         val original = chain.request()
-        val token = tokenStore.accessToken()
         val builder = original.newBuilder().header("Accept", "application/json")
-        if (!token.isNullOrBlank() && original.header("Authorization") == null) {
-            builder.header("Authorization", "Bearer $token")
+        // Prefer stored token type (Bearer / Sanctum) via bearerHeader()
+        val auth = tokenStore.bearerHeader()
+        if (!auth.isNullOrBlank() && original.header("Authorization") == null) {
+            builder.header("Authorization", auth)
         }
         chain.proceed(builder.build())
     }

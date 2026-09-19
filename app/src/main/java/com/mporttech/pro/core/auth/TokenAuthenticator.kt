@@ -44,9 +44,7 @@ class TokenAuthenticator @Inject constructor(
         synchronized(this) {
             // Another thread may have refreshed already
             val currentAccess = tokenStore.accessToken()
-            val requestToken = response.request.header("Authorization")
-                ?.removePrefix("Bearer ")
-                ?.trim()
+            val requestToken = extractBearerToken(response.request.header("Authorization"))
             if (!currentAccess.isNullOrBlank() && currentAccess != requestToken) {
                 return response.request.newBuilder()
                     .header("Authorization", "Bearer $currentAccess")
@@ -91,6 +89,18 @@ class TokenAuthenticator @Inject constructor(
                 tokenStore.clear()
                 null
             }
+        }
+    }
+
+    /** Extract raw token from "Bearer xxx", "bearer xxx", or bare token. */
+    private fun extractBearerToken(header: String?): String? {
+        if (header.isNullOrBlank()) return null
+        val trimmed = header.trim()
+        val parts = trimmed.split(Regex("\\s+"), limit = 2)
+        return if (parts.size == 2 && parts[0].equals("Bearer", ignoreCase = true)) {
+            parts[1].trim().takeIf { it.isNotEmpty() }
+        } else {
+            trimmed.takeIf { it.isNotEmpty() }
         }
     }
 

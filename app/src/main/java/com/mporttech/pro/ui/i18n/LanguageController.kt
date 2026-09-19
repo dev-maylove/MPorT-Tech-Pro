@@ -6,6 +6,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.mporttech.pro.core.common.Constants
 
 enum class AppLanguage(val code: String, val labelNative: String) {
     INDONESIAN("id", "Indonesia"),
@@ -21,16 +22,27 @@ val LocalAppLanguage = staticCompositionLocalOf<MutableState<AppLanguage>> {
     error("LocalAppLanguage not provided")
 }
 
-private const val PREFS = "mport_prefs"
 private const val KEY_LANG = "app_language"
+/** Legacy prefs name used before Constants.PREFS_LANG. */
+private const val LEGACY_PREFS = "mport_prefs"
 
 fun loadSavedLanguage(context: Context): AppLanguage {
-    val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-    return AppLanguage.fromCode(prefs.getString(KEY_LANG, AppLanguage.INDONESIAN.code))
+    // Prefer canonical prefs file; fall back to legacy so existing installs keep language
+    val canonical = context.getSharedPreferences(Constants.PREFS_LANG, Context.MODE_PRIVATE)
+    var code = canonical.getString(KEY_LANG, null)
+    if (code == null) {
+        val legacy = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+        code = legacy.getString(KEY_LANG, null)
+        if (code != null) {
+            // Migrate once
+            canonical.edit().putString(KEY_LANG, code).apply()
+        }
+    }
+    return AppLanguage.fromCode(code ?: AppLanguage.INDONESIAN.code)
 }
 
 fun saveLanguage(context: Context, language: AppLanguage) {
-    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    context.getSharedPreferences(Constants.PREFS_LANG, Context.MODE_PRIVATE)
         .edit()
         .putString(KEY_LANG, language.code)
         .apply()
